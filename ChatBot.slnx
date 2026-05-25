@@ -1,6 +1,6 @@
 <Solution>
-  <Project Path="Business Object/Business Object.csproj" />
+  <Project Path="BusinessObject/BusinessObject.csproj" Id="f0907b30-b700-419d-a753-667033f56a71" />
   <Project Path="ChatBot/ChatBot.csproj" Id="d2baed8d-d37a-4085-8c9f-4be8bde6ed68" />
-  <Project Path="Data Access Layer/Data Access Layer.csproj" />
-  <Project Path="Service Layer/Service Layer.csproj" />
+  <Project Path="DataAccessLayer/DataAccessLayer.csproj" Id="190727bb-54af-46f3-88eb-ef635b90c8f3" />
+  <Project Path="ServiceLayer/ServiceLayer.csproj" Id="56daaf80-4b81-457b-a313-473f911f04b3" />
 </Solution>
