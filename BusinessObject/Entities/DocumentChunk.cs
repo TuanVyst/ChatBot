@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BusinessObject.Entities
 {
-    internal class DocumentChunk
+    public class DocumentChunk
     {
     }
 }
