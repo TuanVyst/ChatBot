@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace ChatbotWeb.DAL.Entities
+namespace BusinessObject.Entities
 {
     public class Document
     {
