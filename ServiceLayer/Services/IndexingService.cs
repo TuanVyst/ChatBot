@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using BusinessObject.Entities;
 using DataAccessLayer;
 using Microsoft.EntityFrameworkCore;
+using Pgvector; // BẮT BUỘC THÊM DÒNG NÀY
+
 namespace ServiceLayer.Services
 {
     public class IndexingService
@@ -14,6 +16,7 @@ namespace ServiceLayer.Services
         private readonly ChunkingService _chunkingService;
         private readonly EmbeddingService _embeddingService;
         private readonly FileUploadService _fileUploadService;
+
         public IndexingService(
             AppDbContext context,
             TextExtractionService textExtractionService,
@@ -27,6 +30,7 @@ namespace ServiceLayer.Services
             _embeddingService = embeddingService;
             _fileUploadService = fileUploadService;
         }
+
         public async Task<(bool success, string? errorMessage)> IndexDocumentAsync(Document document)
         {
             using (var transaction = _context.Database.BeginTransaction())
@@ -36,6 +40,7 @@ namespace ServiceLayer.Services
                     document.IndexStatus = "Processing";
                     _context.Documents.Update(document);
                     await _context.SaveChangesAsync();
+
                     var (extractSuccess, extractedText, extractError) = await _textExtractionService.ExtractTextAsync(document.FilePath);
                     if (!extractSuccess)
                     {
@@ -47,6 +52,7 @@ namespace ServiceLayer.Services
                         _fileUploadService.DeleteFile(document.FilePath);
                         return (false, extractError);
                     }
+
                     var chunks = _chunkingService.ChunkText(extractedText ?? "");
                     if (chunks.Count == 0)
                     {
@@ -58,6 +64,7 @@ namespace ServiceLayer.Services
                         _fileUploadService.DeleteFile(document.FilePath);
                         return (false, "No chunks generated");
                     }
+
                     int chunkOrder = 0;
                     foreach (var chunk in chunks)
                     {
@@ -72,20 +79,27 @@ namespace ServiceLayer.Services
                             _fileUploadService.DeleteFile(document.FilePath);
                             return (false, embedError);
                         }
-                        var embeddingJson = System.Text.Json.JsonSerializer.Serialize(embedding?.ToArray() ?? Array.Empty<float>());
+
+                   
+                        Vector? vectorData = embedding != null ? new Vector(embedding.ToArray()) : null;
+
                         var documentChunk = new DocumentChunk
                         {
                             DocumentId = document.Id,
                             Content = chunk,
-                            VectorJson = embeddingJson,
+                            Embedding = vectorData, // Gán trực tiếp kiểu Vector
                             ChunkOrder = chunkOrder++
                         };
+                        // -----------------------------------
+
                         _context.DocumentChunks.Add(documentChunk);
                     }
+
                     document.IndexStatus = "Completed";
                     document.ErrorMessage = null;
                     _context.Documents.Update(document);
                     await _context.SaveChangesAsync();
+
                     await transaction.CommitAsync();
                     return (true, null);
                 }

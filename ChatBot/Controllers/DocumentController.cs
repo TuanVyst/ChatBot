@@ -25,22 +25,27 @@ namespace ChatBot.Controllers
             _indexingService = indexingService;
         }
         [HttpPost("upload")]
+        // Xóa [FromQuery], đổi thành [FromForm]
         public async Task<IActionResult> UploadDocument(
-            IFormFile file,
-            [FromQuery] string subjectName,
-            [FromQuery] string chapterName = "Default")
+     IFormFile file,
+     [FromForm] string subjectName,
+     [FromForm] string chapterName = "Default")
         {
             try
             {
                 if (file == null || file.Length == 0)
-                    return BadRequest("File is required");
+                    return BadRequest("Vui lòng chọn file tải lên.");
+
                 if (string.IsNullOrWhiteSpace(subjectName))
-                    return BadRequest("Subject name is required");
+                    return BadRequest("Tên môn học không được để trống.");
+
+                // ... code lưu file giữ nguyên ...
                 using (var stream = file.OpenReadStream())
                 {
                     var (uploadSuccess, filePath, uploadError) = await _fileUploadService.UploadFileAsync(stream, file.FileName);
                     if (!uploadSuccess)
-                        return BadRequest(uploadError);
+                        return BadRequest($"Lỗi lưu file: {uploadError}");
+
                     var fileSize = _fileUploadService.GetFileSize(filePath);
                     var document = new Document
                     {
@@ -52,19 +57,29 @@ namespace ChatBot.Controllers
                         IndexStatus = "Pending",
                         UploadDate = DateTime.UtcNow
                     };
+
                     _context.Documents.Add(document);
                     await _context.SaveChangesAsync();
+
+                    // LƯU Ý: Dòng này có thể mất rất nhiều thời gian với file lớn
                     var (indexSuccess, indexError) = await _indexingService.IndexDocumentAsync(document);
+
                     if (!indexSuccess)
-                        return BadRequest($"Indexing failed: {indexError}");
-                    return Ok(new { documentId = document.Id, message = "File uploaded and indexed successfully" });
+                        return BadRequest($"File đã tải lên nhưng lỗi khi xử lý AI: {indexError}");
+
+                    return Ok(new
+                    {
+                        documentId = document.Id,
+                        message = "Tải lên và xử lý dữ liệu AI thành công!"
+                    });
                 }
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error: {ex.Message}");
+                return StatusCode(500, $"Lỗi hệ thống: {ex.Message}");
             }
         }
+        
         [HttpGet]
         public async Task<IActionResult> GetDocuments([FromQuery] string subjectName = null)
         {

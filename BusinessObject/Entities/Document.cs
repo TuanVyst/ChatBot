@@ -32,7 +32,7 @@ namespace BusinessObject.Entities
         [StringLength(50)]
         public string IndexStatus { get; set; } = "Pending"; // Trạng thái indexing: Pending, Completed, Failed
 
-        public string ErrorMessage { get; set; } // Lưu thông báo lỗi nếu indexing thất bại
+        public string? ErrorMessage { get; set; } // Lưu thông báo lỗi nếu indexing thất bại
 
         // Quan hệ 1 - N: Một file tài liệu sau khi băm sẽ sinh ra nhiều đoạn văn bản nhỏ (Chunks)
         public virtual ICollection<DocumentChunk> DocumentChunks { get; set; }

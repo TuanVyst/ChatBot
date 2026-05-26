@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-
+using Pgvector;
 namespace BusinessObject.Entities
 {
     public class DocumentChunk
@@ -18,7 +18,7 @@ namespace BusinessObject.Entities
         public string Content { get; set; } // Đoạn chữ thô (Text) sau khi băm nhỏ
 
         [Required]
-        public string VectorJson { get; set; } // Mảng float[] được ép kiểu sang chuỗi JSON để lưu vào SQL Server
+        public Vector Embedding { get; set; } // Mảng float[] được ép kiểu sang chuỗi JSON để lưu vào SQL Server
 
         public int ChunkOrder { get; set; } // Số thứ tự của đoạn chunk (Đoạn 1, Đoạn 2, Đoạn 3...)
     }

@@ -15,7 +15,8 @@ catch
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
+        o => o.UseVector())); 
 
 // Register custom services
 var uploadFolderPath = builder.Configuration["UploadFolderPath"] ?? "D:\\Upload";

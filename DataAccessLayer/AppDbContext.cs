@@ -1,7 +1,6 @@
 ﻿using BusinessObject.Entities;
 using Microsoft.EntityFrameworkCore;
 using Pgvector.EntityFrameworkCore;
-
 namespace DataAccessLayer
 {
     public class AppDbContext : DbContext
@@ -16,6 +15,10 @@ namespace DataAccessLayer
         {
             // Kích hoạt extension pgvector trong PostgreSQL
             modelBuilder.HasPostgresExtension("vector");
+
+            modelBuilder.Entity<DocumentChunk>()
+            .Property(e => e.Embedding)
+            .HasColumnType("vector(3072)");
         }
     }
 }

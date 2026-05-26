@@ -29,8 +29,7 @@ namespace DataAccessLayer
             }
 
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-            optionsBuilder.UseNpgsql(connectionString);
-
+            optionsBuilder.UseNpgsql(connectionString, o => o.UseVector());
             return new AppDbContext(optionsBuilder.Options);
         }
     }
