@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-
+using Microsoft.Extensions.Configuration;
 
 namespace DataAccessLayer
 {
@@ -8,12 +8,28 @@ namespace DataAccessLayer
     {
         public AppDbContext CreateDbContext(string[] args)
         {
-            var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
+            // Lấy connection string từ appsettings hoặc biến môi trường
+            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+            var baseDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "ChatBot");
+            
+            var configBuilder = new ConfigurationBuilder()
+                .SetBasePath(baseDir)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+                .AddJsonFile($"appsettings.{env}.json", optional: true, reloadOnChange: false)
+                .AddEnvironmentVariables();
+            
+            var config = configBuilder.Build();
 
-            // Cung cấp một chuỗi kết nối (Connection string)
-            // Lưu ý: Chuỗi này CHỈ dùng để EF Core có thể tạo file Migration. 
-            // Khi chạy ứng dụng thực tế, nó vẫn sẽ dùng chuỗi kết nối trong appsettings.json của ChatBot.
-            optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=ChatBotDb;Username=postgres;Password=12345678");
+            var connectionString = config.GetConnectionString("DefaultConnection");
+            
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException(
+                    "Connection string 'DefaultConnection' not found in appsettings.json or environment variables.");
+            }
+
+            var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
+            optionsBuilder.UseNpgsql(connectionString);
 
             return new AppDbContext(optionsBuilder.Options);
         }
