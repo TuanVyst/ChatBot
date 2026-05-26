@@ -1,4 +1,5 @@
 using DataAccessLayer;
+using ServiceLayer.Services;
 using Microsoft.EntityFrameworkCore;
 
 // Load environment variables from .env file
@@ -15,6 +16,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register custom services
+var uploadFolderPath = builder.Configuration["UploadFolderPath"] ?? "D:\\Upload";
+var maxFileSize = long.TryParse(builder.Configuration["MaxFileSize"], out var size) ? size : 314572800; // 300MB default
+var openAiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+var chunkSize = int.TryParse(builder.Configuration["ChunkSize"], out var cs) ? cs : 512;
+
+builder.Services.AddSingleton(new FileUploadService(uploadFolderPath, maxFileSize));
+builder.Services.AddScoped<TextExtractionService>();
+builder.Services.AddScoped(new ChunkingService(chunkSize, 50));
+builder.Services.AddScoped(new EmbeddingService(openAiKey));
+builder.Services.AddScoped<IndexingService>();
 
 builder.Services.AddControllersWithViews();
 
