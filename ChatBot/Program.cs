@@ -54,6 +54,7 @@ if (app.Environment.IsDevelopment())
         {
             // Đường dẫn truy cập sẽ là: https://localhost:<port>/swagger
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "RAG Chatbot API v1");
+            c.RoutePrefix = string.Empty;
         });
     }
 }

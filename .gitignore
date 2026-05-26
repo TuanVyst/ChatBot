@@ -367,3 +367,4 @@ FodyWeavers.xsd
 .env.local
 .env.*.local
 /ChatBot/.env
+.env.*.local
