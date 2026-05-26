@@ -50,7 +50,7 @@ namespace ChatBot.Controllers
                         SubjectName = subjectName,
                         ChapterName = chapterName,
                         IndexStatus = "Pending",
-                        UploadDate = DateTime.Now
+                        UploadDate = DateTime.UtcNow
                     };
                     _context.Documents.Add(document);
                     await _context.SaveChangesAsync();
