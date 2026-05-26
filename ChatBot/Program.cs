@@ -25,8 +25,8 @@ var chunkSize = int.TryParse(builder.Configuration["ChunkSize"], out var cs) ? c
 
 builder.Services.AddSingleton(new FileUploadService(uploadFolderPath, maxFileSize));
 builder.Services.AddScoped<TextExtractionService>();
-builder.Services.AddScoped(new ChunkingService(chunkSize, 50));
-builder.Services.AddScoped(new EmbeddingService(openAiKey));
+builder.Services.AddScoped(sp => new ChunkingService(chunkSize, 50));
+builder.Services.AddScoped(sp => new EmbeddingService(openAiKey ?? throw new InvalidOperationException("OPENAI_API_KEY not configured")));
 builder.Services.AddScoped<IndexingService>();
 
 builder.Services.AddControllersWithViews();
