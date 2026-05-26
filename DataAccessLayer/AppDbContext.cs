@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using BusinessObject.Entities;
+using Microsoft.EntityFrameworkCore;
 using Pgvector.EntityFrameworkCore;
 
 namespace DataAccessLayer
@@ -6,7 +7,11 @@ namespace DataAccessLayer
     public class AppDbContext : DbContext
     {
 
-
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        {
+        }
+        public DbSet<Document> Documents { get; set; }
+        public DbSet<DocumentChunk> DocumentChunks { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Kích hoạt extension pgvector trong PostgreSQL
