@@ -31,7 +31,7 @@ namespace ServiceLayer.Services
                 if (string.IsNullOrWhiteSpace(text))
                     return (false, null, "Text cannot be empty");
 
-                Console.WriteLine($"\n---> KIỂM TRA KEY: [{_apiKey}] <--- \n");
+            
 
                 // 1. Tạo request body theo chuẩn của Gemini API
                 var requestBody = new
