@@ -8,11 +8,11 @@ namespace ChatBot.Controllers
     {
         private static readonly List<string> Subjects = new List<string>
         {
-            "L?p trình C#",
-            "C?u trúc d? li?u",
-            "Co s? d? li?u",
-            "Web Development",
-            "AI và Machine Learning"
+            "PRN222",
+            "PRU",
+            "SWU",
+            "EXE101",
+            
         };
         [HttpGet]
         public IActionResult GetSubjects()

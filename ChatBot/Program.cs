@@ -1,4 +1,5 @@
 using DataAccessLayer;
+using DataAccessLayer.Repositories;
 using ServiceLayer.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
         o => o.UseVector())); 
+
+builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<IDocumentChunkRepository, DocumentChunkRepository>();
 
 // Register custom services
 var uploadFolderPath = builder.Configuration["UploadFolderPath"] ?? "D:\\Upload";

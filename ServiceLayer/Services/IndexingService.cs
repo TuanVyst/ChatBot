@@ -1,17 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using BusinessObject.Entities;
 using DataAccessLayer;
-using Microsoft.EntityFrameworkCore;
-using Pgvector; // BẮT BUỘC THÊM DÒNG NÀY
+using DataAccessLayer.Repositories;
+using Pgvector;
 
 namespace ServiceLayer.Services
 {
     public class IndexingService
     {
         private readonly AppDbContext _context;
+        private readonly IDocumentRepository _documentRepository;
+        private readonly IDocumentChunkRepository _documentChunkRepository;
         private readonly TextExtractionService _textExtractionService;
         private readonly ChunkingService _chunkingService;
         private readonly EmbeddingService _embeddingService;
@@ -19,12 +17,16 @@ namespace ServiceLayer.Services
 
         public IndexingService(
             AppDbContext context,
+            IDocumentRepository documentRepository,
+            IDocumentChunkRepository documentChunkRepository,
             TextExtractionService textExtractionService,
             ChunkingService chunkingService,
             EmbeddingService embeddingService,
             FileUploadService fileUploadService)
         {
             _context = context;
+            _documentRepository = documentRepository;
+            _documentChunkRepository = documentChunkRepository;
             _textExtractionService = textExtractionService;
             _chunkingService = chunkingService;
             _embeddingService = embeddingService;
@@ -33,13 +35,13 @@ namespace ServiceLayer.Services
 
         public async Task<(bool success, string? errorMessage)> IndexDocumentAsync(Document document)
         {
-            using (var transaction = _context.Database.BeginTransaction())
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
                     document.IndexStatus = "Processing";
-                    _context.Documents.Update(document);
-                    await _context.SaveChangesAsync();
+                    await _documentRepository.UpdateAsync(document);
+                    await _documentRepository.SaveChangesAsync();
 
                     var (extractSuccess, extractedText, extractError) = await _textExtractionService.ExtractTextAsync(document.FilePath);
                     if (!extractSuccess)
@@ -47,8 +49,8 @@ namespace ServiceLayer.Services
                         await transaction.RollbackAsync();
                         document.IndexStatus = "Failed";
                         document.ErrorMessage = $"Text extraction failed: {extractError}";
-                        _context.Documents.Update(document);
-                        await _context.SaveChangesAsync();
+                        await _documentRepository.UpdateAsync(document);
+                        await _documentRepository.SaveChangesAsync();
                         _fileUploadService.DeleteFile(document.FilePath);
                         return (false, extractError);
                     }
@@ -59,13 +61,14 @@ namespace ServiceLayer.Services
                         await transaction.RollbackAsync();
                         document.IndexStatus = "Failed";
                         document.ErrorMessage = "No chunks generated from document";
-                        _context.Documents.Update(document);
-                        await _context.SaveChangesAsync();
+                        await _documentRepository.UpdateAsync(document);
+                        await _documentRepository.SaveChangesAsync();
                         _fileUploadService.DeleteFile(document.FilePath);
                         return (false, "No chunks generated");
                     }
 
                     int chunkOrder = 0;
+                    var documentChunks = new System.Collections.Generic.List<DocumentChunk>();
                     foreach (var chunk in chunks)
                     {
                         var (embedSuccess, embedding, embedError) = await _embeddingService.GetEmbeddingAsync(chunk);
@@ -74,31 +77,29 @@ namespace ServiceLayer.Services
                             await transaction.RollbackAsync();
                             document.IndexStatus = "Failed";
                             document.ErrorMessage = $"Embedding failed: {embedError}";
-                            _context.Documents.Update(document);
-                            await _context.SaveChangesAsync();
+                            await _documentRepository.UpdateAsync(document);
+                            await _documentRepository.SaveChangesAsync();
                             _fileUploadService.DeleteFile(document.FilePath);
                             return (false, embedError);
                         }
 
-                   
-                        Vector? vectorData = embedding != null ? new Vector(embedding.ToArray()) : null;
+                        var vectorData = new Vector((embedding ?? new System.Collections.Generic.List<float>()).ToArray());
 
-                        var documentChunk = new DocumentChunk
+                        documentChunks.Add(new DocumentChunk
                         {
                             DocumentId = document.Id,
                             Content = chunk,
-                            Embedding = vectorData, // Gán trực tiếp kiểu Vector
+                            Embedding = vectorData,
                             ChunkOrder = chunkOrder++
-                        };
-                        // -----------------------------------
-
-                        _context.DocumentChunks.Add(documentChunk);
+                        });
                     }
+
+                    await _documentChunkRepository.AddRangeAsync(documentChunks);
 
                     document.IndexStatus = "Completed";
                     document.ErrorMessage = null;
-                    _context.Documents.Update(document);
-                    await _context.SaveChangesAsync();
+                    await _documentRepository.UpdateAsync(document);
+                    await _documentRepository.SaveChangesAsync();
 
                     await transaction.CommitAsync();
                     return (true, null);
@@ -108,8 +109,8 @@ namespace ServiceLayer.Services
                     await transaction.RollbackAsync();
                     document.IndexStatus = "Failed";
                     document.ErrorMessage = $"Indexing error: {ex.Message}";
-                    _context.Documents.Update(document);
-                    await _context.SaveChangesAsync();
+                    await _documentRepository.UpdateAsync(document);
+                    await _documentRepository.SaveChangesAsync();
                     _fileUploadService.DeleteFile(document.FilePath);
                     return (false, ex.Message);
                 }

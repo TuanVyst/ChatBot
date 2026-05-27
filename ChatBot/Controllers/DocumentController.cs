@@ -2,9 +2,8 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using BusinessObject.Entities;
-using DataAccessLayer;
+using DataAccessLayer.Repositories;
 using ServiceLayer.Services;
 namespace ChatBot.Controllers
 {
@@ -12,15 +11,18 @@ namespace ChatBot.Controllers
     [Route("api/[controller]")]
     public class DocumentController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IDocumentRepository _documentRepository;
+        private readonly IDocumentChunkRepository _documentChunkRepository;
         private readonly FileUploadService _fileUploadService;
         private readonly IndexingService _indexingService;
         public DocumentController(
-            AppDbContext context,
+            IDocumentRepository documentRepository,
+            IDocumentChunkRepository documentChunkRepository,
             FileUploadService fileUploadService,
             IndexingService indexingService)
         {
-            _context = context;
+            _documentRepository = documentRepository;
+            _documentChunkRepository = documentChunkRepository;
             _fileUploadService = fileUploadService;
             _indexingService = indexingService;
         }
@@ -58,8 +60,8 @@ namespace ChatBot.Controllers
                         UploadDate = DateTime.UtcNow
                     };
 
-                    _context.Documents.Add(document);
-                    await _context.SaveChangesAsync();
+                    await _documentRepository.AddAsync(document);
+                    await _documentRepository.SaveChangesAsync();
 
                     // LƯU Ý: Dòng này có thể mất rất nhiều thời gian với file lớn
                     var (indexSuccess, indexError) = await _indexingService.IndexDocumentAsync(document);
@@ -85,10 +87,7 @@ namespace ChatBot.Controllers
         {
             try
             {
-                IQueryable<Document> query = _context.Documents;
-                if (!string.IsNullOrWhiteSpace(subjectName))
-                    query = query.Where(d => d.SubjectName == subjectName);
-                var documents = await query.Where(d => d.IndexStatus == "Completed").ToListAsync();
+                var documents = await _documentRepository.GetCompletedDocumentsAsync(subjectName);
                 return Ok(documents);
             }
             catch (Exception ex)
@@ -101,12 +100,13 @@ namespace ChatBot.Controllers
         {
             try
             {
-                var document = await _context.Documents.Include(d => d.DocumentChunks).FirstOrDefaultAsync(d => d.Id == id);
+                var document = await _documentRepository.GetByIdWithChunksAsync(id);
                 if (document == null)
                     return NotFound("Document not found");
-                var chunks = _context.DocumentChunks.Where(c => c.DocumentId == id);
-                _context.DocumentChunks.RemoveRange(chunks);
-                await _context.SaveChangesAsync();
+
+                await _documentChunkRepository.DeleteByDocumentIdAsync(id);
+                await _documentChunkRepository.SaveChangesAsync();
+
                 var (indexSuccess, indexError) = await _indexingService.IndexDocumentAsync(document);
                 if (!indexSuccess)
                     return BadRequest($"Reindexing failed: {indexError}");
