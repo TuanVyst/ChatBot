@@ -10,7 +10,7 @@ namespace ServiceLayer.Services
         private readonly long _maxFileSize;
         private readonly string[] _allowedExtensions = { ".pdf", ".docx", ".ppt", ".pptx" };
 
-        public FileUploadService(string uploadFolderPath, long maxFileSize = 314572800) // 300MB default
+        public FileUploadService(string uploadFolderPath, long maxFileSize = 5242880) // 5MB default
         {
             _uploadFolderPath = uploadFolderPath;
             _maxFileSize = maxFileSize;
