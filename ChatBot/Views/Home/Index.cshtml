@@ -1,0 +1,126 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="page">
+    <header class="hero">
+        <div class="hero-content">
+            <span class="tag">RAG Chatbot</span>
+            <h1>Bang dieu khien tai lieu</h1>
+            <p>UI tam thoi de thu nhanh upload, liet ke va reindex tu API.</p>
+            <div class="hero-actions">
+                <button class="ghost" type="button" id="refreshDocs">Lam moi danh sach</button>
+                <div class="api-badge">API Base: <span id="apiBase">http://localhost:5224</span></div>
+            </div>
+            <div class="stat-grid" aria-hidden="true">
+                <div class="stat-card">
+                    <span>Tai lieu</span>
+                    <strong id="statDocuments">0</strong>
+                    <em>Dang index</em>
+                </div>
+                <div class="stat-card">
+                    <span>Subjects</span>
+                    <strong id="statSubjects">0</strong>
+                    <em>Tu api/Subject</em>
+                </div>
+                <div class="stat-card">
+                    <span>Hang doi</span>
+                    <strong id="statPending">0</strong>
+                    <em>Pending</em>
+                </div>
+            </div>
+        </div>
+        <div class="hero-panel">
+            <div class="panel-card">
+                <h3>Endpoint nhanh</h3>
+                <ul>
+                    <li>
+                        <span>Subjects</span>
+                        <code id="subjectsEndpoint">/api/Subject</code>
+                    </li>
+                    <li>
+                        <span>Documents</span>
+                        <code id="documentsEndpoint">/api/Document</code>
+                    </li>
+                    <li>
+                        <span>Upload</span>
+                        <code id="uploadEndpoint">/api/Document/upload</code>
+                    </li>
+                </ul>
+                <div class="tip">
+                    Tip: Upload xong se tu dong index. Ban co the bam Reindex neu can.
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="layout">
+        <section class="card">
+            <div class="card-header">
+                <h2>Upload tai lieu</h2>
+                <span class="hint">Ho tro PDF, DOCX, TXT</span>
+            </div>
+            <form class="upload-form" id="uploadForm">
+                <label>
+                    <span>Mon hoc</span>
+                    <select id="subjectSelect" name="subjectName" required>
+                        <option value="">Chon mon hoc</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Chapter</span>
+                    <input type="text" name="chapterName" value="Default" placeholder="Vi du: Chuong 1" />
+                </label>
+                <label class="file-input">
+                    <span>File</span>
+                    <input type="file" name="file" required />
+                    <em id="fileName">Chua chon file</em>
+                </label>
+                <button type="submit" id="uploadBtn">Upload va index</button>
+                <div class="helper">
+                    Kich thuoc toi da va dinh dang phu thuoc cau hinh server.
+                </div>
+            </form>
+            <div class="notice success hidden" id="successNotice"></div>
+            <div class="notice error hidden" id="errorNotice"></div>
+        </section>
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>Danh sach tai lieu</h2>
+                    <span class="hint">Tu API /api/Document</span>
+                </div>
+                <div class="filters">
+                    <select id="subjectFilter">
+                        <option value="">Tat ca mon hoc</option>
+                    </select>
+                    <button class="ghost" type="button" id="reloadDocs">Tai lai</button>
+                </div>
+            </div>
+
+            <div class="table">
+                <div class="table-head">
+                    <span>Tai lieu</span>
+                    <span>Mon hoc</span>
+                    <span>Chapter</span>
+                    <span>Kich thuoc</span>
+                    <span>Trang thai</span>
+                    <span>Xu ly</span>
+                </div>
+                <div class="table-row loading hidden" id="loadingRow">Dang tai...</div>
+                <div class="table-row empty hidden" id="emptyRow">Chua co tai lieu nao.</div>
+                <div id="documentsBody"></div>
+            </div>
+            <div class="legend">
+                <span class="chip completed">Completed</span>
+                <span class="chip pending">Pending</span>
+                <span class="chip failed">Failed</span>
+            </div>
+        </section>
+    </main>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard.js" asp-append-version="true"></script>
+}

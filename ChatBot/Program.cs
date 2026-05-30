@@ -57,9 +57,8 @@ if (app.Environment.IsDevelopment())
         app.UseSwagger();
         app.UseSwaggerUI(c =>
         {
-            // Đường dẫn truy cập sẽ là: https://localhost:<port>/swagger
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "RAG Chatbot API v1");
-            c.RoutePrefix = string.Empty;
+            c.RoutePrefix = "swagger";
         });
     }
 }
@@ -71,8 +70,12 @@ app.UseRouting();
 
 app.UseAuthorization();
 
+app.MapControllers();
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.MapFallbackToController("Index", "Home");
 
 app.Run();
