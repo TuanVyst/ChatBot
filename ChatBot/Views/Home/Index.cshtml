@@ -1,3 +1,4 @@
+@model ChatBot.Models.DashboardViewModel
 @{
     ViewData["Title"] = "Dashboard";
 }
@@ -7,44 +8,44 @@
         <div class="hero-content">
             <span class="tag">RAG Chatbot</span>
             <h1>Bang dieu khien tai lieu</h1>
-            <p>UI tam thoi de thu nhanh upload, liet ke va reindex tu API.</p>
+            <p>UI tam thoi de thu nhanh upload, liet ke va reindex tu MVC.</p>
             <div class="hero-actions">
-                <button class="ghost" type="button" id="refreshDocs">Lam moi danh sach</button>
-                <div class="api-badge">API Base: <span id="apiBase">http://localhost:5224</span></div>
+                <a class="ghost" href="@Url.Action("Index", "Home")">Lam moi danh sach</a>
+                <div class="api-badge">Host: <span>@Context.Request.Scheme://@Context.Request.Host</span></div>
             </div>
             <div class="stat-grid" aria-hidden="true">
                 <div class="stat-card">
                     <span>Tai lieu</span>
-                    <strong id="statDocuments">0</strong>
+                    <strong>@Model.Documents.Count</strong>
                     <em>Dang index</em>
                 </div>
                 <div class="stat-card">
                     <span>Subjects</span>
-                    <strong id="statSubjects">0</strong>
+                    <strong>@Model.Subjects.Count</strong>
                     <em>Tu api/Subject</em>
                 </div>
                 <div class="stat-card">
                     <span>Hang doi</span>
-                    <strong id="statPending">0</strong>
+                    <strong>@Model.PendingCount</strong>
                     <em>Pending</em>
                 </div>
             </div>
         </div>
         <div class="hero-panel">
             <div class="panel-card">
-                <h3>Endpoint nhanh</h3>
+                <h3>Ghi chu nhanh</h3>
                 <ul>
                     <li>
-                        <span>Subjects</span>
-                        <code id="subjectsEndpoint">/api/Subject</code>
-                    </li>
-                    <li>
-                        <span>Documents</span>
-                        <code id="documentsEndpoint">/api/Document</code>
-                    </li>
-                    <li>
                         <span>Upload</span>
-                        <code id="uploadEndpoint">/api/Document/upload</code>
+                        <code>Home/Upload</code>
+                    </li>
+                    <li>
+                        <span>Reindex</span>
+                        <code>Home/Reindex</code>
+                    </li>
+                    <li>
+                        <span>Filter</span>
+                        <code>Home/Index?subjectName=</code>
                     </li>
                 </ul>
                 <div class="tip">
@@ -60,42 +61,59 @@
                 <h2>Upload tai lieu</h2>
                 <span class="hint">Ho tro PDF, DOCX, TXT</span>
             </div>
-            <form class="upload-form" id="uploadForm">
+            <form class="upload-form" asp-action="Upload" asp-controller="Home" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
                 <label>
                     <span>Mon hoc</span>
-                    <select id="subjectSelect" name="subjectName" required>
+                    <select name="subjectName" required>
                         <option value="">Chon mon hoc</option>
+                        @foreach (var subject in Model.Subjects)
+                        {
+                            <option value="@subject" selected="@(subject == Model.SelectedSubject)">@subject</option>
+                        }
                     </select>
                 </label>
                 <label>
                     <span>Chapter</span>
-                    <input type="text" name="chapterName" value="Default" placeholder="Vi du: Chuong 1" />
+                    <input type="text" name="chapterName" value="@Model.ChapterName" placeholder="Vi du: Chuong 1" />
                 </label>
                 <label class="file-input">
                     <span>File</span>
                     <input type="file" name="file" required />
-                    <em id="fileName">Chua chon file</em>
+                    <em>Chua chon file</em>
                 </label>
                 <button type="submit" id="uploadBtn">Upload va index</button>
                 <div class="helper">
                     Kich thuoc toi da va dinh dang phu thuoc cau hinh server.
                 </div>
             </form>
-            <div class="notice success hidden" id="successNotice"></div>
-            <div class="notice error hidden" id="errorNotice"></div>
+            @if (!string.IsNullOrWhiteSpace(Model.Message))
+            {
+                <div class="notice success">@Model.Message</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.Error))
+            {
+                <div class="notice error">@Model.Error</div>
+            }
         </section>
 
         <section class="card">
             <div class="card-header">
                 <div>
                     <h2>Danh sach tai lieu</h2>
-                    <span class="hint">Tu API /api/Document</span>
+                    <span class="hint">Tu MVC + Database</span>
                 </div>
                 <div class="filters">
-                    <select id="subjectFilter">
-                        <option value="">Tat ca mon hoc</option>
-                    </select>
-                    <button class="ghost" type="button" id="reloadDocs">Tai lai</button>
+                    <form method="get" asp-action="Index" asp-controller="Home">
+                        <select name="subjectName" onchange="this.form.submit()">
+                            <option value="">Tat ca mon hoc</option>
+                            @foreach (var subject in Model.Subjects)
+                            {
+                                <option value="@subject" selected="@(subject == Model.SelectedSubject)">@subject</option>
+                            }
+                        </select>
+                    </form>
+                    <a class="ghost" href="@Url.Action("Index", "Home")">Tai lai</a>
                 </div>
             </div>
 
@@ -108,9 +126,32 @@
                     <span>Trang thai</span>
                     <span>Xu ly</span>
                 </div>
-                <div class="table-row loading hidden" id="loadingRow">Dang tai...</div>
-                <div class="table-row empty hidden" id="emptyRow">Chua co tai lieu nao.</div>
-                <div id="documentsBody"></div>
+                @if (Model.Documents.Count == 0)
+                {
+                    <div class="table-row empty">Chua co tai lieu nao.</div>
+                }
+                else
+                {
+                    @foreach (var doc in Model.Documents)
+                    {
+                        <div class="table-row">
+                            <div>
+                                <strong>@doc.FileName</strong>
+                                <span class="sub">@doc.UploadDate.ToString("g")</span>
+                            </div>
+                            <span>@doc.SubjectName</span>
+                            <span>@(string.IsNullOrWhiteSpace(doc.ChapterName) ? "Default" : doc.ChapterName)</span>
+                            <span>@(doc.FileSize == 0 ? "-" : string.Format("{0:0.##} MB", doc.FileSize / 1024d / 1024d))</span>
+                            <span class="status @doc.IndexStatus.ToLower()">@doc.IndexStatus</span>
+                            <form method="post" asp-action="Reindex" asp-controller="Home">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@doc.Id" />
+                                <input type="hidden" name="subjectName" value="@Model.SelectedSubject" />
+                                <button type="submit">Reindex</button>
+                            </form>
+                        </div>
+                    }
+                }
             </div>
             <div class="legend">
                 <span class="chip completed">Completed</span>
@@ -120,7 +161,3 @@
         </section>
     </main>
 </div>
-
-@section Scripts {
-    <script src="~/js/dashboard.js" asp-append-version="true"></script>
-}

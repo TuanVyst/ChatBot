@@ -7,9 +7,7 @@ using DataAccessLayer.Repositories;
 using ServiceLayer.Services;
 namespace ChatBot.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class DocumentController : ControllerBase
+    public class DocumentController : Controller
     {
         private readonly IDocumentRepository _documentRepository;
         private readonly IDocumentChunkRepository _documentChunkRepository;
@@ -26,27 +24,33 @@ namespace ChatBot.Controllers
             _fileUploadService = fileUploadService;
             _indexingService = indexingService;
         }
-        [HttpPost("upload")]
-        // Xóa [FromQuery], đổi thành [FromForm]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> UploadDocument(
-     IFormFile file,
-     [FromForm] string subjectName,
-     [FromForm] string chapterName = "Default")
+            IFormFile file,
+            [FromForm] string subjectName,
+            [FromForm] string chapterName = "Default")
         {
             try
             {
                 if (file == null || file.Length == 0)
-                    return BadRequest("Vui lòng chọn file tải lên.");
+                {
+                    return RedirectToAction("Index", "Home", new { error = "Vui lòng chọn file tải lên." });
+                }
 
                 if (string.IsNullOrWhiteSpace(subjectName))
-                    return BadRequest("Tên môn học không được để trống.");
+                {
+                    return RedirectToAction("Index", "Home", new { error = "Tên môn học không được để trống." });
+                }
 
                 // ... code lưu file giữ nguyên ...
                 using (var stream = file.OpenReadStream())
                 {
                     var (uploadSuccess, filePath, uploadError) = await _fileUploadService.UploadFileAsync(stream, file.FileName);
                     if (!uploadSuccess)
-                        return BadRequest($"Lỗi lưu file: {uploadError}");
+                    {
+                        return RedirectToAction("Index", "Home", new { error = $"Lỗi lưu file: {uploadError}" });
+                    }
 
                     var fileSize = _fileUploadService.GetFileSize(filePath);
                     var document = new Document
@@ -67,18 +71,16 @@ namespace ChatBot.Controllers
                     var (indexSuccess, indexError) = await _indexingService.IndexDocumentAsync(document);
 
                     if (!indexSuccess)
-                        return BadRequest($"File đã tải lên nhưng lỗi khi xử lý AI: {indexError}");
-
-                    return Ok(new
                     {
-                        documentId = document.Id,
-                        message = "Tải lên và xử lý dữ liệu AI thành công!"
-                    });
+                        return RedirectToAction("Index", "Home", new { error = $"File đã tải lên nhưng lỗi khi xử lý AI: {indexError}" });
+                    }
+
+                    return RedirectToAction("Index", "Home", new { message = "Tải lên và xử lý dữ liệu AI thành công!" });
                 }
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Lỗi hệ thống: {ex.Message}");
+                return RedirectToAction("Index", "Home", new { error = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
         
@@ -88,33 +90,38 @@ namespace ChatBot.Controllers
             try
             {
                 var documents = await _documentRepository.GetCompletedDocumentsAsync(subjectName);
-                return Ok(documents);
+                return View(documents);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error: {ex.Message}");
+                return RedirectToAction("Index", "Home", new { error = $"Error: {ex.Message}" });
             }
         }
-        [HttpPost("{id}/reindex")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReindexDocument(int id)
         {
             try
             {
                 var document = await _documentRepository.GetByIdWithChunksAsync(id);
                 if (document == null)
-                    return NotFound("Document not found");
+                {
+                    return RedirectToAction("Index", "Home", new { error = "Document not found" });
+                }
 
                 await _documentChunkRepository.DeleteByDocumentIdAsync(id);
                 await _documentChunkRepository.SaveChangesAsync();
 
                 var (indexSuccess, indexError) = await _indexingService.IndexDocumentAsync(document);
                 if (!indexSuccess)
-                    return BadRequest($"Reindexing failed: {indexError}");
-                return Ok("Document reindexed successfully");
+                {
+                    return RedirectToAction("Index", "Home", new { error = $"Reindexing failed: {indexError}" });
+                }
+                return RedirectToAction("Index", "Home", new { message = "Document reindexed successfully" });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error: {ex.Message}");
+                return RedirectToAction("Index", "Home", new { error = $"Error: {ex.Message}" });
             }
         }
     }
