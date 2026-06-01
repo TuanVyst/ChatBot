@@ -1,93 +1,54 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using BusinessObject.Entities;
-using DataAccessLayer.Repositories;
 using ServiceLayer.Services;
+
 namespace ChatBot.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     public class DocumentController : ControllerBase
     {
-        private readonly IDocumentRepository _documentRepository;
-        private readonly IDocumentChunkRepository _documentChunkRepository;
-        private readonly FileUploadService _fileUploadService;
-        private readonly IndexingService _indexingService;
-        public DocumentController(
-            IDocumentRepository documentRepository,
-            IDocumentChunkRepository documentChunkRepository,
-            FileUploadService fileUploadService,
-            IndexingService indexingService)
+        private readonly IDocumentService _documentService;
+
+        public DocumentController(IDocumentService documentService)
         {
-            _documentRepository = documentRepository;
-            _documentChunkRepository = documentChunkRepository;
-            _fileUploadService = fileUploadService;
-            _indexingService = indexingService;
+            _documentService = documentService;
         }
+
         [HttpPost("upload")]
-        // Xóa [FromQuery], đổi thành [FromForm]
         public async Task<IActionResult> UploadDocument(
-     IFormFile file,
-     [FromForm] string subjectName,
-     [FromForm] string chapterName = "Default")
+            IFormFile file,
+            [FromForm] string subjectName,
+            [FromForm] string chapterName = "Default")
         {
             try
             {
-                if (file == null || file.Length == 0)
-                    return BadRequest("Vui lòng chọn file tải lên.");
+                var result = await _documentService.UploadDocumentAsync(
+                    file,
+                    subjectName,
+                    chapterName);
 
-                if (string.IsNullOrWhiteSpace(subjectName))
-                    return BadRequest("Tên môn học không được để trống.");
+                if (!result.Success)
+                    return BadRequest(result.Message);
 
-                // ... code lưu file giữ nguyên ...
-                using (var stream = file.OpenReadStream())
+                return Ok(new
                 {
-                    var (uploadSuccess, filePath, uploadError) = await _fileUploadService.UploadFileAsync(stream, file.FileName);
-                    if (!uploadSuccess)
-                        return BadRequest($"Lỗi lưu file: {uploadError}");
-
-                    var fileSize = _fileUploadService.GetFileSize(filePath);
-                    var document = new Document
-                    {
-                        FileName = file.FileName,
-                        FilePath = filePath,
-                        FileSize = fileSize,
-                        SubjectName = subjectName,
-                        ChapterName = chapterName,
-                        IndexStatus = "Pending",
-                        UploadDate = DateTime.UtcNow
-                    };
-
-                    await _documentRepository.AddAsync(document);
-                    await _documentRepository.SaveChangesAsync();
-
-                    // LƯU Ý: Dòng này có thể mất rất nhiều thời gian với file lớn
-                    var (indexSuccess, indexError) = await _indexingService.IndexDocumentAsync(document);
-
-                    if (!indexSuccess)
-                        return BadRequest($"File đã tải lên nhưng lỗi khi xử lý AI: {indexError}");
-
-                    return Ok(new
-                    {
-                        documentId = document.Id,
-                        message = "Tải lên và xử lý dữ liệu AI thành công!"
-                    });
-                }
+                    documentId = result.DocumentId,
+                    message = result.Message
+                });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Lỗi hệ thống: {ex.Message}");
             }
         }
-        
+
         [HttpGet]
-        public async Task<IActionResult> GetDocuments([FromQuery] string subjectName = null)
+        public async Task<IActionResult> GetDocuments(
+            [FromQuery] string? subjectName = null)
         {
             try
             {
-                var documents = await _documentRepository.GetCompletedDocumentsAsync(subjectName);
+                var documents = await _documentService.GetDocumentsAsync(subjectName);
                 return Ok(documents);
             }
             catch (Exception ex)
@@ -95,21 +56,17 @@ namespace ChatBot.Controllers
                 return StatusCode(500, $"Error: {ex.Message}");
             }
         }
+
         [HttpPost("{id}/reindex")]
         public async Task<IActionResult> ReindexDocument(int id)
         {
             try
             {
-                var document = await _documentRepository.GetByIdWithChunksAsync(id);
-                if (document == null)
-                    return NotFound("Document not found");
+                var success = await _documentService.ReindexDocumentAsync(id);
 
-                await _documentChunkRepository.DeleteByDocumentIdAsync(id);
-                await _documentChunkRepository.SaveChangesAsync();
+                if (!success)
+                    return NotFound("Document not found or reindexing failed");
 
-                var (indexSuccess, indexError) = await _indexingService.IndexDocumentAsync(document);
-                if (!indexSuccess)
-                    return BadRequest($"Reindexing failed: {indexError}");
                 return Ok("Document reindexed successfully");
             }
             catch (Exception ex)
