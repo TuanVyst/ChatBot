@@ -4,6 +4,7 @@ using DataAccessLayer.Repositories.Interfaces;
 using DataAccessLayer.Repositories.Implements;
 using ServiceLayer.Implements;
 using ServiceLayer.Interfaces;
+using DataAccessLayer.Repositories;
 
 
 DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
@@ -35,7 +36,10 @@ builder.Services.AddScoped<IIndexingService, IndexingService>();
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
-builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAccountRepository, DataAccessLayer.Repositories.Implements.AccountRepository>();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<ServiceLayer.Interfaces.IEmailService, ServiceLayer.Implements.EmailService>();
+builder.Services.AddScoped<ServiceLayer.Interfaces.IAuthService, ServiceLayer.Implements.AuthService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSession();

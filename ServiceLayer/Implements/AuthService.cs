@@ -3,6 +3,7 @@ using BusinessObject.Entities;
 using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using ServiceLayer.Interfaces;
+using BusinessObject.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,6 +24,42 @@ namespace ServiceLayer.Implements
             _accountRepository = accountRepository;
             _cache = cache;
             _emailService = emailService;
+        }
+
+        public async Task<(bool Success, string Message, UserDto? User)> LoginAsync(string email, string password)
+        {
+            // 1. Tìm thông tin User và Account dựa vào Email
+            var userInfo = await _accountRepository.GetUserInfoByEmailAsync(email);
+
+            if (userInfo == null)
+            {
+                return (false, "Email hoặc mật khẩu không chính xác.", null);
+            }
+
+            var account = userInfo.Account;
+
+            // 2. Kiểm tra trạng thái tài khoản
+            if (!account.IsActive)
+            {
+                return (false, "Tài khoản của bạn đã bị khóa.", null);
+            }
+
+            // 3. Kiểm tra Mật khẩu (So sánh trực tiếp, sau này bạn dùng BCrypt/Identity thì thay đổi chỗ này)
+            if (account.Password != password)
+            {
+                return (false, "Email hoặc mật khẩu không chính xác.", null);
+            }
+
+            // 4. Đúng mật khẩu -> Chuẩn bị data trả về cho Controller
+            var userDto = new UserDto
+            {
+                Id = account.Account_id,
+                Email = userInfo.Email,
+                FullName = userInfo.Name,
+                Role = account.Role.ToString() ?? "Customer" // RoleEnum -> string
+            };
+
+            return (true, "Xác thực mật khẩu thành công.", userDto);
         }
 
         public async Task<string> RequestOtpAsync(string email)
@@ -52,7 +89,7 @@ namespace ServiceLayer.Implements
         }
 
 
-        public async Task<object> VerifyOtpAndLoginAsync(VerifyOtpRequest request)
+        public async Task<AuthenticationResultDto> VerifyOtpAndLoginAsync(VerifyOtpRequest request)
         {
             // 1. Lấy OTP từ Cache ra để kiểm tra
             var isExist = _cache.TryGetValue($"OTP_{request.Email}", out string savedOtp);
@@ -78,7 +115,8 @@ namespace ServiceLayer.Implements
                     Account_id = Guid.NewGuid(),
 
                     Username = request.Email,
-                    Password = Guid.NewGuid().ToString("N") + "@A1", // Pass ngẫu nhiên
+                    // Use provided password from registration flow if available; otherwise generate a random one
+                    Password = string.IsNullOrEmpty(request.Password) ? Guid.NewGuid().ToString("N") + "@A1" : request.Password,
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true
                 };
@@ -103,10 +141,11 @@ namespace ServiceLayer.Implements
             }
 
             // Trả về thông tin (Sau này thay bằng hàm Generate JWT Token)
-            return new
+            return new AuthenticationResultDto
             {
                 AccountId = account.Account_id,
                 Email = request.Email,
+                Name = existingUserInfo?.Name,
                 Message = "Đăng nhập thành công!"
             };
         }

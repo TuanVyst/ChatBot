@@ -8,9 +8,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using ServiceLayer.Interfaces;
+
 namespace ServiceLayer.Implements
 {
-    public class EmailService
+    public class EmailService : IEmailService
     {
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {

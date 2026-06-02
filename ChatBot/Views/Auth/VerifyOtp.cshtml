@@ -1,0 +1,32 @@
+﻿@model ChatBot.Models.VerifyOtpViewModel
+
+<h2>Nhập mã xác thực</h2>
+<p>Chúng tôi đã gửi một mã 6 số tới email: <b>@Model.Email</b></p>
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger">@ViewBag.Error</div>
+}
+
+<form asp-action="VerifyOtp" method="post">
+    <input type="hidden" asp-for="Email" />
+
+    <div class="form-group">
+        <label>Mã OTP</label>
+        <input asp-for="OtpCode" class="form-control" placeholder="Nhập 6 số..." required />
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:12px;">
+        <button type="submit" class="btn btn-primary">Xác nhận</button>
+
+        <form asp-controller="Auth" asp-action="ResendOtp" method="post" style="display:inline;">
+            <input type="hidden" name="email" value="@Model.Email" />
+            <button type="submit" class="btn btn-secondary">Gửi lại mã</button>
+        </form>
+    </div>
+
+    @if (TempData["OtpSentMessage"] != null)
+    {
+        <div class="alert alert-info" style="margin-top:12px">@TempData["OtpSentMessage"]</div>
+    }
+</form>
