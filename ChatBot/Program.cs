@@ -3,6 +3,7 @@ using ServiceLayer.Services;
 using Microsoft.EntityFrameworkCore;
 using DataAccessLayer.Repositories.Interfaces;
 using DataAccessLayer.Repositories.Implements;
+using ServiceLayer.Services.Implements;
 
 
 DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));

@@ -2,6 +2,7 @@ using BusinessObject.Entities;
 using DataAccessLayer;
 using DataAccessLayer.Repositories.Interfaces;
 using Pgvector;
+using ServiceLayer.Services.Implements;
 
 namespace ServiceLayer.Services
 {
