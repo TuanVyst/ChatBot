@@ -2,7 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using BusinessObject.Entities;
 using DataAccessLayer.Repositories;
-using ServiceLayer.Services;
+using ServiceLayer.Implements;
+using ServiceLayer.Interfaces;
 namespace ChatBot.Controllers
 {
     public class DocumentController : Controller

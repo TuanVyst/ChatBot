@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using BusinessObject.Entities;
 
-namespace ServiceLayer.Services
+namespace ServiceLayer.Interfaces
 {
     public interface IDocumentService
     {

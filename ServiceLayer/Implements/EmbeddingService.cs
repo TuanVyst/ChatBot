@@ -1,13 +1,14 @@
-﻿using System;
+﻿using ServiceLayer.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace ServiceLayer.Services
+namespace ServiceLayer.Implements
 {
-    public class EmbeddingService
+    public class EmbeddingService : IEmbeddingService
     {
         private readonly string _apiKey;
         private readonly HttpClient _httpClient;
@@ -41,7 +42,7 @@ namespace ServiceLayer.Services
                     {
                         parts = new[]
                         {
-                            new { text = text }
+                            new { text }
                         }
                     }
                 };

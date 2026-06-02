@@ -1,12 +1,13 @@
+using ServiceLayer.Interfaces;
 using System;
 using System.IO;
 using System.Text;
 using System.Linq;
-namespace ServiceLayer.Services
+namespace ServiceLayer.Implements
 {
-    public class TextExtractionService
+    public class TextExtractionService : ITextExtractionService
     {
-        public async System.Threading.Tasks.Task<(bool success, string? text, string? errorMessage)> ExtractTextAsync(string filePath)
+        public async Task<(bool success, string? text, string? errorMessage)> ExtractTextAsync(string filePath)
         {
             try
             {
@@ -114,3 +115,4 @@ namespace ServiceLayer.Services
         }
     }
 }
+

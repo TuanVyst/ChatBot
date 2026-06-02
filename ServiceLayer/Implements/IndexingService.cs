@@ -2,28 +2,28 @@ using BusinessObject.Entities;
 using DataAccessLayer;
 using DataAccessLayer.Repositories.Interfaces;
 using Pgvector;
-using ServiceLayer.Services.Implements;
+using ServiceLayer.Interfaces;
 
-namespace ServiceLayer.Services
+namespace ServiceLayer.Implements
 {
-    public class IndexingService
+    public class IndexingService : IIndexingService
     {
         private readonly AppDbContext _context;
         private readonly IDocumentRepository _documentRepository;
         private readonly IDocumentChunkRepository _documentChunkRepository;
-        private readonly TextExtractionService _textExtractionService;
-        private readonly ChunkingService _chunkingService;
-        private readonly EmbeddingService _embeddingService;
-        private readonly FileUploadService _fileUploadService;
+        private readonly ITextExtractionService _textExtractionService;
+        private readonly IChunkingService _chunkingService;
+        private readonly IEmbeddingService _embeddingService;
+        private readonly IFileUploadService _fileUploadService;
 
         public IndexingService(
             AppDbContext context,
             IDocumentRepository documentRepository,
             IDocumentChunkRepository documentChunkRepository,
-            TextExtractionService textExtractionService,
-            ChunkingService chunkingService,
-            EmbeddingService embeddingService,
-            FileUploadService fileUploadService)
+            ITextExtractionService textExtractionService,
+            IChunkingService chunkingService,
+            IEmbeddingService embeddingService,
+            IFileUploadService fileUploadService)
         {
             _context = context;
             _documentRepository = documentRepository;
@@ -69,7 +69,7 @@ namespace ServiceLayer.Services
                     }
 
                     int chunkOrder = 0;
-                    var documentChunks = new System.Collections.Generic.List<DocumentChunk>();
+                    var documentChunks = new List<DocumentChunk>();
                     foreach (var chunk in chunks)
                     {
                         var (embedSuccess, embedding, embedError) = await _embeddingService.GetEmbeddingAsync(chunk);
@@ -84,7 +84,7 @@ namespace ServiceLayer.Services
                             return (false, embedError);
                         }
 
-                        var vectorData = new Vector((embedding ?? new System.Collections.Generic.List<float>()).ToArray());
+                        var vectorData = new Vector((embedding ?? new List<float>()).ToArray());
 
                         documentChunks.Add(new DocumentChunk
                         {

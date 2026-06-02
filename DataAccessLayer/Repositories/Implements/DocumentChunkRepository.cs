@@ -27,6 +27,13 @@ namespace DataAccessLayer.Repositories.Implements
             _context.DocumentChunks.RemoveRange(chunks);
         }
 
+        public async Task<IEnumerable<DocumentChunk>> GetByDocumentIdAsync(int documentId)
+        {
+            return await _context.DocumentChunks
+                .Where(c => c.DocumentId == documentId)
+                .ToListAsync();
+        }
+
         public Task SaveChangesAsync()
         {
             return _context.SaveChangesAsync();
