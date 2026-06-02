@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using BusinessObject.Entities;
 
-namespace ServiceLayer.Services
+namespace ServiceLayer.Interfaces
 {
     public interface IDocumentService
     {
@@ -12,6 +12,6 @@ namespace ServiceLayer.Services
 
         Task<IEnumerable<Document>> GetDocumentsAsync(string subjectName);
 
-        Task<bool> ReindexDocumentAsync(int id);
+        Task<(bool Success, string Message)> ReindexDocumentAsync(int id);
     }
 }

@@ -1,7 +1,8 @@
 ﻿using BusinessObject.Entities;
+using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace DataAccessLayer.Repositories
+namespace DataAccessLayer.Repositories.Implements
 {
     public class DocumentChunkRepository : IDocumentChunkRepository
     {
@@ -24,6 +25,13 @@ namespace DataAccessLayer.Repositories
                 .ToListAsync();
 
             _context.DocumentChunks.RemoveRange(chunks);
+        }
+
+        public async Task<IEnumerable<DocumentChunk>> GetByDocumentIdAsync(int documentId)
+        {
+            return await _context.DocumentChunks
+                .Where(c => c.DocumentId == documentId)
+                .ToListAsync();
         }
 
         public Task SaveChangesAsync()

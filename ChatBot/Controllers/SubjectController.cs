@@ -12,7 +12,7 @@ namespace ChatBot.Controllers
             "EXE101",
             
         };
-        [HttpGet]
+     
         public IActionResult GetSubjects()
         {
             return View(Subjects);

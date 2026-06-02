@@ -11,6 +11,8 @@ namespace DataAccessLayer
         }
         public DbSet<Document> Documents { get; set; }
         public DbSet<DocumentChunk> DocumentChunks { get; set; }
+        public DbSet<Account> Accounts { get; set; }
+        public DbSet<UserInformation> UserInformations { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Kích hoạt extension pgvector trong PostgreSQL

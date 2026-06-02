@@ -1,10 +1,11 @@
-﻿using System;
+﻿using ServiceLayer.Interfaces;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace ServiceLayer.Services
+namespace ServiceLayer.Implements
 {
-    public class FileUploadService
+    public class FileUploadService : IFileUploadService
     {
         private readonly string _uploadFolderPath;
         private readonly long _maxFileSize;

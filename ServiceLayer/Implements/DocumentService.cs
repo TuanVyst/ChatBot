@@ -1,21 +1,22 @@
 ﻿using BusinessObject.Entities;
-using DataAccessLayer.Repositories;
+using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.AspNetCore.Http;
+using ServiceLayer.Interfaces;
 
-namespace ServiceLayer.Services
+namespace ServiceLayer.Implements
 {
     public class DocumentService : IDocumentService
     {
         private readonly IDocumentRepository _documentRepository;
         private readonly IDocumentChunkRepository _documentChunkRepository;
-        private readonly FileUploadService _fileUploadService;
-        private readonly IndexingService _indexingService;
+        private readonly IFileUploadService _fileUploadService;
+        private readonly IIndexingService _indexingService;
 
         public DocumentService(
             IDocumentRepository documentRepository,
             IDocumentChunkRepository documentChunkRepository,
-            FileUploadService fileUploadService,
-            IndexingService indexingService)
+            IFileUploadService fileUploadService,
+            IIndexingService indexingService)
         {
             _documentRepository = documentRepository;
             _documentChunkRepository = documentChunkRepository;
@@ -72,19 +73,25 @@ namespace ServiceLayer.Services
             return await _documentRepository.GetCompletedDocumentsAsync(subjectName);
         }
 
-        public async Task<bool> ReindexDocumentAsync(int id)
+        public async Task<(bool Success, string Message)> ReindexDocumentAsync(int id)
         {
             var document = await _documentRepository.GetByIdWithChunksAsync(id);
 
             if (document == null)
-                return false;
+                return (false, "Tài liệu không tồn tại.");
+
 
             await _documentChunkRepository.DeleteByDocumentIdAsync(id);
             await _documentChunkRepository.SaveChangesAsync();
 
-            var (indexSuccess, _) = await _indexingService.IndexDocumentAsync(document);
+            var (indexSuccess, indexError   ) = await _indexingService.IndexDocumentAsync(document);
+                if (!indexSuccess)
+            {
+               
+                return (false, $"Lỗi khi tái chỉ mục: {indexError}");
+            }
 
-            return indexSuccess;
+            return (true, "Tái chỉ mục thành công.");
         }
     }
 }
