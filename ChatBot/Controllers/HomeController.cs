@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using BusinessObject.Entities;
-using DataAccessLayer.Repositories;
 using ServiceLayer.Services;
 using ChatBot.Models;
+using DataAccessLayer.Repositories.Interfaces;
 
 namespace ChatBot.Controllers
 {

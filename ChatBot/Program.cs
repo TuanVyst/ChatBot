@@ -1,10 +1,11 @@
 using DataAccessLayer;
-using DataAccessLayer.Repositories;
 using ServiceLayer.Services;
 using Microsoft.EntityFrameworkCore;
+using DataAccessLayer.Repositories.Interfaces;
+using DataAccessLayer.Repositories.Implements;
 
 
-    DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
+DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
 
 
 var builder = WebApplication.CreateBuilder(args);

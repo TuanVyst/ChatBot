@@ -1,5 +1,5 @@
 ﻿using BusinessObject.Entities;
-using DataAccessLayer.Repositories;
+using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.AspNetCore.Http;
 
 namespace ServiceLayer.Services
