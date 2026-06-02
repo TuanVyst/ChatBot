@@ -1,6 +1,6 @@
 using BusinessObject.Entities;
 using DataAccessLayer;
-using DataAccessLayer.Repositories;
+using DataAccessLayer.Repositories.Interfaces;
 using Pgvector;
 
 namespace ServiceLayer.Services

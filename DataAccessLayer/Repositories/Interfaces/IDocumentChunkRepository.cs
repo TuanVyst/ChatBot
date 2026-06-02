@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using BusinessObject.Entities;
 
-namespace DataAccessLayer.Repositories
+namespace DataAccessLayer.Repositories.Interfaces
 {
     public interface IDocumentChunkRepository
     {

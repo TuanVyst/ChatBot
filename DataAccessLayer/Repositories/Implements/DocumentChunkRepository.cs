@@ -1,7 +1,8 @@
 ﻿using BusinessObject.Entities;
+using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace DataAccessLayer.Repositories
+namespace DataAccessLayer.Repositories.Implements
 {
     public class DocumentChunkRepository : IDocumentChunkRepository
     {

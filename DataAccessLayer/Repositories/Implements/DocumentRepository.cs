@@ -2,9 +2,10 @@
 using System.Linq;
 using System.Threading.Tasks;
 using BusinessObject.Entities;
+using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace DataAccessLayer.Repositories
+namespace DataAccessLayer.Repositories.Implements
 {
     public class DocumentRepository : IDocumentRepository
     {
