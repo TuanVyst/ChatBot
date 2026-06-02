@@ -9,27 +9,25 @@ namespace DataAccessLayer
         public AppDbContext CreateDbContext(string[] args)
         {
             // Lấy connection string từ appsettings hoặc biến môi trường
-            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
             var baseDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "ChatBot");
-            
-            var configBuilder = new ConfigurationBuilder()
+
+            var config = new ConfigurationBuilder()
                 .SetBasePath(baseDir)
+                // Chỉ đọc duy nhất từ appsettings.json
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-                .AddJsonFile($"appsettings.{env}.json", optional: true, reloadOnChange: false)
-                .AddEnvironmentVariables();
-            
-            var config = configBuilder.Build();
+                .Build();
 
             var connectionString = config.GetConnectionString("DefaultConnection");
-            
+
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new InvalidOperationException(
-                    "Connection string 'DefaultConnection' not found in appsettings.json or environment variables.");
+                    "Connection string 'DefaultConnection' not found in appsettings.json.");
             }
 
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
             optionsBuilder.UseNpgsql(connectionString, o => o.UseVector());
+
             return new AppDbContext(optionsBuilder.Options);
         }
     }
