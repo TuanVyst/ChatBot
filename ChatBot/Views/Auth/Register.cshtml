@@ -1,0 +1,52 @@
+@model ChatBot.Models.RegisterViewModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <title>Register - RAG ChatBot</title>
+    <style>
+        /* Reuse styles from Login.cshtml */
+        body { margin: 0; font-family: Arial, sans-serif; background: linear-gradient(135deg, #f9e7b6, #f8f8f8); min-height: 100vh; display:flex; align-items:center; justify-content:center; }
+        .card { width:420px; background:white; border-radius:20px; padding:36px; box-shadow: 0 20px 60px rgba(0,0,0,0.15);} 
+        .tag { display:inline-block; background:#fff2c6; color:#b8860b; padding:8px 14px; border-radius:999px; font-size:13px; font-weight:bold; margin-bottom:18px; }
+        label{display:block; font-weight:bold; margin-bottom:8px; margin-top:16px}
+        input{width:100%; padding:13px 14px; border:1px solid #ddd; border-radius:12px; font-size:15px; box-sizing:border-box}
+        button{width:100%; margin-top:24px; padding:14px; background:#f4c542; border:none; border-radius:12px; font-weight:bold; cursor:pointer; font-size:16px}
+        .field-error{color:#b00020; font-size:13px; margin-top:5px}
+        .hint{margin-top:20px; font-size:13px; background:#f6f6f6; padding:12px; border-radius:10px; color:#555}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="tag">RAG CHATBOT</div>
+        <h1>Đăng ký</h1>
+        <p>Nhập email và mật khẩu để đăng ký. Hệ thống sẽ gửi mã OTP tới email để xác minh.</p>
+
+        <form asp-controller="Auth" asp-action="Register" method="post">
+            <label>Email</label>
+            <input asp-for="Email" placeholder="Nhập email" />
+            <div class="field-error"><span asp-validation-for="Email"></span></div>
+
+            <label>Mật khẩu</label>
+            <input asp-for="Password" type="password" placeholder="Nhập mật khẩu" />
+            <div class="field-error"><span asp-validation-for="Password"></span></div>
+
+            <button type="submit">Đăng ký</button>
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="field-error">@ViewBag.Error</div>
+            }
+        </form>
+
+        <div class="hint">
+            Bạn đã có tài khoản? <a asp-controller="Auth" asp-action="Login">Đăng nhập</a>
+        </div>
+    </div>
+</body>
+</html>

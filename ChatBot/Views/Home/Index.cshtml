@@ -158,6 +158,11 @@
                 <span class="chip pending">Pending</span>
                 <span class="chip failed">Failed</span>
             </div>
+
+            <form action="/Auth/Logout" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger">Đăng xuất</button>
+            </form>
         </section>
     </main>
 </div>

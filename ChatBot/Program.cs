@@ -4,6 +4,7 @@ using DataAccessLayer.Repositories.Interfaces;
 using DataAccessLayer.Repositories.Implements;
 using ServiceLayer.Implements;
 using ServiceLayer.Interfaces;
+using DataAccessLayer.Repositories;
 
 
 DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
@@ -33,7 +34,15 @@ builder.Services.AddScoped<IChunkingService>(sp => new ChunkingService(chunkSize
 builder.Services.AddScoped<IEmbeddingService>(sp => new EmbeddingService(openAiKey ?? throw new InvalidOperationException("OPENAI_API_KEY not configured")));
 builder.Services.AddScoped<IIndexingService, IndexingService>();
 
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+builder.Services.AddScoped<IAccountRepository, DataAccessLayer.Repositories.Implements.AccountRepository>();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<ServiceLayer.Interfaces.IEmailService, ServiceLayer.Implements.EmailService>();
+builder.Services.AddScoped<ServiceLayer.Interfaces.IAuthService, ServiceLayer.Implements.AuthService>();
+
 builder.Services.AddControllersWithViews();
+builder.Services.AddSession();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -66,6 +75,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseSession();
 
 app.UseAuthorization();
 
@@ -73,8 +83,8 @@ app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Auth}/{action=Login}/{id?}");
 
-app.MapFallbackToController("Index", "Home");
+app.MapFallbackToController("Login", "Auth");
 
 app.Run();

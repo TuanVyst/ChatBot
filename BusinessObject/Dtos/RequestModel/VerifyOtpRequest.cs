@@ -10,6 +10,8 @@ namespace BusinessObject.Dtos.RequestModel
     {
         public string Email { get; set; }
         public string OtpCode { get; set; }
+        // Optional password used when verifying OTP for registration flow
+        public string Password { get; set; }
     }
     public class RequestOtp
     {

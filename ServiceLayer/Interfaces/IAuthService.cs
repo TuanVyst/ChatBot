@@ -1,4 +1,5 @@
 ﻿using BusinessObject.Dtos.RequestModel;
+using BusinessObject.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +11,9 @@ namespace ServiceLayer.Interfaces
     public interface IAuthService
     {
         Task<string> RequestOtpAsync(string email);
-        Task<object> VerifyOtpAndLoginAsync(VerifyOtpRequest request);
+        Task<BusinessObject.Dtos.AuthenticationResultDto> VerifyOtpAndLoginAsync(VerifyOtpRequest request);
+        Task<(bool Success, string Message, BusinessObject.Dtos.UserDto? User)> LoginAsync(
+        string email,
+        string password);
     }
 }
