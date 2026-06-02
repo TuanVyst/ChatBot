@@ -333,6 +333,10 @@ button.ghost {
   gap: 12px;
 }
 
+.filters form {
+  margin: 0;
+}
+
 .filters select {
   background: #fbf8f3;
   border: 1px solid #e3ded6;
@@ -340,6 +344,14 @@ button.ghost {
   padding: 8px 12px;
   color: #191819;
   font-size: 14px;
+}
+
+.filters .ghost {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
 }
 
 .table {
@@ -367,6 +379,10 @@ button.ghost {
   border-radius: 14px;
   padding: 14px;
   border: 1px solid #e3ded6;
+}
+
+.table-row form {
+  margin: 0;
 }
 
 .table-row button {
