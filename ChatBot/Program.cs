@@ -3,15 +3,9 @@ using DataAccessLayer.Repositories;
 using ServiceLayer.Services;
 using Microsoft.EntityFrameworkCore;
 
-// Load environment variables from .env file
-try
-{
+
     DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
-}
-catch
-{
-    // .env file not found or error loading - use system environment variables
-}
+
 
 var builder = WebApplication.CreateBuilder(args);
 
