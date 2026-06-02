@@ -1,28 +1,15 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using BusinessObject.Entities;
-using DataAccessLayer.Repositories;
 using ServiceLayer.Services;
+
 namespace ChatBot.Controllers
 {
     public class DocumentController : Controller
     {
-        private readonly IDocumentRepository _documentRepository;
-        private readonly IDocumentChunkRepository _documentChunkRepository;
-        private readonly FileUploadService _fileUploadService;
-        private readonly IndexingService _indexingService;
-        public DocumentController(
-            IDocumentRepository documentRepository,
-            IDocumentChunkRepository documentChunkRepository,
-            FileUploadService fileUploadService,
-            IndexingService indexingService)
+        private readonly IDocumentService _documentService;
+
+        public DocumentController(IDocumentService documentService)
         {
-            _documentRepository = documentRepository;
-            _documentChunkRepository = documentChunkRepository;
-            _fileUploadService = fileUploadService;
-            _indexingService = indexingService;
+            _documentService = documentService;
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -43,8 +30,7 @@ namespace ChatBot.Controllers
                     return RedirectToAction("Index", "Home", new { error = "Tên môn học không được để trống." });
                 }
 
-                // ... code lưu file giữ nguyên ...
-                using (var stream = file.OpenReadStream())
+                return Ok(new
                 {
                     var (uploadSuccess, filePath, uploadError) = await _fileUploadService.UploadFileAsync(stream, file.FileName);
                     if (!uploadSuccess)
@@ -83,9 +69,10 @@ namespace ChatBot.Controllers
                 return RedirectToAction("Index", "Home", new { error = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
-        
+
         [HttpGet]
-        public async Task<IActionResult> GetDocuments([FromQuery] string subjectName = null)
+        public async Task<IActionResult> GetDocuments(
+            [FromQuery] string? subjectName = null)
         {
             try
             {
@@ -109,8 +96,8 @@ namespace ChatBot.Controllers
                     return RedirectToAction("Index", "Home", new { error = "Document not found" });
                 }
 
-                await _documentChunkRepository.DeleteByDocumentIdAsync(id);
-                await _documentChunkRepository.SaveChangesAsync();
+                if (!success)
+                    return NotFound("Document not found or reindexing failed");
 
                 var (indexSuccess, indexError) = await _indexingService.IndexDocumentAsync(document);
                 if (!indexSuccess)
