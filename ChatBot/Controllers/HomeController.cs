@@ -12,6 +12,7 @@ namespace ChatBot.Controllers
 {
     public class HomeController : Controller
     {
+<<<<<<< Updated upstream
         private readonly IDocumentRepository _documentRepository;
         private readonly IDocumentChunkRepository _documentChunkRepository;
         private readonly FileUploadService _fileUploadService;
@@ -125,6 +126,20 @@ namespace ChatBot.Controllers
             {
                 return RedirectToAction(nameof(Index), new { error = $"Error: {ex.Message}", subjectName });
             }
+=======
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Index()
+        {
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserId")))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            ViewBag.FullName = HttpContext.Session.GetString("FullName");
+            ViewBag.Role = HttpContext.Session.GetString("Role");
+
+            return View();
+>>>>>>> Stashed changes
         }
     }
 }

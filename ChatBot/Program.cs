@@ -36,7 +36,12 @@ builder.Services.AddScoped(sp => new ChunkingService(chunkSize, 50));
 builder.Services.AddScoped(sp => new EmbeddingService(openAiKey ?? throw new InvalidOperationException("OPENAI_API_KEY not configured")));
 builder.Services.AddScoped<IndexingService>();
 
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+
 builder.Services.AddControllersWithViews();
+builder.Services.AddSession();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -69,6 +74,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseSession();
 
 app.UseAuthorization();
 
@@ -76,8 +82,8 @@ app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Auth}/{action=Login}/{id?}");
 
-app.MapFallbackToController("Index", "Home");
+app.MapFallbackToController("Login", "Auth");
 
 app.Run();
