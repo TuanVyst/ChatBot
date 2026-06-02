@@ -1,21 +1,22 @@
 ﻿using BusinessObject.Entities;
 using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.AspNetCore.Http;
+using ServiceLayer.Interfaces;
 
-namespace ServiceLayer.Services
+namespace ServiceLayer.Implements
 {
     public class DocumentService : IDocumentService
     {
         private readonly IDocumentRepository _documentRepository;
         private readonly IDocumentChunkRepository _documentChunkRepository;
-        private readonly FileUploadService _fileUploadService;
-        private readonly IndexingService _indexingService;
+        private readonly IFileUploadService _fileUploadService;
+        private readonly IIndexingService _indexingService;
 
         public DocumentService(
             IDocumentRepository documentRepository,
             IDocumentChunkRepository documentChunkRepository,
-            FileUploadService fileUploadService,
-            IndexingService indexingService)
+            IFileUploadService fileUploadService,
+            IIndexingService indexingService)
         {
             _documentRepository = documentRepository;
             _documentChunkRepository = documentChunkRepository;

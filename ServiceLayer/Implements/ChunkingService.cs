@@ -1,10 +1,11 @@
+using ServiceLayer.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-namespace ServiceLayer.Services
+namespace ServiceLayer.Implements
 {
-    public class ChunkingService
+    public class ChunkingService : IChunkingService
     {
         private readonly int _chunkSize;
         private readonly int _overlapSize;
@@ -41,3 +42,4 @@ namespace ServiceLayer.Services
         }
     }
 }
+
