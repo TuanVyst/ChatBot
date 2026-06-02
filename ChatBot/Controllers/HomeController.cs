@@ -29,7 +29,7 @@ namespace ChatBot.Controllers
             _indexingService = indexingService;
         }
 
-        [HttpGet]
+       
         public async Task<IActionResult> Index(string? subjectName = null, string? message = null, string? error = null)
         {
             var documents = await _documentRepository.GetCompletedDocumentsAsync(subjectName);
@@ -46,7 +46,7 @@ namespace ChatBot.Controllers
             return View(model);
         }
 
-        [HttpPost]
+      
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Upload(IFormFile file, string subjectName, string chapterName = "Default")
         {
@@ -98,7 +98,7 @@ namespace ChatBot.Controllers
             }
         }
 
-        [HttpPost]
+      
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reindex(int id, string? subjectName = null)
         {

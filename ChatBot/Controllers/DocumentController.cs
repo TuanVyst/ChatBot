@@ -22,7 +22,7 @@ namespace ChatBot.Controllers
             _fileUploadService = fileUploadService;
             _indexingService = indexingService;
         }
-        [HttpPost]
+       
         [ValidateAntiForgeryToken]
         public async Task<(bool Success, string Message, int DocumentId)> UploadDocument(
             IFormFile file,
@@ -34,7 +34,7 @@ namespace ChatBot.Controllers
             
         }
 
-        [HttpGet]
+     
         public async Task<IActionResult> GetDocuments([FromQuery] string subjectName = null)
         {
             try
@@ -47,7 +47,7 @@ namespace ChatBot.Controllers
                 return RedirectToAction("Index", "Home", new { error = $"Error: {ex.Message}" });
             }
         }
-        [HttpPost]
+    
         [ValidateAntiForgeryToken]
         public async Task<(bool Success, string Message)> ReindexDocument(int id)
         {
