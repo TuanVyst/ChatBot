@@ -9,7 +9,7 @@ namespace BusinessObject.Enums
     public enum RoleEnum
     {
         User,
-        Teacher,
+        Lecture,
         Admin
     }
 }

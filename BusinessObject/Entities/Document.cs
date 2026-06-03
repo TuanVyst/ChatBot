@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BusinessObject.Entities
 {
@@ -22,8 +23,7 @@ namespace BusinessObject.Entities
         public DateTime UploadDate { get; set; } = DateTime.Now;
 
         [Required]
-        [StringLength(50)]
-        public string SubjectName { get; set; } // Tên môn học (Đề bài yêu cầu: Quản lý theo môn học/chương)
+        public Guid SubjectId { get; set; } // ID của môn học (Đề bài yêu cầu: Quản lý theo môn học/chương)
 
         [StringLength(100)]
         public string ChapterName { get; set; } // Tên chương hoặc section của tài liệu
@@ -35,6 +35,9 @@ namespace BusinessObject.Entities
         public string? ErrorMessage { get; set; } // Lưu thông báo lỗi nếu indexing thất bại
 
         // Quan hệ 1 - N: Một file tài liệu sau khi băm sẽ sinh ra nhiều đoạn văn bản nhỏ (Chunks)
-        public virtual ICollection<DocumentChunk> DocumentChunks { get; set; }
+        public virtual ICollection<DocumentChunk> DocumentChunks { get; set; } = new List<DocumentChunk>();
+
+        [ForeignKey("SubjectId")]
+        public virtual Subject? Subject { get; set; }
     }
 }

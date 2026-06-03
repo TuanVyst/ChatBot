@@ -7,7 +7,7 @@ namespace BusinessObject.Entities
     public class Subject
     {
         [Key]
-        public int Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
         [StringLength(100)]
@@ -15,15 +15,20 @@ namespace BusinessObject.Entities
 
         [Required]
         [StringLength(20)]
-        public string Code { get; set; }
+        
+        public string  Code { get; set; }
 
         [Required]
         public int UniversityId { get; set; }
-        [ForeignKey("UniversityId")]
-        public virtual University University { get; set; }
 
-        public Guid? TeacherAccountId { get; set; }
-        [ForeignKey("TeacherAccountId")]
+        public Guid? LectureAccountId { get; set; }
+
+        [ForeignKey("LectureAccountId")]
         public virtual Account? Teacher { get; set; }
+
+        [ForeignKey("UniversityId")]
+        public virtual University? University { get; set; }
+
+        public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
     }
 }

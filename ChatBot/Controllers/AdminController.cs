@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DataAccessLayer.Repositories.Interfaces;
 using System;
 using System.Linq;
+using System.Text.Json;
 
 namespace ChatBot.Controllers
 {
@@ -13,12 +14,14 @@ namespace ChatBot.Controllers
         private readonly IUniversityService _universityService;
         private readonly ISubjectService _subjectService;
         private readonly IAccountRepository _accountRepository;
+        private readonly ServiceLayer.Interfaces.IAuthService _authService;
 
-        public AdminController(IUniversityService universityService, ISubjectService subjectService, IAccountRepository accountRepository)
+        public AdminController(IUniversityService universityService, ISubjectService subjectService, IAccountRepository accountRepository, ServiceLayer.Interfaces.IAuthService authService)
         {
             _universityService = universityService;
             _subjectService = subjectService;
             _accountRepository = accountRepository;
+            _authService = authService;
         }
 
         public IActionResult Index()
@@ -86,7 +89,7 @@ namespace ChatBot.Controllers
 
         public async Task<IActionResult> CreateSubject()
         {
-            var teachers = (await _accountRepository.GetAllUserInformationsAsync()).Where(u => u.Account.Role == BusinessObject.Enums.RoleEnum.Teacher);
+            var teachers = (await _accountRepository.GetAllUserInformationsAsync()).Where(u => u.Account.Role == BusinessObject.Enums.RoleEnum.Lecture);
             ViewBag.Teachers = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(teachers, "Account_id", "Name");
             return View();
         }
@@ -100,17 +103,20 @@ namespace ChatBot.Controllers
                 await _subjectService.AddSubject(subject);
                 return RedirectToAction(nameof(Subjects));
             }
+            // If validation failed, re-populate the teachers select list and return view
+            var teachers = (await _accountRepository.GetAllUserInformationsAsync()).Where(u => u.Account.Role == BusinessObject.Enums.RoleEnum.Lecture);
+            ViewBag.Teachers = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(teachers, "Account_id", "Name");
             return View(subject);
         }
 
-        public async Task<IActionResult> EditSubject(int id)
+        public async Task<IActionResult> EditSubject(string id)
         {
             var subject = await _subjectService.GetSubjectById(id);
             if (subject == null)
             {
                 return NotFound();
             }
-            var teachers = (await _accountRepository.GetAllUserInformationsAsync()).Where(u => u.Account.Role == BusinessObject.Enums.RoleEnum.Teacher);
+            var teachers = (await _accountRepository.GetAllUserInformationsAsync()).Where(u => u.Account.Role == BusinessObject.Enums.RoleEnum.Lecture);
             ViewBag.Teachers = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(teachers, "Account_id", "Name");
             return View(subject);
         }
@@ -128,7 +134,7 @@ namespace ChatBot.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> DeleteSubject(int id)
+        public async Task<IActionResult> DeleteSubject(string id)
         {
             await _subjectService.DeleteSubject(id);
             return RedirectToAction(nameof(Subjects));
@@ -148,20 +154,26 @@ namespace ChatBot.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTeacher(Account account)
         {
-            if (ModelState.IsValid)
+            // Instead of creating the account immediately, send OTP to the teacher email
+            if (!ModelState.IsValid) return View(account);
+
+            try
             {
-                account.Role = BusinessObject.Enums.RoleEnum.Teacher;
-                var userInfo = new UserInformation
-                {
-                    User_id = Guid.NewGuid(),
-                    Account_id = account.Account_id,
-                    Email = account.Username,
-                    Name = account.Username.Split('@')[0]
-                };
-                await _accountRepository.CreateAccountWithUserInfoAsync(account, userInfo);
-                return RedirectToAction(nameof(Users));
+                // Use auth service to send OTP and inform the view
+                var otpMessage = await _authService.RequestOtpAsync(account.Username);
+
+                // Store pending info to TempData for verification step
+                // Store pending in TempData and redirect to a dedicated admin verify OTP page
+                TempData["AdminPendingEmail"] = account.Username;
+                TempData["AdminPendingPassword"] = account.Password;
+                TempData["OtpSentMessage"] = otpMessage;
+                return RedirectToAction("AdminVerifyOtp");
             }
-            return View(account);
+            catch (Exception ex)
+            {
+                ViewBag.Error = ex.Message;
+                return View(account);
+            }
         }
 
         [HttpPost]
@@ -174,6 +186,86 @@ namespace ChatBot.Controllers
                 await _accountRepository.UpdateAsync(account);
             }
             return RedirectToAction(nameof(Users));
+        }
+
+        [HttpGet]
+        public IActionResult AdminVerifyOtp()
+        {
+            var pendingEmail = TempData["AdminPendingEmail"]?.ToString();
+            var pendingPassword = TempData["AdminPendingPassword"]?.ToString();
+
+            if (string.IsNullOrEmpty(pendingEmail))
+                return RedirectToAction("Users");
+
+            // Re-store for POST
+            TempData["AdminPendingEmail"] = pendingEmail;
+            TempData["AdminPendingPassword"] = pendingPassword;
+
+            ViewBag.PendingEmail = pendingEmail;
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdminResendOtp([FromBody] dynamic payload)
+        {
+            try
+            {
+                var email = (string)payload.email;
+                if (string.IsNullOrEmpty(email)) return BadRequest("Email missing");
+                await _authService.RequestOtpAsync(email);
+                return Ok("OTP đã được gửi lại");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        public IActionResult AdminCancelPending()
+        {
+            TempData.Remove("AdminPendingEmail");
+            TempData.Remove("AdminPendingPassword");
+            return RedirectToAction("Users");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdminVerifyOtpPost(string email, string otpCode)
+        {
+            var pendingEmail = TempData["AdminPendingEmail"]?.ToString();
+            var pendingPassword = TempData["AdminPendingPassword"]?.ToString();
+
+            if (string.IsNullOrEmpty(pendingEmail) || !string.Equals(pendingEmail, email, StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["Message"] = "Pending email mismatch or expired. Please re-initiate Create Teacher.";
+                return RedirectToAction("Users");
+            }
+
+            var request = new BusinessObject.Dtos.RequestModel.VerifyOtpRequest
+            {
+                Email = pendingEmail,
+                OtpCode = otpCode,
+                Password = pendingPassword
+            };
+
+            try
+            {
+            var createResult = await _authService.VerifyOtpAndCreateAccountAsync(request, "Teacher");
+                if (!createResult.Success)
+                {
+                    TempData["Message"] = createResult.Message;
+                    return RedirectToAction("Users");
+                }
+
+                TempData["Message"] = createResult.Message;
+                return RedirectToAction("Users");
+            }
+            catch (Exception ex)
+            {
+                TempData["Message"] = "Error: " + ex.Message;
+                return RedirectToAction("Users");
+            }
         }
     }
 }

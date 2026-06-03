@@ -16,6 +16,6 @@ namespace BusinessObject.Entities
         [StringLength(50)]
         public string Code { get; set; }
 
-        public virtual ICollection<Subject> Subjects { get; set; }
+        public virtual ICollection<Subject> Subjects { get; set; } = new List<Subject>();
     }
 }

@@ -9,7 +9,7 @@ namespace DataAccessLayer.Repositories.Interfaces
         Task AddAsync(Document document);
         Task<Document?> GetByIdAsync(int id);
         Task<Document?> GetByIdWithChunksAsync(int id);
-        Task<List<Document>> GetCompletedDocumentsAsync(string? subjectName = null);
+        Task<List<Document>> GetCompletedDocumentsAsync(string? subjectId = null);
         Task UpdateAsync(Document document);
         Task SaveChangesAsync();
     }

@@ -23,12 +23,12 @@ namespace DataAccessLayer.Repositories.Implements
 
         public async Task<IEnumerable<Subject>> GetByTeacherIdAsync(System.Guid teacherAccountId)
         {
-            return await _context.Subjects.Include(s => s.University).Where(s => s.TeacherAccountId == teacherAccountId).ToListAsync();
+            return await _context.Subjects.Include(s => s.University).Where(s => s.LectureAccountId == teacherAccountId).ToListAsync();
         }
 
-        public async Task<Subject> GetByIdAsync(int id)
+        public async Task<Subject> GetByIdAsync(string id)
         {
-            return await _context.Subjects.Include(s => s.University).Include(s => s.Teacher).FirstOrDefaultAsync(s => s.Id == id);
+            return await _context.Subjects.Include(s => s.University).Include(s => s.Teacher).FirstOrDefaultAsync(s => s.Id.ToString() == id);
         }
 
         public async Task AddAsync(Subject subject)
@@ -43,9 +43,9 @@ namespace DataAccessLayer.Repositories.Implements
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(string id)
         {
-            var subject = await _context.Subjects.FindAsync(id);
+            var subject = await _context.Subjects.FirstOrDefaultAsync(s => s.Id.ToString() == id);
             if (subject != null)
             {
                 _context.Subjects.Remove(subject);

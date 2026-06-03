@@ -133,6 +133,12 @@ namespace ChatBot.Controllers
                 HttpContext.Session.SetString("Role", user.Role ?? "Customer");
             }
 
+            // Redirect admin to Admin dashboard
+            if (user != null && !string.IsNullOrEmpty(user.Role) && user.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return RedirectToAction("Index", "Admin");
+            }
+
             return RedirectToAction("Index", "Home");
         }
 
@@ -148,10 +154,13 @@ namespace ChatBot.Controllers
             var pendingEmail = TempData["PendingEmail"]?.ToString();
             // Keep password for the registration flow if exists
             var pendingPassword = TempData["PendingPassword"]?.ToString();
+            // Keep pending role if admin is creating teacher
+            var pendingRole = TempData["PendingRole"]?.ToString();
 
             // Re-store them so they are available on POST (TempData is one-time)
             if (!string.IsNullOrEmpty(pendingEmail)) TempData["PendingEmail"] = pendingEmail;
             if (!string.IsNullOrEmpty(pendingPassword)) TempData["PendingPassword"] = pendingPassword;
+            if (!string.IsNullOrEmpty(pendingRole)) TempData["PendingRole"] = pendingRole;
 
             if (string.IsNullOrEmpty(pendingEmail))
             {
@@ -186,24 +195,39 @@ namespace ChatBot.Controllers
                     Password = TempData["PendingPassword"]?.ToString()
                 };
 
+                // Check if this verification is for creating an account with a role (e.g., Teacher)
+                var pendingRolePost = TempData["PendingRole"]?.ToString();
+
+                if (!string.IsNullOrEmpty(pendingRolePost) && pendingRolePost == "Teacher")
+                {
+                    var createResult = await _authService.VerifyOtpAndCreateAccountAsync(request, pendingRolePost);
+                    if (!createResult.Success)
+                    {
+                        ViewBag.Error = createResult.Message;
+                        return View(model);
+                    }
+
+                    TempData["Message"] = createResult.Message;
+                    return RedirectToAction("Users", "Admin");
+                }
+
                 var result = await _authService.VerifyOtpAndLoginAsync(request);
 
-                // 2. OTP đúng -> Tiến hành lưu Session (sử dụng typed DTO)
-                // Ensure we have the typed result
+                // OTP đúng -> Tiến hành lưu Session (sử dụng typed DTO)
                 var userResult = result;
 
-                // Use the session extension methods via the Microsoft.AspNetCore.Http namespace
                 HttpContext.Session.SetString("UserId", userResult.AccountId.ToString());
                 HttpContext.Session.SetString("Email", userResult.Email);
                 HttpContext.Session.SetString("FullName", userResult.Name ?? model.Email.Split('@')[0]);
-                HttpContext.Session.SetString("Role", userResult.Role.ToString());
 
-                // 3. Xong! Đăng nhập thành công, vào trang chủ
+                // Set role from returned result
+                var roleStr = userResult.Role.ToString();
+                HttpContext.Session.SetString("Role", roleStr);
+
+                // Redirect based on role
                 if (userResult.Role == BusinessObject.Enums.RoleEnum.Admin)
-                {
                     return RedirectToAction("Index", "Admin");
-                }
-                
+
                 return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)

@@ -25,7 +25,7 @@ namespace ServiceLayer.Implements
             return await _subjectRepository.GetByTeacherIdAsync(teacherAccountId);
         }
 
-        public async Task<Subject> GetSubjectById(int id)
+        public async Task<Subject> GetSubjectById(string id)
         {
             return await _subjectRepository.GetByIdAsync(id);
         }
@@ -40,7 +40,7 @@ namespace ServiceLayer.Implements
             await _subjectRepository.UpdateAsync(subject);
         }
 
-        public async Task DeleteSubject(int id)
+        public async Task DeleteSubject(string id)
         {
             await _subjectRepository.DeleteAsync(id);
         }

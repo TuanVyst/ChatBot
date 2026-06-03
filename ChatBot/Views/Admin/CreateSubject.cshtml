@@ -19,6 +19,7 @@
 
 <div class="admin-card" style="max-width: 600px;">
     <form asp-action="CreateSubject" method="post" class="premium-form">
+        @Html.AntiForgeryToken()
         <div class="form-group">
             <label asp-for="Name" class="form-label"></label>
             <input asp-for="Name" class="form-control" placeholder="Enter subject name..." />
@@ -43,14 +44,14 @@
         </div>
 
         <div class="form-group">
-            <label asp-for="TeacherAccountId" class="form-label">Assigned Teacher</label>
+            <label asp-for="LectureAccountId" class="form-label">Assigned Lecture</label>
             <div style="position: relative;">
-                <select asp-for="TeacherAccountId" asp-items="ViewBag.Teachers" class="form-control" style="appearance: none; padding-right: 2.5rem;">
+                <select asp-for="LectureAccountId" asp-items="ViewBag.Teachers" class="form-control" style="appearance: none; padding-right: 2.5rem;">
                     <option value="">-- No Teacher Assigned --</option>
                 </select>
                 <i class="ph-bold ph-caret-down" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted);"></i>
             </div>
-            <span asp-validation-for="TeacherAccountId" class="text-danger" style="font-size: 0.85rem; margin-top: 4px;"></span>
+            <span asp-validation-for="LectureAccountId" class="text-danger" style="font-size: 0.85rem; margin-top: 4px;"></span>
         </div>
         
         <div style="margin-top: 1rem;">

@@ -1,4 +1,5 @@
-﻿using BusinessObject.Dtos.RequestModel;
+﻿using BusinessObject.Dtos;
+using BusinessObject.Dtos.RequestModel;
 using BusinessObject.Entities;
 using System;
 using System.Collections.Generic;
@@ -11,8 +12,9 @@ namespace ServiceLayer.Interfaces
     public interface IAuthService
     {
         Task<string> RequestOtpAsync(string email);
-        Task<BusinessObject.Dtos.AuthenticationResultDto> VerifyOtpAndLoginAsync(VerifyOtpRequest request);
-        Task<(bool Success, string Message, BusinessObject.Dtos.UserDto? User, bool RequireOtp)> LoginAsync(
+        Task<AuthenticationResultDto> VerifyOtpAndLoginAsync(VerifyOtpRequest request);
+        Task<(bool Success, string Message)> VerifyOtpAndCreateAccountAsync(VerifyOtpRequest request, string roleName);
+        Task<(bool Success, string Message, UserDto? User, bool RequireOtp)> LoginAsync(
         string email,
         string password);
     }

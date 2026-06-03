@@ -8,17 +8,20 @@ namespace ServiceLayer.Implements
     public class DocumentService : IDocumentService
     {
         private readonly IDocumentRepository _documentRepository;
+        private readonly ISubjectRepository _subjectRepository;
         private readonly IDocumentChunkRepository _documentChunkRepository;
         private readonly IFileUploadService _fileUploadService;
         private readonly IIndexingService _indexingService;
 
         public DocumentService(
             IDocumentRepository documentRepository,
+            ISubjectRepository subjectRepository,
             IDocumentChunkRepository documentChunkRepository,
             IFileUploadService fileUploadService,
             IIndexingService indexingService)
         {
             _documentRepository = documentRepository;
+            _subjectRepository = subjectRepository;
             _documentChunkRepository = documentChunkRepository;
             _fileUploadService = fileUploadService;
             _indexingService = indexingService;
@@ -26,14 +29,17 @@ namespace ServiceLayer.Implements
 
         public async Task<(bool Success, string Message, int DocumentId)> UploadDocumentAsync(
             IFormFile file,
-            string subjectName,
+            string subjectId,
             string chapterName)
         {
             if (file == null || file.Length == 0)
                 return (false, "Vui lòng chọn file tải lên.", 0);
 
-            if (string.IsNullOrWhiteSpace(subjectName))
-                return (false, "Tên môn học không được để trống.", 0);
+            if (string.IsNullOrWhiteSpace(subjectId))
+                return (false, "ID môn học không được để trống.", 0);
+            var subject = await _subjectRepository.GetByIdAsync(subjectId);
+            if (subject == null)
+                return (false, "Môn học không tồn tại.", 0);
 
             using var stream = file.OpenReadStream();
 
@@ -50,7 +56,7 @@ namespace ServiceLayer.Implements
                 FileName = file.FileName,
                 FilePath = filePath,
                 FileSize = fileSize,
-                SubjectName = subjectName,
+                SubjectId = subject.Id,
                 ChapterName = chapterName,
                 IndexStatus = "Pending",
                 UploadDate = DateTime.UtcNow
@@ -68,9 +74,9 @@ namespace ServiceLayer.Implements
             return (true, "Tải lên và xử lý dữ liệu AI thành công!", document.Id);
         }
 
-        public async Task<IEnumerable<Document>> GetDocumentsAsync(string subjectName)
+        public async Task<IEnumerable<Document>> GetDocumentsAsync(string subjectId)
         {
-            return await _documentRepository.GetCompletedDocumentsAsync(subjectName);
+            return await _documentRepository.GetCompletedDocumentsAsync(subjectId);
         }
 
         public async Task<Document?> GetByIdAsync(int id)

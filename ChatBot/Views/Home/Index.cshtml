@@ -10,8 +10,11 @@
             <h1>Bang dieu khien tai lieu</h1>
             <p>UI tam thoi de thu nhanh upload, liet ke va reindex tu MVC.</p>
             <div class="hero-actions">
-                <a class="ghost" href="@Url.Action("Index", "Home")">Lam moi danh sach</a>
-                <div class="api-badge">Host: <span>@Context.Request.Scheme://@Context.Request.Host</span></div>
+                <button type="button" class="ghost" onclick="location.reload()">Làm mới danh sách</button>
+                <form asp-action="Logout" asp-controller="Auth" method="post" style="display:inline-block;margin-left:12px;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-logout">Đăng xuất</button>
+                </form>
             </div>
             <div class="stat-grid" aria-hidden="true">
                 <div class="stat-card">
@@ -31,28 +34,7 @@
                 </div>
             </div>
         </div>
-        <div class="hero-panel">
-            <div class="panel-card">
-                <h3>Ghi chu nhanh</h3>
-                <ul>
-                    <li>
-                        <span>Upload</span>
-                        <code>Home/Upload</code>
-                    </li>
-                    <li>
-                        <span>Reindex</span>
-                        <code>Home/Reindex</code>
-                    </li>
-                    <li>
-                        <span>Filter</span>
-                        <code>Home/Index?subjectName=</code>
-                    </li>
-                </ul>
-                <div class="tip">
-                    Tip: Upload xong se tu dong index. Ban co the bam Reindex neu can.
-                </div>
-            </div>
-        </div>
+        <!-- hero-panel removed per UI cleanup -->
     </header>
 
     <main class="layout">
@@ -113,7 +95,7 @@
                             }
                         </select>
                     </form>
-                    <a class="ghost" href="@Url.Action("Index", "Home")">Tai lai</a>
+                    <button type="button" class="ghost" onclick="location.reload()">Tải lại</button>
                 </div>
             </div>
 
@@ -139,7 +121,7 @@
                                 <strong>@doc.FileName</strong>
                                 <span class="sub">@doc.UploadDate.ToString("g")</span>
                             </div>
-                            <span>@doc.SubjectName</span>
+                            <span>@doc.Subject.Name</span>
                             <span>@(string.IsNullOrWhiteSpace(doc.ChapterName) ? "Default" : doc.ChapterName)</span>
                             <span>@(doc.FileSize == 0 ? "-" : string.Format("{0:0.##} MB", doc.FileSize / 1024d / 1024d))</span>
                             <span class="status @doc.IndexStatus.ToLower()">@doc.IndexStatus</span>
@@ -162,11 +144,6 @@
                 <span class="chip pending">Pending</span>
                 <span class="chip failed">Failed</span>
             </div>
-
-            <form action="/Auth/Logout" method="post">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-danger">Đăng xuất</button>
-            </form>
         </section>
     </main>
 </div>

@@ -8,9 +8,9 @@ namespace DataAccessLayer.Repositories.Interfaces
     {
         Task<IEnumerable<Subject>> GetAllAsync();
         Task<IEnumerable<Subject>> GetByTeacherIdAsync(System.Guid teacherAccountId);
-        Task<Subject> GetByIdAsync(int id);
+        Task<Subject> GetByIdAsync(string id);
         Task AddAsync(Subject subject);
         Task UpdateAsync(Subject subject);
-        Task DeleteAsync(int id);
+        Task DeleteAsync(string id);
     }
 }

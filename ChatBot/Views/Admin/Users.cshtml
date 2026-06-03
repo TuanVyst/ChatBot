@@ -15,6 +15,16 @@
 </div>
 
 <div class="admin-card">
+    @if (TempData["Message"] != null)
+    {
+        <div class="notice success">@TempData["Message"]</div>
+    }
+    @if (TempData["AdminPendingEmail"] != null)
+    {
+        <div style="margin-bottom:12px;">
+            <a class="btn-primary" asp-action="AdminVerifyOtp" asp-controller="Admin">Hoàn tất xác thực tài khoản giảng viên</a>
+        </div>
+    }
     <table class="premium-table">
         <thead>
             <tr>

@@ -33,13 +33,13 @@ namespace DataAccessLayer.Repositories.Implements
                 .FirstOrDefaultAsync(d => d.Id == id);
         }
 
-        public async Task<List<Document>> GetCompletedDocumentsAsync(string? subjectName = null)
+        public async Task<List<Document>> GetCompletedDocumentsAsync(string? subjectId = null)
         {
             IQueryable<Document> query = _context.Documents;
 
-            if (!string.IsNullOrWhiteSpace(subjectName))
+            if (!string.IsNullOrWhiteSpace(subjectId))
             {
-                query = query.Where(d => d.SubjectName == subjectName);
+                query = query.Where(d => d.SubjectId.ToString() == subjectId);
             }
 
             return await query

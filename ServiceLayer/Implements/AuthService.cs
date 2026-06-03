@@ -27,6 +27,68 @@ namespace ServiceLayer.Implements
             _emailService = emailService;
         }
 
+        public async Task<(bool Success, string Message)> VerifyOtpAndCreateAccountAsync(VerifyOtpRequest request, string roleName)
+        {
+            // Validate OTP same as VerifyOtpAndLoginAsync
+            var isExist = _cache.TryGetValue($"OTP_{request.Email}", out string savedOtp);
+
+            if (!isExist)
+                return (false, "Mã OTP đã hết hạn hoặc không tồn tại.");
+
+            if (savedOtp != request.OtpCode)
+                return (false, "Mã OTP không chính xác.");
+
+            // Remove OTP
+            _cache.Remove($"OTP_{request.Email}");
+
+            // Create account with provided password
+            var existingUserInfo = await _accountRepository.GetUserInfoByEmailAsync(request.Email);
+            if (existingUserInfo != null)
+                return (false, "Email đã tồn tại trong hệ thống.");
+            
+            var roleEnum = BusinessObject.Enums.RoleEnum.Lecture;
+            if (!string.IsNullOrEmpty(roleName) && Enum.TryParse<BusinessObject.Enums.RoleEnum>(roleName, true, out var parsedRole))
+            {
+                roleEnum = parsedRole;
+            }
+            var account = new Account
+            {
+                Account_id = Guid.NewGuid(),
+                Username = request.Email,
+                Password = string.IsNullOrEmpty(request.Password) ? Guid.NewGuid().ToString("N") + "@A1" : request.Password,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+                LastLogin = DateTime.UtcNow,
+                Role = roleEnum
+            };
+
+            // Map roleName to RoleEnum if needed; here assume Teacher
+            // Create user information
+            var userInfo = new BusinessObject.Entities.UserInformation
+            {
+                User_id = Guid.NewGuid(),
+                Account_id = account.Account_id,
+                Email = request.Email,
+                Name = request.Email.Split('@')[0]
+            };
+
+            await _accountRepository.CreateAccountWithUserInfoAsync(account, userInfo);
+
+            // Email credentials to the teacher
+            var subject = "Thông tin tài khoản giảng viên";
+            var body = $@"<div>
+                <p>Xin chào,</p>
+                <p>Tài khoản giảng viên đã được tạo</p>
+                <p>Email: {request.Email}</p>
+                <p>Password: {account.Password}</p>
+                <p>Vui lòng đổi mật khẩu sau khi đăng nhập.</p>
+            </div>";
+
+            await _emailService.SendEmailAsync(request.Email, subject, body);
+
+            return (true, "Tạo tài khoản thành công và gửi email thông báo.");
+        }
+
         public async Task<(bool Success, string Message, UserDto? User, bool RequireOtp)> LoginAsync(string email, string password)
         {
             // 1. Tìm thông tin User và Account dựa vào Email
@@ -133,7 +195,8 @@ namespace ServiceLayer.Implements
                     // Use provided password from registration flow if available; otherwise generate a random one
                     Password = string.IsNullOrEmpty(request.Password) ? Guid.NewGuid().ToString("N") + "@A1" : request.Password,
                     CreatedAt = DateTime.UtcNow,
-                    IsActive = true
+                    IsActive = true,
+                    Role = BusinessObject.Enums.RoleEnum.Lecture
                 };
 
                 var userInfo = new UserInformation
