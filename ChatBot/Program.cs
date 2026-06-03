@@ -24,7 +24,7 @@ builder.Services.AddScoped<IDocumentChunkService, DocumentChunkService>();
 
 // Register custom services
 var uploadFolderPath = builder.Configuration["UploadFolderPath"] ?? "D:\\Upload";
-var maxFileSize = long.TryParse(builder.Configuration["MaxFileSize"], out var size) ? size : 314572800; // 300MB default
+var maxFileSize = long.TryParse(builder.Configuration["MaxFileSize"], out var size) ? size : 3145728; // 300MB default
 var openAiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 var chunkSize = int.TryParse(builder.Configuration["ChunkSize"], out var cs) ? cs : 512;
 
@@ -35,6 +35,10 @@ builder.Services.AddScoped<IEmbeddingService>(sp => new EmbeddingService(openAiK
 builder.Services.AddScoped<IIndexingService, IndexingService>();
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUniversityRepository, UniversityRepository>();
+builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
+builder.Services.AddScoped<IUniversityService, UniversityService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
 
 builder.Services.AddScoped<IAccountRepository, DataAccessLayer.Repositories.Implements.AccountRepository>();
 builder.Services.AddMemoryCache();

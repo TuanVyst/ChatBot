@@ -1,0 +1,32 @@
+@model BusinessObject.Entities.Subject
+@using Microsoft.AspNetCore.Mvc.Rendering
+@inject ServiceLayer.Interfaces.IUniversityService UniversityService
+
+@{
+    ViewData["Title"] = "Edit Subject";
+    var universities = new SelectList(await UniversityService.GetUniversities(), "Id", "Name");
+}
+
+<h1>Edit Subject</h1>
+
+<form asp-action="EditSubject" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div class="form-group">
+        <label asp-for="Name"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Code"></label>
+        <input asp-for="Code" class="form-control" />
+        <span asp-validation-for="Code" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="UniversityId"></label>
+        <select asp-for="UniversityId" asp-items="universities" class="form-control">
+            <option value="">-- Select University --</option>
+        </select>
+        <span asp-validation-for="UniversityId" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>

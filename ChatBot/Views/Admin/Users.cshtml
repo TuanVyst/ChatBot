@@ -1,0 +1,35 @@
+@model IEnumerable<BusinessObject.Entities.Account>
+
+@{
+    ViewData["Title"] = "Manage Users";
+}
+
+<h1>Manage Users</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Email</td>
+                <td>@item.Role</td>
+                <td>@item.Status</td>
+                <td>
+                    <form asp-action="ToggleUserStatus" asp-route-id="@item.Id" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-sm @(item.Status == "Active" ? "btn-warning" : "btn-success")">
+                            @(item.Status == "Active" ? "Deactivate" : "Activate")
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

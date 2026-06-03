@@ -1,0 +1,38 @@
+@model IEnumerable<BusinessObject.Entities.Subject>
+
+@{
+    ViewData["Title"] = "Manage Subjects";
+}
+
+<h1>Manage Subjects</h1>
+
+<p>
+    <a asp-action="CreateSubject" class="btn btn-primary">Create New</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Code</th>
+            <th>University</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Code</td>
+                <td>@item.University.Name</td>
+                <td>
+                    <a asp-action="EditSubject" asp-route-id="@item.Id">Edit</a> |
+                    <form asp-action="DeleteSubject" asp-route-id="@item.Id" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-link" onclick="return confirm('Are you sure you want to delete this subject?');">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
