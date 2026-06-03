@@ -73,6 +73,11 @@ namespace ServiceLayer.Implements
             return await _documentRepository.GetCompletedDocumentsAsync(subjectName);
         }
 
+        public async Task<Document?> GetByIdAsync(int id)
+        {
+            return await _documentRepository.GetByIdAsync(id);
+        }
+
         public async Task<(bool Success, string Message)> ReindexDocumentAsync(int id)
         {
             var document = await _documentRepository.GetByIdWithChunksAsync(id);
