@@ -12,7 +12,7 @@ namespace ServiceLayer.Interfaces
     {
         Task<string> RequestOtpAsync(string email);
         Task<BusinessObject.Dtos.AuthenticationResultDto> VerifyOtpAndLoginAsync(VerifyOtpRequest request);
-        Task<(bool Success, string Message, BusinessObject.Dtos.UserDto? User)> LoginAsync(
+        Task<(bool Success, string Message, BusinessObject.Dtos.UserDto? User, bool RequireOtp)> LoginAsync(
         string email,
         string password);
     }

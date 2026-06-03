@@ -26,14 +26,14 @@ namespace ServiceLayer.Implements
             _emailService = emailService;
         }
 
-        public async Task<(bool Success, string Message, UserDto? User)> LoginAsync(string email, string password)
+        public async Task<(bool Success, string Message, UserDto? User, bool RequireOtp)> LoginAsync(string email, string password)
         {
             // 1. Tìm thông tin User và Account dựa vào Email
             var userInfo = await _accountRepository.GetUserInfoByEmailAsync(email);
 
             if (userInfo == null)
             {
-                return (false, "Email hoặc mật khẩu không chính xác.", null);
+                return (false, "Email hoặc mật khẩu không chính xác.", null, false);
             }
 
             var account = userInfo.Account;
@@ -41,13 +41,13 @@ namespace ServiceLayer.Implements
             // 2. Kiểm tra trạng thái tài khoản
             if (!account.IsActive)
             {
-                return (false, "Tài khoản của bạn đã bị khóa.", null);
+                return (false, "Tài khoản của bạn đã bị khóa.", null, false);
             }
 
             // 3. Kiểm tra Mật khẩu (So sánh trực tiếp, sau này bạn dùng BCrypt/Identity thì thay đổi chỗ này)
             if (account.Password != password)
             {
-                return (false, "Email hoặc mật khẩu không chính xác.", null);
+                return (false, "Email hoặc mật khẩu không chính xác.", null, false);
             }
 
             // 4. Đúng mật khẩu -> Chuẩn bị data trả về cho Controller
@@ -59,7 +59,21 @@ namespace ServiceLayer.Implements
                 Role = account.Role.ToString() ?? "Customer" // RoleEnum -> string
             };
 
-            return (true, "Xác thực mật khẩu thành công.", userDto);
+            // Include LastLogin
+            userDto.LastLogin = account.LastLogin;
+
+            // Determine whether OTP is required: if never logged in or last login more than 1 day ago
+            var requireOtp = !account.LastLogin.HasValue || (DateTime.UtcNow - account.LastLogin.Value) > TimeSpan.FromDays(1);
+
+            if (!requireOtp)
+            {
+                // Update last login immediately
+                account.LastLogin = DateTime.UtcNow;
+                await _accountRepository.UpdateAccountAsync(account);
+                userDto.LastLogin = account.LastLogin;
+            }
+
+            return (true, "Xác thực mật khẩu thành công.", userDto, requireOtp);
         }
 
         public async Task<string> RequestOtpAsync(string email)
@@ -130,6 +144,9 @@ namespace ServiceLayer.Implements
                 };
 
                 await _accountRepository.CreateAccountWithUserInfoAsync(account, userInfo);
+                // Set LastLogin when creating a new account
+                account.LastLogin = DateTime.UtcNow;
+                await _accountRepository.UpdateAccountAsync(account);
             }
             else
             {
