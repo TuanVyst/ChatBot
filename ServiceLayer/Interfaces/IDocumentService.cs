@@ -12,6 +12,8 @@ namespace ServiceLayer.Interfaces
 
         Task<IEnumerable<Document>> GetDocumentsAsync(string subjectName);
 
+        Task<Document?> GetByIdAsync(int id);
+
         Task<(bool Success, string Message)> ReindexDocumentAsync(int id);
     }
 }

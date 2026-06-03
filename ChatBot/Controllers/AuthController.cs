@@ -105,23 +105,35 @@ namespace ChatBot.Controllers
                 return View(model);
             }
 
-            // 2. NẾU ĐÚNG MẬT KHẨU -> Tự động gọi hàm gửi OTP
-            try
+            // 2. If the account requires OTP (last login > 1 day), send OTP and redirect to VerifyOtp
+            if (result.RequireOtp)
             {
-                await _authService.RequestOtpAsync(model.Email);
-            }
-            catch (Exception ex)
-            {
-                ViewBag.Error = "Lỗi khi gửi mã OTP: " + ex.Message;
-                return View(model);
+                try
+                {
+                    await _authService.RequestOtpAsync(model.Email);
+                }
+                catch (Exception ex)
+                {
+                    ViewBag.Error = "Lỗi khi gửi mã OTP: " + ex.Message;
+                    return View(model);
+                }
+
+                // Store PendingEmail for VerifyOtp flow
+                TempData["PendingEmail"] = model.Email;
+                return RedirectToAction("VerifyOtp");
             }
 
-            // 3. Lưu Email tạm thời để chuyển sang trang nhập OTP
-            // Sử dụng TempData để truyền dữ liệu giữa 2 Action (Login -> VerifyOtp)
-            TempData["PendingEmail"] = model.Email;
+            // 3. No OTP required: create session and redirect to Home
+            var user = result.User;
+            if (user != null)
+            {
+                HttpContext.Session.SetString("UserId", user.Id.ToString());
+                HttpContext.Session.SetString("Email", user.Email);
+                HttpContext.Session.SetString("FullName", user.FullName ?? model.Email.Split('@')[0]);
+                HttpContext.Session.SetString("Role", user.Role ?? "Customer");
+            }
 
-            // 4. Chuyển hướng sang trang nhập OTP
-            return RedirectToAction("VerifyOtp");
+            return RedirectToAction("Index", "Home");
         }
 
         #endregion

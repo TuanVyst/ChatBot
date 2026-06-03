@@ -19,6 +19,48 @@ namespace ChatBot.Controllers
             _subjectService = subjectService;
         }
 
+        // View document chunks (for verifying embeddings/content)
+        public async Task<IActionResult> Chunks(int id)
+        {
+            var doc = await _documentService.GetByIdAsync(id);
+            if (doc == null) return NotFound();
+
+            // Use document chunk service from DI by resolving (we don't have field), use HttpContext.RequestServices
+            var chunkService = HttpContext.RequestServices.GetService(typeof(ServiceLayer.Implements.DocumentChunkService)) as ServiceLayer.Implements.DocumentChunkService;
+            if (chunkService == null)
+            {
+                // Try using interface
+                var chunkServiceIface = HttpContext.RequestServices.GetService(typeof(ServiceLayer.Interfaces.IDocumentChunkService)) as ServiceLayer.Interfaces.IDocumentChunkService;
+                if (chunkServiceIface == null) return StatusCode(500, "Chunk service not available");
+                var chunks = await chunkServiceIface.GetDocumentChunksByDocumentIdAsync(id);
+                return View("Chunks", new Tuple<BusinessObject.Entities.Document, IEnumerable<BusinessObject.Entities.DocumentChunk>>(doc, chunks));
+            }
+
+            var cks = await chunkService.GetDocumentChunksByDocumentIdAsync(id);
+            return View("Chunks", new Tuple<BusinessObject.Entities.Document, IEnumerable<BusinessObject.Entities.DocumentChunk>>(doc, cks));
+        }
+
+        // Download / Preview file
+        public async Task<IActionResult> Download(int id)
+        {
+            var doc = await _documentService.GetByIdAsync(id);
+            if (doc == null) return NotFound();
+
+            if (!System.IO.File.Exists(doc.FilePath))
+                return NotFound("File not found on server.");
+
+            var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+            if (!provider.TryGetContentType(doc.FilePath, out var contentType))
+            {
+                contentType = "application/octet-stream";
+            }
+
+            var fileName = doc.FileName;
+            var stream = System.IO.File.OpenRead(doc.FilePath);
+
+            return File(stream, contentType, fileName);
+        }
+
        
         public async Task<IActionResult> Index(string? subjectName = null, string? message = null, string? error = null)
         {
