@@ -24,7 +24,7 @@ builder.Services.AddScoped<IDocumentChunkService, DocumentChunkService>();
 
 // Register custom services
 var uploadFolderPath = builder.Configuration["UploadFolderPath"] ?? "D:\\Upload";
-var maxFileSize = long.TryParse(builder.Configuration["MaxFileSize"], out var size) ? size : 314572800; // 300MB default
+var maxFileSize = long.TryParse(builder.Configuration["MaxFileSize"], out var size) ? size : 3145728; // 3MB default
 var openAiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 var chunkSize = int.TryParse(builder.Configuration["ChunkSize"], out var cs) ? cs : 512;
 
@@ -36,7 +36,7 @@ builder.Services.AddScoped<IIndexingService, IndexingService>();
 
 
 
-builder.Services.AddScoped<IAccountRepository, DataAccessLayer.Repositories.Implements.AccountRepository>();
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

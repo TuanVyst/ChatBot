@@ -50,7 +50,7 @@ namespace ServiceLayer.Implements
                 var json = JsonSerializer.Serialize(requestBody);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                // THAY BẰNG DÒNG NÀY:
+                
                 string requestUrl = $"https://generativelanguage.googleapis.com/v1beta/models/{ModelName}:embedContent?key={_apiKey}";
 
                 var request = new HttpRequestMessage(HttpMethod.Post, requestUrl)
@@ -66,7 +66,7 @@ namespace ServiceLayer.Implements
                 if (!response.IsSuccessStatusCode)
                     return (false, null, $"Gemini API error: {response.StatusCode} - {responseContent}");
 
-                // 3. Parse JSON trả về theo cấu trúc của Gemini
+          
                 using (var doc = JsonDocument.Parse(responseContent))
                 {
                     var root = doc.RootElement;
