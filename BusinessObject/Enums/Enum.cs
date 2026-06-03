@@ -10,5 +10,6 @@ namespace BusinessObject.Enums
     {
         User,
         Teacher,
+        Admin
     }
 }

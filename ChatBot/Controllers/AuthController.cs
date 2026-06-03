@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ServiceLayer.Interfaces;
 using BusinessObject.Dtos.RequestModel;
-using Microsoft.AspNetCore.Http;// Đường dẫn đến VerifyOtpRequest của bạn
+
 using System;
 using System.Threading.Tasks;
 
 namespace ChatBot.Controllers
 {
-    // Đã xóa [ApiController] và [Route("api/...")] vì đây là MVC thuần
+
     public class AuthController : Controller
     {
         private readonly IAuthService _authService;
@@ -19,14 +19,14 @@ namespace ChatBot.Controllers
             _authService = authService;
         }
 
-        // GET: /Auth/Register
+    
         [HttpGet]
         public IActionResult Register()
         {
             return View();
         }
 
-        // POST: /Auth/Register
+    
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
