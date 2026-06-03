@@ -34,12 +34,12 @@ builder.Services.AddScoped<IChunkingService>(sp => new ChunkingService(chunkSize
 builder.Services.AddScoped<IEmbeddingService>(sp => new EmbeddingService(openAiKey ?? throw new InvalidOperationException("OPENAI_API_KEY not configured")));
 builder.Services.AddScoped<IIndexingService, IndexingService>();
 
-builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 
 builder.Services.AddScoped<IAccountRepository, DataAccessLayer.Repositories.Implements.AccountRepository>();
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<ServiceLayer.Interfaces.IEmailService, ServiceLayer.Implements.EmailService>();
-builder.Services.AddScoped<ServiceLayer.Interfaces.IAuthService, ServiceLayer.Implements.AuthService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSession();
