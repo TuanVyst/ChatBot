@@ -24,7 +24,7 @@ namespace ServiceLayer.Implements
 
             // Tạo nội dung bức thư
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("SmartMeal App", emailUser));
+            message.From.Add(new MailboxAddress("Chat Bot App", emailUser));
             message.To.Add(new MailboxAddress("", toEmail));
             message.Subject = subject;
 

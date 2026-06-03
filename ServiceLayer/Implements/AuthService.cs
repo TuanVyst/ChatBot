@@ -72,13 +72,13 @@ namespace ServiceLayer.Implements
             _cache.Set($"OTP_{email}", otpCode, cacheOptions);
 
             // 3. GỌI DỊCH VỤ GỬI EMAIL THẬT TẠI ĐÂY
-            var subject = "Mã xác thực đăng nhập SmartMeal";
+            var subject = "Mã xác thực đăng nhập Chat Bot App";
 
             // Bạn có thể thiết kế nội dung bằng HTML cho đẹp mắt
             var htmlBody = $@"
                 <div style='font-family: Arial, sans-serif; padding: 20px;'>
                     <h2>Xin chào!</h2>
-                    <p>Bạn vừa yêu cầu mã xác thực để đăng nhập vào SmartMeal.</p>
+                    <p>Bạn vừa yêu cầu mã xác thực để đăng nhập vào Chat Bot App.</p>
                     <p>Mã OTP của bạn là: <strong style='font-size: 24px; color: #2e6c80;'>{otpCode}</strong></p>
                     <p><i>Mã này sẽ hết hạn trong 5 phút. Vui lòng không chia sẻ cho người khác.</i></p>
                 </div>";
