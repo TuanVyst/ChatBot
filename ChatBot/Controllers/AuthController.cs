@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ServiceLayer.Interfaces;
 using BusinessObject.Dtos.RequestModel;
+using BusinessObject.Enums;
 
 using System;
 using System.Threading.Tasks;
@@ -183,9 +184,14 @@ namespace ChatBot.Controllers
                 HttpContext.Session.SetString("UserId", userResult.AccountId.ToString());
                 HttpContext.Session.SetString("Email", userResult.Email);
                 HttpContext.Session.SetString("FullName", userResult.Name ?? model.Email.Split('@')[0]);
-                HttpContext.Session.SetString("Role", "Customer");
+                HttpContext.Session.SetString("Role", userResult.Role.ToString());
 
                 // 3. Xong! Đăng nhập thành công, vào trang chủ
+                if (userResult.Role == BusinessObject.Enums.RoleEnum.Admin)
+                {
+                    return RedirectToAction("Index", "Admin");
+                }
+                
                 return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)

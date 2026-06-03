@@ -7,6 +7,7 @@ namespace ServiceLayer.Interfaces
     public interface ISubjectService
     {
         Task<IEnumerable<Subject>> GetSubjects();
+        Task<IEnumerable<Subject>> GetSubjectsByTeacherId(System.Guid teacherAccountId);
         Task<Subject> GetSubjectById(int id);
         Task AddSubject(Subject subject);
         Task UpdateSubject(Subject subject);

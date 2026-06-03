@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BusinessObject.Enums;
 
 namespace ServiceLayer.Implements
 {
@@ -146,6 +147,7 @@ namespace ServiceLayer.Implements
                 AccountId = account.Account_id,
                 Email = request.Email,
                 Name = existingUserInfo?.Name,
+                Role = account.Role,
                 Message = "Đăng nhập thành công!"
             };
         }

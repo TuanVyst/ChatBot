@@ -11,20 +11,42 @@ namespace ChatBot.Controllers
     public class HomeController : Controller
     {
         private readonly IDocumentService _documentService;
+        private readonly ISubjectService _subjectService;
 
-        public HomeController(IDocumentService documentService)
+        public HomeController(IDocumentService documentService, ISubjectService subjectService)
         {
             _documentService = documentService;
+            _subjectService = subjectService;
         }
 
        
         public async Task<IActionResult> Index(string? subjectName = null, string? message = null, string? error = null)
         {
+            var userIdStr = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var subjects = await _subjectService.GetSubjectsByTeacherId(userId);
+            var subjectNames = subjects.Select(s => s.Name).ToList();
+
+            if (!string.IsNullOrEmpty(subjectName) && !subjectNames.Contains(subjectName))
+            {
+                subjectName = subjectNames.FirstOrDefault(); 
+            }
+
+            if (string.IsNullOrEmpty(subjectName) && subjectNames.Any())
+            {
+                subjectName = subjectNames.First();
+            }
+
             var documents = await _documentService.GetDocumentsAsync(subjectName);
             var pendingCount = documents.Count(d => string.Equals(d.IndexStatus, "Pending", StringComparison.OrdinalIgnoreCase));
+            
             var model = new DashboardViewModel
             {
-                Subjects = SubjectCatalog.Subjects,
+                Subjects = subjectNames,
                 Documents = documents.ToList(),
                 SelectedSubject = subjectName,
                 PendingCount = pendingCount,
@@ -38,6 +60,11 @@ namespace ChatBot.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Upload(IFormFile file, string subjectName, string chapterName = "Default")
         {
+            var userIdStr = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId)) return RedirectToAction("Login", "Auth");
+            var subjects = await _subjectService.GetSubjectsByTeacherId(userId);
+            if (!subjects.Any(s => s.Name == subjectName)) return RedirectToAction(nameof(Index), new { error = "Unauthorized subject" });
+
             var (success, message, _) = await _documentService.UploadDocumentAsync(file, subjectName, chapterName);
 
             if (success)
@@ -52,6 +79,15 @@ namespace ChatBot.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reindex(int id, string? subjectName = null)
         {
+            var userIdStr = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId)) return RedirectToAction("Login", "Auth");
+            
+            if (!string.IsNullOrEmpty(subjectName))
+            {
+                var subjects = await _subjectService.GetSubjectsByTeacherId(userId);
+                if (!subjects.Any(s => s.Name == subjectName)) return RedirectToAction(nameof(Index), new { error = "Unauthorized subject" });
+            }
+
             var (success, message) = await _documentService.ReindexDocumentAsync(id);
 
             if (success)

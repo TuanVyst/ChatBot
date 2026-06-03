@@ -2,6 +2,7 @@ using BusinessObject.Entities;
 using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DataAccessLayer.Repositories.Implements
@@ -17,12 +18,17 @@ namespace DataAccessLayer.Repositories.Implements
 
         public async Task<IEnumerable<Subject>> GetAllAsync()
         {
-            return await _context.Subjects.Include(s => s.University).ToListAsync();
+            return await _context.Subjects.Include(s => s.University).Include(s => s.Teacher).ToListAsync();
+        }
+
+        public async Task<IEnumerable<Subject>> GetByTeacherIdAsync(System.Guid teacherAccountId)
+        {
+            return await _context.Subjects.Include(s => s.University).Where(s => s.TeacherAccountId == teacherAccountId).ToListAsync();
         }
 
         public async Task<Subject> GetByIdAsync(int id)
         {
-            return await _context.Subjects.Include(s => s.University).FirstOrDefaultAsync(s => s.Id == id);
+            return await _context.Subjects.Include(s => s.University).Include(s => s.Teacher).FirstOrDefaultAsync(s => s.Id == id);
         }
 
         public async Task AddAsync(Subject subject)

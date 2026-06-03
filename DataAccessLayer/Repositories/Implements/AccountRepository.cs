@@ -44,5 +44,26 @@ namespace DataAccessLayer.Repositories.Implements
             _context.Accounts.Update(account);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<IEnumerable<UserInformation>> GetAllUserInformationsAsync()
+        {
+            return await _context.UserInformations.Include(u => u.Account).ToListAsync();
+        }
+
+        public async Task<Account> GetByIdAsync(Guid id)
+        {
+            return await _context.Accounts.FindAsync(id);
+        }
+
+        public async Task<IEnumerable<Account>> GetAllAsync()
+        {
+            return await _context.Accounts.ToListAsync();
+        }
+
+        public async Task UpdateAsync(Account account)
+        {
+            _context.Accounts.Update(account);
+            await _context.SaveChangesAsync();
+        }
     }
 }

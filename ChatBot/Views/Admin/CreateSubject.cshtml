@@ -7,25 +7,57 @@
     var universities = new SelectList(await UniversityService.GetUniversities(), "Id", "Name");
 }
 
-<h1>Create Subject</h1>
+<div class="admin-header">
+    <h1 class="page-title">Create Subject</h1>
+    <div class="admin-actions">
+        <a asp-action="Subjects" class="btn-secondary btn-premium">
+            <i class="ph-bold ph-arrow-left"></i>
+            Back to List
+        </a>
+    </div>
+</div>
 
-<form asp-action="CreateSubject" method="post">
-    <div class="form-group">
-        <label asp-for="Name"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
-    <div class="form-group">
-        <label asp-for="Code"></label>
-        <input asp-for="Code" class="form-control" />
-        <span asp-validation-for="Code" class="text-danger"></span>
-    </div>
-    <div class="form-group">
-        <label asp-for="UniversityId"></label>
-        <select asp-for="UniversityId" asp-items="universities" class="form-control">
-            <option value="">-- Select University --</option>
-        </select>
-        <span asp-validation-for="UniversityId" class="text-danger"></span>
-    </div>
-    <button type="submit" class="btn btn-primary">Create</button>
-</form>
+<div class="admin-card" style="max-width: 600px;">
+    <form asp-action="CreateSubject" method="post" class="premium-form">
+        <div class="form-group">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" placeholder="Enter subject name..." />
+            <span asp-validation-for="Name" class="text-danger" style="font-size: 0.85rem; margin-top: 4px;"></span>
+        </div>
+        
+        <div class="form-group">
+            <label asp-for="Code" class="form-label"></label>
+            <input asp-for="Code" class="form-control" placeholder="e.g., PRN222" />
+            <span asp-validation-for="Code" class="text-danger" style="font-size: 0.85rem; margin-top: 4px;"></span>
+        </div>
+        
+        <div class="form-group">
+            <label asp-for="UniversityId" class="form-label">University</label>
+            <div style="position: relative;">
+                <select asp-for="UniversityId" asp-items="universities" class="form-control" style="appearance: none; padding-right: 2.5rem;">
+                    <option value="">-- Select University --</option>
+                </select>
+                <i class="ph-bold ph-caret-down" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted);"></i>
+            </div>
+            <span asp-validation-for="UniversityId" class="text-danger" style="font-size: 0.85rem; margin-top: 4px;"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="TeacherAccountId" class="form-label">Assigned Teacher</label>
+            <div style="position: relative;">
+                <select asp-for="TeacherAccountId" asp-items="ViewBag.Teachers" class="form-control" style="appearance: none; padding-right: 2.5rem;">
+                    <option value="">-- No Teacher Assigned --</option>
+                </select>
+                <i class="ph-bold ph-caret-down" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted);"></i>
+            </div>
+            <span asp-validation-for="TeacherAccountId" class="text-danger" style="font-size: 0.85rem; margin-top: 4px;"></span>
+        </div>
+        
+        <div style="margin-top: 1rem;">
+            <button type="submit" class="btn-premium btn-primary">
+                <i class="ph-bold ph-check"></i>
+                Create Subject
+            </button>
+        </div>
+    </form>
+</div>

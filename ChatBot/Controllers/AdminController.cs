@@ -2,6 +2,9 @@ using BusinessObject.Entities;
 using Microsoft.AspNetCore.Mvc;
 using ServiceLayer.Interfaces;
 using System.Threading.Tasks;
+using DataAccessLayer.Repositories.Interfaces;
+using System;
+using System.Linq;
 
 namespace ChatBot.Controllers
 {
@@ -37,6 +40,7 @@ namespace ChatBot.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateUniversity(University university)
         {
+            ModelState.Remove("Subjects");
             if (ModelState.IsValid)
             {
                 await _universityService.AddUniversity(university);
@@ -58,6 +62,7 @@ namespace ChatBot.Controllers
         [HttpPost]
         public async Task<IActionResult> EditUniversity(University university)
         {
+            ModelState.Remove("Subjects");
             if (ModelState.IsValid)
             {
                 await _universityService.UpdateUniversity(university);
@@ -79,14 +84,17 @@ namespace ChatBot.Controllers
             return View(subjects);
         }
 
-        public IActionResult CreateSubject()
+        public async Task<IActionResult> CreateSubject()
         {
+            var teachers = (await _accountRepository.GetAllUserInformationsAsync()).Where(u => u.Account.Role == BusinessObject.Enums.RoleEnum.Teacher);
+            ViewBag.Teachers = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(teachers, "Account_id", "Name");
             return View();
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateSubject(Subject subject)
         {
+            ModelState.Remove("University");
             if (ModelState.IsValid)
             {
                 await _subjectService.AddSubject(subject);
@@ -102,12 +110,15 @@ namespace ChatBot.Controllers
             {
                 return NotFound();
             }
+            var teachers = (await _accountRepository.GetAllUserInformationsAsync()).Where(u => u.Account.Role == BusinessObject.Enums.RoleEnum.Teacher);
+            ViewBag.Teachers = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(teachers, "Account_id", "Name");
             return View(subject);
         }
 
         [HttpPost]
         public async Task<IActionResult> EditSubject(Subject subject)
         {
+            ModelState.Remove("University");
             if (ModelState.IsValid)
             {
                 await _subjectService.UpdateSubject(subject);
@@ -125,17 +136,41 @@ namespace ChatBot.Controllers
 
         public async Task<IActionResult> Users()
         {
-            var users = await _accountRepository.GetAllAsync();
+            var users = await _accountRepository.GetAllUserInformationsAsync();
             return View(users);
         }
 
+        public IActionResult CreateTeacher()
+        {
+            return View();
+        }
+
         [HttpPost]
-        public async Task<IActionResult> ToggleUserStatus(int id)
+        public async Task<IActionResult> CreateTeacher(Account account)
+        {
+            if (ModelState.IsValid)
+            {
+                account.Role = BusinessObject.Enums.RoleEnum.Teacher;
+                var userInfo = new UserInformation
+                {
+                    User_id = Guid.NewGuid(),
+                    Account_id = account.Account_id,
+                    Email = account.Username,
+                    Name = account.Username.Split('@')[0]
+                };
+                await _accountRepository.CreateAccountWithUserInfoAsync(account, userInfo);
+                return RedirectToAction(nameof(Users));
+            }
+            return View(account);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ToggleUserStatus(Guid id)
         {
             var account = await _accountRepository.GetByIdAsync(id);
             if (account != null)
             {
-                account.Status = account.Status == "Active" ? "Inactive" : "Active";
+                account.IsActive = !account.IsActive;
                 await _accountRepository.UpdateAsync(account);
             }
             return RedirectToAction(nameof(Users));

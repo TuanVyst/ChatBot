@@ -1,35 +1,81 @@
-@model IEnumerable<BusinessObject.Entities.Account>
+@model IEnumerable<BusinessObject.Entities.UserInformation>
 
 @{
     ViewData["Title"] = "Manage Users";
 }
 
-<h1>Manage Users</h1>
+<div class="admin-header">
+    <h1 class="page-title">Users</h1>
+    <div class="admin-actions">
+        <a asp-action="CreateTeacher" class="btn-premium btn-primary">
+            <i class="ph-bold ph-user-plus"></i>
+            Add Teacher
+        </a>
+    </div>
+</div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
+<div class="admin-card">
+    <table class="premium-table">
+        <thead>
             <tr>
-                <td>@item.Email</td>
-                <td>@item.Role</td>
-                <td>@item.Status</td>
-                <td>
-                    <form asp-action="ToggleUserStatus" asp-route-id="@item.Id" method="post" style="display:inline;">
-                        <button type="submit" class="btn btn-sm @(item.Status == "Active" ? "btn-warning" : "btn-success")">
-                            @(item.Status == "Active" ? "Deactivate" : "Activate")
-                        </button>
-                    </form>
-                </td>
+                <th>User Details</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th style="width: 150px; text-align: right;">Actions</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000;">
+                                @item.Email.Substring(0, 1).ToUpper()
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-main);">@item.Name</div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted);">@item.Email</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span style="background: rgba(90, 103, 216, 0.1); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 500;">
+                            @item.Account.Role
+                        </span>
+                    </td>
+                    <td>
+                        @if (item.Account.IsActive)
+                        {
+                            <span class="badge badge-active">
+                                <i class="ph-fill ph-check-circle"></i> Active
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-inactive">
+                                <i class="ph-fill ph-x-circle"></i> Inactive
+                            </span>
+                        }
+                    </td>
+                    <td>
+                        <div class="table-actions" style="justify-content: flex-end;">
+                            <form asp-action="ToggleUserStatus" asp-route-id="@item.Account.Account_id" method="post" style="margin: 0;">
+                                <button type="submit" class="@(item.Account.IsActive ? "btn-danger" : "btn-success")" style="border: none; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                    @if (item.Account.IsActive)
+                                    {
+                                        <i class="ph-bold ph-lock-key"></i> <span>Deactivate</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="ph-bold ph-lock-key-open"></i> <span>Activate</span>
+                                    }
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

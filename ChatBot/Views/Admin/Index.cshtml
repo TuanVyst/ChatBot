@@ -1,11 +1,39 @@
 @{
-    ViewData["Title"] = "Admin Dashboard";
+    ViewData["Title"] = "Dashboard";
 }
 
-<h1>Admin Dashboard</h1>
+<div class="admin-header">
+    <h1 class="page-title">Admin Dashboard</h1>
+</div>
 
-<div class="list-group">
-    <a asp-action="Universities" asp-controller="Admin" class="list-group-item list-group-item-action">Manage Universities</a>
-    <a asp-action="Subjects" asp-controller="Admin" class="list-group-item list-group-item-action">Manage Subjects</a>
-    <a asp-action="Users" asp-controller="Admin" class="list-group-item list-group-item-action">Manage Users</a>
+<div class="dashboard-grid">
+    <a asp-action="Universities" asp-controller="Admin" class="dash-card">
+        <div class="dash-icon">
+            <i class="ph-fill ph-buildings"></i>
+        </div>
+        <div>
+            <h3 class="dash-title">Universities</h3>
+            <p class="dash-desc">Manage the list of partner universities and their associated metadata.</p>
+        </div>
+    </a>
+
+    <a asp-action="Subjects" asp-controller="Admin" class="dash-card secondary">
+        <div class="dash-icon">
+            <i class="ph-fill ph-books"></i>
+        </div>
+        <div>
+            <h3 class="dash-title">Subjects</h3>
+            <p class="dash-desc">Organize and manage educational subjects and link them to universities.</p>
+        </div>
+    </a>
+
+    <a asp-action="Users" asp-controller="Admin" class="dash-card tertiary">
+        <div class="dash-icon">
+            <i class="ph-fill ph-users"></i>
+        </div>
+        <div>
+            <h3 class="dash-title">Users</h3>
+            <p class="dash-desc">Manage system users, teacher accounts, and review their activity status.</p>
+        </div>
+    </a>
 </div>

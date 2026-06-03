@@ -4,35 +4,70 @@
     ViewData["Title"] = "Manage Subjects";
 }
 
-<h1>Manage Subjects</h1>
+<div class="admin-header">
+    <h1 class="page-title">Subjects</h1>
+    <div class="admin-actions">
+        <a asp-action="CreateSubject" class="btn-premium btn-primary">
+            <i class="ph-bold ph-plus"></i>
+            Add Subject
+        </a>
+    </div>
+</div>
 
-<p>
-    <a asp-action="CreateSubject" class="btn btn-primary">Create New</a>
-</p>
-
-<table class="table">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Code</th>
-            <th>University</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
+<div class="admin-card">
+    <table class="premium-table">
+        <thead>
             <tr>
-                <td>@item.Name</td>
-                <td>@item.Code</td>
-                <td>@item.University.Name</td>
-                <td>
-                    <a asp-action="EditSubject" asp-route-id="@item.Id">Edit</a> |
-                    <form asp-action="DeleteSubject" asp-route-id="@item.Id" method="post" style="display:inline;">
-                        <button type="submit" class="btn btn-link" onclick="return confirm('Are you sure you want to delete this subject?');">Delete</button>
-                    </form>
-                </td>
+                <th>Subject Name</th>
+                <th>Code</th>
+                <th>University</th>
+                <th>Assigned Teacher</th>
+                <th style="width: 150px; text-align: right;">Actions</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <div style="font-weight: 500; color: var(--text-main);">@item.Name</div>
+                    </td>
+                    <td>
+                        <span style="background: rgba(0,0,0,0.05); padding: 4px 8px; border-radius: 6px; font-family: monospace; font-size: 0.85rem;">@item.Code</span>
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <i class="ph-fill ph-buildings" style="color: var(--text-muted)"></i>
+                            @item.University.Name
+                        </div>
+                    </td>
+                    <td>
+                        @if (item.Teacher != null)
+                        {
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <i class="ph-fill ph-user" style="color: var(--text-muted)"></i>
+                                @item.Teacher.Username
+                            </div>
+                        }
+                        else
+                        {
+                            <span style="color: var(--text-muted); font-style: italic;">Unassigned</span>
+                        }
+                    </td>
+                    <td>
+                        <div class="table-actions" style="justify-content: flex-end;">
+                            <a asp-action="EditSubject" asp-route-id="@item.Id" class="btn-edit" title="Edit">
+                                <i class="ph-bold ph-pencil-simple"></i>
+                            </a>
+                            <form asp-action="DeleteSubject" asp-route-id="@item.Id" method="post" style="margin: 0;" onsubmit="return confirm('Are you sure you want to delete this subject?');">
+                                <button type="submit" class="btn-danger" title="Delete" style="border: none; cursor: pointer;">
+                                    <i class="ph-bold ph-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

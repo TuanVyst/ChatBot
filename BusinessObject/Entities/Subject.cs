@@ -22,5 +22,8 @@ namespace BusinessObject.Entities
         [ForeignKey("UniversityId")]
         public virtual University University { get; set; }
 
+        public Guid? TeacherAccountId { get; set; }
+        [ForeignKey("TeacherAccountId")]
+        public virtual Account? Teacher { get; set; }
     }
 }

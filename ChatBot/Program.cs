@@ -5,6 +5,7 @@ using DataAccessLayer.Repositories.Implements;
 using ServiceLayer.Implements;
 using ServiceLayer.Interfaces;
 using DataAccessLayer.Repositories;
+using BusinessObject.Entities;
 
 
 DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
@@ -38,7 +39,6 @@ builder.Services.AddScoped<IEmbeddingService>(sp => new EmbeddingService(openAiK
 builder.Services.AddScoped<IIndexingService, IndexingService>();
 
 
-builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUniversityRepository, UniversityRepository>();
 builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
 builder.Services.AddScoped<IUniversityService, UniversityService>();
@@ -46,7 +46,7 @@ builder.Services.AddScoped<ISubjectService, SubjectService>();
 
 
 
-builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<IAccountRepository, DataAccessLayer.Repositories.Implements.AccountRepository>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -97,4 +97,48 @@ app.MapControllerRoute(
 
 app.MapFallbackToController("Login", "Auth");
 
+SeedDatabase(app);
+
 app.Run();
+
+void SeedDatabase(IHost app)
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        try
+        {
+            var context = services.GetRequiredService<AppDbContext>();
+            var accountRepository = services.GetRequiredService<IAccountRepository>();
+
+            // Check if admin user exists
+            var adminUser = context.UserInformations.FirstOrDefault(u => u.Email == "chickenhuy2005@gmail.com");
+            if (adminUser == null)
+            {
+                // Create admin account
+                var adminAccount = new Account
+                {
+                    Username = "admin",
+                    Password = "123456", // In a real app, hash this password
+                    Role = BusinessObject.Enums.RoleEnum.Admin,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                var adminInfo = new UserInformation
+                {
+                    Account_id = adminAccount.Account_id,
+                    Email = "chickenhuy2005@gmail.com",
+                    Name = "Admin"
+                };
+
+                accountRepository.CreateAccountWithUserInfoAsync(adminAccount, adminInfo).Wait();
+            }
+        }
+        catch (Exception ex)
+        {
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "An error occurred while seeding the database.");
+        }
+    }
+}
