@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -25,8 +25,10 @@ namespace BusinessObject.Entities
         [Required]
         public Guid SubjectId { get; set; } // ID của môn học (Đề bài yêu cầu: Quản lý theo môn học/chương)
 
-        [StringLength(100)]
-        public string ChapterName { get; set; } // Tên chương hoặc section của tài liệu
+        public int? ChapterId { get; set; } // Liên kết đến Chapter
+
+        [ForeignKey("ChapterId")]
+        public virtual Chapter? Chapter { get; set; }
 
         [Required]
         [StringLength(50)]

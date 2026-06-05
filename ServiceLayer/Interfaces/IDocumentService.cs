@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using BusinessObject.Entities;
 
 namespace ServiceLayer.Interfaces
@@ -8,9 +8,9 @@ namespace ServiceLayer.Interfaces
         Task<(bool Success, string Message, int DocumentId)> UploadDocumentAsync(
             IFormFile file,
             string subjectName,
-            string chapterName);
+            int? chapterId);
 
-        Task<IEnumerable<Document>> GetDocumentsAsync(string subjectName);
+        Task<IEnumerable<Document>> GetDocumentsAsync(string subjectName, int? chapterId = null);
 
         Task<Document?> GetByIdAsync(int id);
 

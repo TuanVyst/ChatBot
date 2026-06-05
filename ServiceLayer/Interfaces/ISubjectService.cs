@@ -12,5 +12,6 @@ namespace ServiceLayer.Interfaces
         Task AddSubject(Subject subject);
         Task UpdateSubject(Subject subject);
         Task DeleteSubject(string id);
+        Task<(bool Success, string Message)> AddStudentToSubjectAsync(string emailOrUsername, System.Guid subjectId);
     }
 }

@@ -12,11 +12,19 @@ namespace ChatBot.Controllers
     {
         private readonly IDocumentService _documentService;
         private readonly ISubjectService _subjectService;
+        private readonly ServiceLayer.Interfaces.IChapterService _chapterService;
+        private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
 
-        public HomeController(IDocumentService documentService, ISubjectService subjectService)
+        public HomeController(
+            IDocumentService documentService, 
+            ISubjectService subjectService,
+            ServiceLayer.Interfaces.IChapterService chapterService,
+            Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
         {
             _documentService = documentService;
             _subjectService = subjectService;
+            _chapterService = chapterService;
+            _cache = cache;
         }
 
         // View document chunks (for verifying embeddings/content)
@@ -62,7 +70,7 @@ namespace ChatBot.Controllers
         }
 
        
-        public async Task<IActionResult> Index(string? subjectName = null, string? message = null, string? error = null)
+        public async Task<IActionResult> Index(string? subjectName = null, int? chapterId = null, string? message = null, string? error = null)
         {
             var userIdStr = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
@@ -70,27 +78,33 @@ namespace ChatBot.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
-            var subjects = await _subjectService.GetSubjectsByTeacherId(userId);
-            var subjectNames = subjects.Select(s => s.Name).ToList();
+            var subjects = (await _subjectService.GetSubjectsByTeacherId(userId)).ToList();
 
-            if (!string.IsNullOrEmpty(subjectName) && !subjectNames.Contains(subjectName))
+            if (!string.IsNullOrEmpty(subjectName) && !subjects.Any(s => s.Name == subjectName))
             {
-                subjectName = subjectNames.FirstOrDefault(); 
+                subjectName = subjects.FirstOrDefault()?.Name; 
             }
 
-            if (string.IsNullOrEmpty(subjectName) && subjectNames.Any())
+            if (string.IsNullOrEmpty(subjectName) && subjects.Any())
             {
-                subjectName = subjectNames.First();
+                subjectName = subjects.First().Name;
             }
 
-            var documents = await _documentService.GetDocumentsAsync(subjectName);
+            var selectedSubject = subjects.FirstOrDefault(s => s.Name == subjectName);
+            var chapters = selectedSubject != null 
+                ? (await _chapterService.GetChaptersBySubjectIdAsync(selectedSubject.Id)).ToList() 
+                : new List<BusinessObject.Entities.Chapter>();
+
+            var documents = await _documentService.GetDocumentsAsync(subjectName ?? string.Empty, chapterId);
             var pendingCount = documents.Count(d => string.Equals(d.IndexStatus, "Pending", StringComparison.OrdinalIgnoreCase));
             
             var model = new DashboardViewModel
             {
-                Subjects = subjectNames,
+                Subjects = subjects,
                 Documents = documents.ToList(),
                 SelectedSubject = subjectName,
+                Chapters = chapters,
+                SelectedChapterId = chapterId,
                 PendingCount = pendingCount,
                 Message = message,
                 Error = error,
@@ -98,16 +112,39 @@ namespace ChatBot.Controllers
             return View(model);
         }
 
+        [HttpGet]
+        public IActionResult GetProgress(int id)
+        {
+            var progressKey = $"doc_progress_{id}";
+            if (_cache.TryGetValue(progressKey, out object progressObj) && progressObj is int progress)
+            {
+                return Json(new { progress });
+            }
+            return Json(new { progress = 0 });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateChapter(Guid subjectId, string name, string? description, string subjectName)
+        {
+            var (success, msg, _) = await _chapterService.CreateChapterAsync(subjectId, name, description);
+            if (success)
+            {
+                return RedirectToAction(nameof(Index), new { message = msg, subjectName = subjectName });
+            }
+            return RedirectToAction(nameof(Index), new { error = msg, subjectName = subjectName });
+        }
+
       
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Upload(IFormFile file, string subjectName, string chapterName = "Default")
+        public async Task<IActionResult> Upload(IFormFile file, string subjectName, int? chapterId)
         {
             var userIdStr = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId)) return RedirectToAction("Login", "Auth");
             var subjects = await _subjectService.GetSubjectsByTeacherId(userId);
             if (!subjects.Any(s => s.Name == subjectName)) return RedirectToAction(nameof(Index), new { error = "Unauthorized subject" });
 
-            var (success, message, _) = await _documentService.UploadDocumentAsync(file, subjectName, chapterName);
+            var (success, message, _) = await _documentService.UploadDocumentAsync(file, subjectName, chapterId);
 
             if (success)
             {

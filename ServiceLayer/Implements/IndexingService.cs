@@ -3,6 +3,7 @@ using DataAccessLayer;
 using DataAccessLayer.Repositories.Interfaces;
 using Pgvector;
 using ServiceLayer.Interfaces;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ServiceLayer.Implements
 {
@@ -15,6 +16,7 @@ namespace ServiceLayer.Implements
         private readonly IChunkingService _chunkingService;
         private readonly IEmbeddingService _embeddingService;
         private readonly IFileUploadService _fileUploadService;
+        private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
 
         public IndexingService(
             AppDbContext context,
@@ -23,7 +25,8 @@ namespace ServiceLayer.Implements
             ITextExtractionService textExtractionService,
             IChunkingService chunkingService,
             IEmbeddingService embeddingService,
-            IFileUploadService fileUploadService)
+            IFileUploadService fileUploadService,
+            Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
         {
             _context = context;
             _documentRepository = documentRepository;
@@ -32,10 +35,14 @@ namespace ServiceLayer.Implements
             _chunkingService = chunkingService;
             _embeddingService = embeddingService;
             _fileUploadService = fileUploadService;
+            _cache = cache;
         }
 
         public async Task<(bool success, string? errorMessage)> IndexDocumentAsync(Document document)
         {
+            var progressKey = $"doc_progress_{document.Id}";
+            _cache.Set(progressKey, 0);
+
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
@@ -53,6 +60,7 @@ namespace ServiceLayer.Implements
                         await _documentRepository.UpdateAsync(document);
                         await _documentRepository.SaveChangesAsync();
                         _fileUploadService.DeleteFile(document.FilePath);
+                        _cache.Remove(progressKey);
                         return (false, extractError);
                     }
 
@@ -65,6 +73,7 @@ namespace ServiceLayer.Implements
                         await _documentRepository.UpdateAsync(document);
                         await _documentRepository.SaveChangesAsync();
                         _fileUploadService.DeleteFile(document.FilePath);
+                        _cache.Remove(progressKey);
                         return (false, "No chunks generated");
                     }
 
@@ -81,6 +90,7 @@ namespace ServiceLayer.Implements
                             await _documentRepository.UpdateAsync(document);
                             await _documentRepository.SaveChangesAsync();
                             _fileUploadService.DeleteFile(document.FilePath);
+                            _cache.Remove(progressKey);
                             return (false, embedError);
                         }
 
@@ -93,6 +103,9 @@ namespace ServiceLayer.Implements
                             Embedding = vectorData,
                             ChunkOrder = chunkOrder++
                         });
+
+                        int progress = (int)((chunkOrder * 100.0) / chunks.Count);
+                        _cache.Set(progressKey, progress);
                     }
 
                     await _documentChunkRepository.AddRangeAsync(documentChunks);
@@ -103,6 +116,7 @@ namespace ServiceLayer.Implements
                     await _documentRepository.SaveChangesAsync();
 
                     await transaction.CommitAsync();
+                    _cache.Set(progressKey, 100);
                     return (true, null);
                 }
                 catch (Exception ex)
@@ -113,6 +127,7 @@ namespace ServiceLayer.Implements
                     await _documentRepository.UpdateAsync(document);
                     await _documentRepository.SaveChangesAsync();
                     _fileUploadService.DeleteFile(document.FilePath);
+                    _cache.Remove(progressKey);
                     return (false, ex.Message);
                 }
             }
