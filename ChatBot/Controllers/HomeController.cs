@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ChatBot.Models;
 using ServiceLayer.Interfaces;
+using BusinessObject.Entities;
 
 namespace ChatBot.Controllers
 {
@@ -28,6 +29,26 @@ namespace ChatBot.Controllers
             _subjectService = subjectService;
             _chapterService = chapterService;
             _cache = cache;
+        }
+
+        // View students in a subject (for lecture)
+        [HttpGet]
+        public async Task<IActionResult> StudentsInSubject(string subjectId)
+        {
+            if (string.IsNullOrEmpty(subjectId) || !Guid.TryParse(subjectId, out var sid))
+                return BadRequest("Invalid subject id");
+
+            // Load student-subject entries and include user info
+            var students = await _subjectService.GetStudentsBySubjectIdAsync(sid);
+            return PartialView("_StudentsList", students);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveStudentFromSubject(Guid accountId, Guid subjectId)
+        {
+            var (success, message) = await _subjectService.RemoveStudentFromSubjectAsync(accountId, subjectId);
+            return Json(new { success, message });
         }
 
         // View document chunks (for verifying embeddings/content)
@@ -73,7 +94,7 @@ namespace ChatBot.Controllers
         }
 
        
-        public async Task<IActionResult> Index(string? subjectName = null, int? chapterId = null, string? message = null, string? error = null)
+        public async Task<IActionResult> Index(string? subjectName = null, string? chapterId = null, string? message = null, string? error = null)
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
@@ -91,11 +112,6 @@ namespace ChatBot.Controllers
                 selectedSubjectId = subjectList.FirstOrDefault()?.Id.ToString();
             }
 
-            if (string.IsNullOrEmpty(selectedSubjectId) && subjectList.Any())
-            {
-                selectedSubjectId = subjectList.First().Id.ToString();
-            }
-
             // Load chapters for the selected subject (if any)
             var chapters = new List<BusinessObject.Entities.Chapter>();
             if (!string.IsNullOrEmpty(selectedSubjectId) && Guid.TryParse(selectedSubjectId, out var subjGuid))
@@ -104,20 +120,97 @@ namespace ChatBot.Controllers
                 chapters = chs.ToList();
             }
 
-            var documents = await _documentService.GetDocumentsAsync(selectedSubjectId);
+            // Selected chapter id comes from query as string GUID
+            string? selectedChapterId = chapterId;
+            if (!string.IsNullOrEmpty(selectedChapterId) && !chapters.Any(c => c.Id.ToString() == selectedChapterId))
+            {
+                // If the selected chapter doesn't belong to the selected subject, clear selection
+                selectedChapterId = null;
+            }
+
+            var documents = new List<Document>();
+            if (subjectList.Any())
+            {
+                if (string.IsNullOrEmpty(selectedSubjectId))
+                {
+                    var allDocs = await _documentService.GetDocumentsAsync(null, selectedChapterId);
+                    var ownedSubjectIds = subjectList.Select(s => s.Id).ToList();
+                    documents = allDocs.Where(d => ownedSubjectIds.Contains(d.SubjectId)).ToList();
+                }
+                else
+                {
+                    var docs = await _documentService.GetDocumentsAsync(selectedSubjectId, selectedChapterId);
+                    documents = docs.ToList();
+                }
+            }
             var pendingCount = documents.Count(d => string.Equals(d.IndexStatus, "Pending", StringComparison.OrdinalIgnoreCase));
-            
+
             var model = new DashboardViewModel
             {
                 Subjects = subjectList,
                 Documents = documents.ToList(),
                 SelectedSubjectId = selectedSubjectId,
                 Chapters = chapters,
+                SelectedChapterId = selectedChapterId,
                 PendingCount = pendingCount,
                 Message = message,
                 Error = error,
             };
             return View(model);
+        }
+
+        // Return only the documents list portion as a partial view for AJAX updates
+        [HttpGet]
+        public async Task<IActionResult> DocumentsPartial(string? subjectName = null, string? chapterId = null)
+        {
+            var user = HttpContext.User;
+            // Load chapters for the selected subject (if any) so selection validation can be applied
+            var chapters = new List<Chapter>();
+            if (!string.IsNullOrEmpty(subjectName) && Guid.TryParse(subjectName, out var subjGuid))
+            {
+                var chs = await _chapterService.GetChaptersBySubjectIdAsync(subjGuid);
+                chapters = chs.ToList();
+            }
+
+            // Validate chapter belongs to the selected subject
+            string? selectedChapterId = chapterId;
+            if (!string.IsNullOrEmpty(selectedChapterId) && !chapters.Any(c => c.Id.ToString() == selectedChapterId))
+            {
+                selectedChapterId = null;
+            }
+
+            if (string.IsNullOrEmpty(subjectName) && chapters.Any())
+            {
+                // Do not force chapter selection if no subject is selected
+            }
+
+            var subjectList = await _subjectService.GetSubjectsByCurrentLecturer(user);
+
+            var documents = new List<Document>();
+            if (subjectList.Any())
+            {
+                if (string.IsNullOrEmpty(subjectName))
+                {
+                    var allDocs = await _documentService.GetDocumentsAsync(null, chapterId);
+                    var ownedSubjectIds = subjectList.Select(s => s.Id).ToList();
+                    documents = allDocs.Where(d => ownedSubjectIds.Contains(d.SubjectId)).ToList();
+                }
+                else
+                {
+                    var docs = await _documentService.GetDocumentsAsync(subjectName, chapterId);
+                    documents = docs.ToList();
+                }
+            }
+
+            var model = new DashboardViewModel
+            {
+                Documents = documents.ToList(),
+                SelectedSubjectId = subjectName,
+                SelectedChapterId = selectedChapterId,
+                Chapters = chapters,
+            };
+
+            return PartialView("_DocumentsTable", model);
         }
 
         [HttpGet]
@@ -133,14 +226,58 @@ namespace ChatBot.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateChapter(Guid subjectId, string name, string? description, string subjectName)
+        public async Task<IActionResult> CreateChapter(Guid subjectId, string name, string? description)
         {
             var (success, msg, _) = await _chapterService.CreateChapterAsync(subjectId, name, description);
             if (success)
             {
-                return RedirectToAction(nameof(Index), new { message = msg, subjectName = subjectName });
+                TempData["ChapterSuccess"] = msg;
             }
-            return RedirectToAction(nameof(Index), new { error = msg, subjectName = subjectName });
+            else
+            {
+                TempData["ChapterError"] = msg;
+            }
+            return RedirectToAction(nameof(Index), new { subjectName = subjectId.ToString() });
+        }
+
+        // GET: show form for lecture to add a student to a subject
+        [Authorize(Roles = "Lecture")]
+        public async Task<IActionResult> AddStudentToSubject(string id)
+        {
+            var subject = await _subjectService.GetSubjectById(id);
+            if (subject == null) return NotFound();
+            return View(subject);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Lecture")]
+        public async Task<IActionResult> AddStudentToSubject(string subjectId, string email)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(subjectId))
+            {
+                TempData["StudentError"] = "Vui lòng nhập đầy đủ email và môn học.";
+                return RedirectToAction(nameof(Index), new { subjectName = subjectId });
+            }
+
+            if (!Guid.TryParse(subjectId, out var subjGuid))
+            {
+                TempData["StudentError"] = "Môn học không hợp lệ.";
+                return RedirectToAction(nameof(Index), new { subjectName = subjectId });
+            }
+
+            var (success, message) = await _subjectService.AddStudentToSubjectAsync(email.Trim(), subjGuid);
+
+            if (success)
+            {
+                TempData["StudentSuccess"] = message;
+            }
+            else
+            {
+                TempData["StudentError"] = message;
+            }
+
+            return RedirectToAction(nameof(Index), new { subjectName = subjectId });
         }
 
       
@@ -153,16 +290,24 @@ namespace ChatBot.Controllers
             // The UI sends the selected subject's Id as the subjectName form value.
             // Treat subjectName as subjectId here and validate by Id.
             var subjectId = subjectName;
-            if (string.IsNullOrEmpty(subjectId) || !subjects.Any(s => s.Id.ToString() == subjectId)) return RedirectToAction(nameof(Index), new { error = "Unauthorized subject" });
+            if (string.IsNullOrEmpty(subjectId) || !subjects.Any(s => s.Id.ToString() == subjectId))
+            {
+                TempData["UploadError"] = "Unauthorized subject";
+                return RedirectToAction(nameof(Index));
+            }
 
             var (success, message, _) = await _documentService.UploadDocumentAsync(file, subjectId, chapterId);
 
             if (success)
             {
-                return RedirectToAction(nameof(Index), new { message });
+                TempData["UploadSuccess"] = message;
+            }
+            else
+            {
+                TempData["UploadError"] = message;
             }
 
-            return RedirectToAction(nameof(Index), new { error = message });
+            return RedirectToAction(nameof(Index), new { subjectName = subjectId });
         }
 
       
@@ -176,17 +321,25 @@ namespace ChatBot.Controllers
             {
                 var subjects = await _subjectService.GetSubjectsByTeacherId(userId);
                 // subjectName in UI is actually the subject Id (string GUID). Validate by Id.
-                if (!subjects.Any(s => s.Id.ToString() == subjectName)) return RedirectToAction(nameof(Index), new { error = "Unauthorized subject" });
+                if (!subjects.Any(s => s.Id.ToString() == subjectName))
+                {
+                    TempData["ListError"] = "Unauthorized subject";
+                    return RedirectToAction(nameof(Index));
+                }
             }
 
             var (success, message) = await _documentService.ReindexDocumentAsync(id);
 
             if (success)
             {
-                return RedirectToAction(nameof(Index), new { message, subjectName });
+                TempData["ListSuccess"] = message;
+            }
+            else
+            {
+                TempData["ListError"] = message;
             }
 
-            return RedirectToAction(nameof(Index), new { error = message, subjectName });
+            return RedirectToAction(nameof(Index), new { subjectName });
         }
     }
 }

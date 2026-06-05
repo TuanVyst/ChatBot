@@ -27,5 +27,7 @@ namespace BusinessObject.Entities
         public bool IsActive { get; set; } = true;
 
         public DateTime? LastLogin { get; set; }
+
+        public virtual ICollection<Subject> Subjects { get; set; }
     }
 }

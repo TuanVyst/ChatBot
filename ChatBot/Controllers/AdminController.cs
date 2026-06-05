@@ -123,6 +123,36 @@ namespace ChatBot.Controllers
             return View(subject);
         }
 
+        // GET: show form to add a student to a subject by email
+        public async Task<IActionResult> AddStudentToSubject(string id)
+        {
+            var subject = await _subjectService.GetSubjectById(id);
+            if (subject == null) return NotFound();
+            return View(subject);
+        }
+
+        // POST: add student to subject by email
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddStudentToSubject(string subjectId, string email)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(subjectId))
+            {
+                TempData["Message"] = "Email or subject missing.";
+                return RedirectToAction(nameof(Subjects));
+            }
+
+            if (!Guid.TryParse(subjectId, out var subjGuid))
+            {
+                TempData["Message"] = "Invalid subject id.";
+                return RedirectToAction(nameof(Subjects));
+            }
+
+            var (success, message) = await _subjectService.AddStudentToSubjectAsync(email.Trim(), subjGuid);
+            TempData["Message"] = message;
+            return RedirectToAction(nameof(Subjects));
+        }
+
         [HttpPost]
         public async Task<IActionResult> EditSubject(Subject subject)
         {

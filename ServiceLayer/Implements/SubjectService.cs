@@ -4,6 +4,7 @@ using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using ServiceLayer.Interfaces;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace ServiceLayer.Implements
@@ -29,6 +30,14 @@ namespace ServiceLayer.Implements
             return await _subjectRepository.GetByTeacherIdAsync(teacherAccountId);
         }
 
+        public async Task<IEnumerable<Subject>> GetSubjectsByCurrentLecturer(ClaimsPrincipal user)
+        {
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userId, out var AccountId))
+                return Enumerable.Empty<Subject>();
+
+             return await GetSubjectsByTeacherId(AccountId);
+        }
         public async Task<Subject> GetSubjectById(string id)
         {
             return await _subjectRepository.GetByIdAsync(id);
@@ -81,6 +90,25 @@ namespace ServiceLayer.Implements
             await _context.SaveChangesAsync();
 
             return (true, "Thêm sinh viên vào môn học thành công.");
+        }
+
+        public async Task<IEnumerable<BusinessObject.Entities.UserInformation>> GetStudentsBySubjectIdAsync(System.Guid subjectId)
+        {
+            var q = from ss in _context.StudentSubjects
+                    join u in _context.UserInformations on ss.AccountId equals u.Account_id
+                    where ss.SubjectId == subjectId
+                    select u;
+
+            return await q.ToListAsync();
+        }
+
+        public async Task<(bool Success, string Message)> RemoveStudentFromSubjectAsync(System.Guid accountId, System.Guid subjectId)
+        {
+            var ss = await _context.StudentSubjects.FirstOrDefaultAsync(x => x.AccountId == accountId && x.SubjectId == subjectId);
+            if (ss == null) return (false, "Không tìm thấy sinh viên trong môn học.");
+            _context.StudentSubjects.Remove(ss);
+            await _context.SaveChangesAsync();
+            return (true, "Sinh viên đã bị xóa khỏi môn học.");
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using BusinessObject.Dtos.RequestModel;
+using BusinessObject.Dtos.RequestModel;
 using BusinessObject.Entities;
 using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
@@ -195,7 +195,7 @@ namespace ServiceLayer.Implements
                     Password = string.IsNullOrEmpty(request.Password) ? Guid.NewGuid().ToString("N") + "@A1" : request.Password,
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true,
-                    Role = RoleEnum.Lecture
+                    Role = RoleEnum.Student
                 };
 
                 var userInfo = new UserInformation
