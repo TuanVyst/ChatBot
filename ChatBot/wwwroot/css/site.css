@@ -522,3 +522,181 @@ button.ghost {
   font-size: 12px;
   color: #8d8074;
 }
+
+/* ================= STUDENT UI ================= */
+
+.student-page {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding: 32px 40px 64px;
+}
+
+.student-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 28px;
+    background: #fffdfa;
+    border: 1px solid #e3ded6;
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 18px 40px rgba(88, 73, 51, 0.15);
+}
+
+    .student-hero p {
+        max-width: 720px;
+    }
+
+.eyebrow {
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #cc8b2c;
+    background: rgba(242, 201, 76, 0.2);
+    padding: 6px 12px;
+    border-radius: 999px;
+    display: inline-block;
+    margin-bottom: 12px;
+}
+
+.subject-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+}
+
+.subject-card,
+.document-card,
+.empty-box,
+.chat-layout {
+    background: #fffdfa;
+    border: 1px solid #e3ded6;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 18px 40px rgba(88, 73, 51, 0.12);
+}
+
+    .subject-card span {
+        display: inline-block;
+        background: #fff5d2;
+        color: #9a5a18;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-weight: 600;
+        margin-bottom: 14px;
+    }
+
+.card-link,
+.primary-btn,
+.secondary-btn,
+.back-link {
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-weight: 600;
+}
+
+.primary-btn {
+    background: #f2c94c;
+    color: #0b0a0a;
+}
+
+.secondary-btn {
+    background: transparent;
+    color: #191819;
+    border: 1px solid #cfc8be;
+}
+
+.card-link,
+.back-link {
+    color: #1b6ec2;
+}
+
+.subject-header {
+    background: #fffdfa;
+    border: 1px solid #e3ded6;
+    border-radius: 24px;
+    padding: 28px;
+    box-shadow: 0 18px 40px rgba(88, 73, 51, 0.12);
+}
+
+.document-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.document-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: center;
+}
+
+.document-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.empty-box {
+    border-style: dashed;
+    color: #5a5854;
+}
+
+.chat-box {
+    min-height: 360px;
+    background: #fbf8f3;
+    border: 1px solid #e3ded6;
+    border-radius: 18px;
+    padding: 18px;
+    margin: 20px 0;
+}
+
+.bot-message {
+    width: fit-content;
+    max-width: 70%;
+    background: #fff5d2;
+    border: 1px solid #e7c66a;
+    padding: 14px 16px;
+    border-radius: 16px;
+}
+
+.chat-form {
+    display: flex;
+    gap: 12px;
+}
+
+    .chat-form input[type='text'] {
+        flex: 1;
+        background: #fbf8f3;
+        border: 1px solid #e3ded6;
+        border-radius: 14px;
+        padding: 14px;
+        font-family: inherit;
+        font-size: 15px;
+    }
+
+    .chat-form button {
+        padding: 14px 24px;
+    }
+
+@media (max-width: 720px) {
+    .student-page {
+        padding: 20px;
+    }
+
+    .student-hero,
+    .document-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .chat-form {
+        flex-direction: column;
+    }
+}
