@@ -676,5 +676,44 @@
         {
             <text>openModal('studentModal');</text>
         }
+
+        // ─── Dynamic Chapter Loading ───
+        document.querySelectorAll('form').forEach(form => {
+            const subjectSelect = form.querySelector('select[name="subjectName"]');
+            const chapterSelect = form.querySelector('select[name="chapterId"]');
+            
+            if (subjectSelect && chapterSelect && !subjectSelect.hasAttribute('onchange')) {
+                subjectSelect.addEventListener('change', function() {
+                    const subjectId = this.value;
+                    chapterSelect.innerHTML = '<option value="">Loading...</option>';
+                    
+                    if (!subjectId) {
+                        chapterSelect.innerHTML = '<option value="">Select chapter</option>';
+                        return;
+                    }
+                    
+                    fetch('/Lecturer/GetChaptersBySubject?subjectId=' + encodeURIComponent(subjectId))
+                        .then(r => r.json())
+                        .then(chapters => {
+                            chapterSelect.innerHTML = '<option value="">Select chapter</option>';
+                            chapters.forEach(ch => {
+                                const opt = document.createElement('option');
+                                opt.value = ch.id;
+                                opt.textContent = ch.name;
+                                chapterSelect.appendChild(opt);
+                            });
+                        })
+                        .catch(e => {
+                            console.error(e);
+                            chapterSelect.innerHTML = '<option value="">Error loading chapters</option>';
+                        });
+                });
+                
+                // Trigger once if subject is already selected but chapters are missing
+                if (subjectSelect.value && chapterSelect.options.length <= 1) {
+                    subjectSelect.dispatchEvent(new Event('change'));
+                }
+            }
+        });
     });
 </script>

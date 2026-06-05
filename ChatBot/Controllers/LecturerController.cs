@@ -41,6 +41,13 @@ namespace ChatBot.Controllers
             return PartialView("_StudentsList", students);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetChaptersBySubject(Guid subjectId)
+        {
+            var chapters = await _chapterService.GetChaptersBySubjectIdAsync(subjectId);
+            return Json(chapters.Select(c => new { id = c.Id, name = c.Name }));
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RemoveStudentFromSubject(Guid accountId, Guid subjectId)
