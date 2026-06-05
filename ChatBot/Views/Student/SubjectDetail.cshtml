@@ -30,7 +30,7 @@
                 <div class="document-card">
                     <div>
                         <h3>@doc.FileName</h3>
-                        <p>Chapter: @doc.ChapterName</p>
+                        <p>Chapter: @(doc.Chapter?.Name ?? "Default")</p>
                         <p>Status: @doc.IndexStatus</p>
                     </div>
 
