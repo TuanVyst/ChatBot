@@ -7,7 +7,7 @@ namespace ServiceLayer.Interfaces
     {
         Task<(bool Success, string Message, int DocumentId)> UploadDocumentAsync(
             IFormFile file,
-            string subjectName,
+            string subjectId,
             string chapterName);
 
         Task<IEnumerable<Document>> GetDocumentsAsync(string subjectName);

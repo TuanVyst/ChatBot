@@ -51,7 +51,7 @@
                         <option value="">Chon mon hoc</option>
                         @foreach (var subject in Model.Subjects)
                         {
-                            <option value="@subject" selected="@(subject == Model.SelectedSubject)">@subject</option>
+                            <option value="@subject.Id.ToString()" selected="@(subject.Id.ToString() == Model.SelectedSubjectId)">@subject.Name</option>
                         }
                     </select>
                 </label>
@@ -91,7 +91,7 @@
                             <option value="">Tat ca mon hoc</option>
                             @foreach (var subject in Model.Subjects)
                             {
-                                <option value="@subject" selected="@(subject == Model.SelectedSubject)">@subject</option>
+                                <option value="@subject.Id.ToString()" selected="@(subject.Id.ToString() == Model.SelectedSubjectId)">@subject.Name</option>
                             }
                         </select>
                     </form>
@@ -128,7 +128,7 @@
                             <form method="post" asp-action="Reindex" asp-controller="Home">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@doc.Id" />
-                                <input type="hidden" name="subjectName" value="@Model.SelectedSubject" />
+                                <input type="hidden" name="subjectName" value="@Model.SelectedSubjectId" />
                                 <button type="submit">Reindex</button>
                             </form>
                             <div style="margin-top:6px; display:flex; gap:8px;">
