@@ -48,6 +48,7 @@ namespace ChatBot.Controllers
 
             TempData["PendingEmail"] = model.Email;
             TempData["PendingPassword"] = model.Password;
+            TempData["PendingUsername"] = model.Username;
             return RedirectToAction("VerifyOtp");
         }
 
@@ -154,12 +155,15 @@ namespace ChatBot.Controllers
             var pendingEmail = TempData["PendingEmail"]?.ToString();
             // Keep password for the registration flow if exists
             var pendingPassword = TempData["PendingPassword"]?.ToString();
+            // Keep username for the registration flow
+            var pendingUsername = TempData["PendingUsername"]?.ToString();
             // Keep pending role if admin is creating teacher
             var pendingRole = TempData["PendingRole"]?.ToString();
 
             // Re-store them so they are available on POST (TempData is one-time)
             if (!string.IsNullOrEmpty(pendingEmail)) TempData["PendingEmail"] = pendingEmail;
             if (!string.IsNullOrEmpty(pendingPassword)) TempData["PendingPassword"] = pendingPassword;
+            if (!string.IsNullOrEmpty(pendingUsername)) TempData["PendingUsername"] = pendingUsername;
             if (!string.IsNullOrEmpty(pendingRole)) TempData["PendingRole"] = pendingRole;
 
             if (string.IsNullOrEmpty(pendingEmail))
@@ -192,7 +196,8 @@ namespace ChatBot.Controllers
                 {
                     Email = model.Email,
                     OtpCode = model.OtpCode,
-                    Password = TempData["PendingPassword"]?.ToString()
+                    Password = TempData["PendingPassword"]?.ToString(),
+                    Username = TempData["PendingUsername"]?.ToString()
                 };
 
                 // Check if this verification is for creating an account with a role (e.g., Teacher)
