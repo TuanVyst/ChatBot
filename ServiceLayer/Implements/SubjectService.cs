@@ -58,7 +58,7 @@ namespace ServiceLayer.Implements
             if (student == null)
                 return (false, "Không tìm thấy sinh viên với email/username này.");
 
-            if (student.Role != BusinessObject.Enums.RoleEnum.User)
+            if (student.Role != BusinessObject.Enums.RoleEnum.Student)
                 return (false, "Tài khoản không phải là sinh viên.");
 
             var subject = await _context.Subjects.FirstOrDefaultAsync(s => s.Id == subjectId);

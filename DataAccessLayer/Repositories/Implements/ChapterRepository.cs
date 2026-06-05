@@ -25,9 +25,9 @@ namespace DataAccessLayer.Repositories.Implements
                 .ToListAsync();
         }
 
-        public async Task<Chapter?> GetByIdAsync(int id)
+        public async Task<Chapter?> GetByIdAsync(string id)
         {
-            return await _context.Chapters.FirstOrDefaultAsync(c => c.Id == id);
+            return await _context.Chapters.FirstOrDefaultAsync(c => c.Id.ToString() == id);
         }
 
         public async Task AddAsync(Chapter chapter)

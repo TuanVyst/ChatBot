@@ -13,6 +13,7 @@ namespace ServiceLayer.Implements
     {
         private readonly IDocumentRepository _documentRepository;
         private readonly ISubjectRepository _subjectRepository;
+        private readonly IChapterRepository _chapterRepository;
         private readonly IDocumentChunkRepository _documentChunkRepository;
         private readonly IFileUploadService _fileUploadService;
         private readonly IServiceScopeFactory _scopeFactory;
@@ -22,10 +23,12 @@ namespace ServiceLayer.Implements
             ISubjectRepository subjectRepository,
             IDocumentChunkRepository documentChunkRepository,
             IFileUploadService fileUploadService,
+            IChapterRepository chapterRepository,
             IServiceScopeFactory scopeFactory)
         {
             _documentRepository = documentRepository;
             _subjectRepository = subjectRepository;
+            _chapterRepository = chapterRepository;
             _documentChunkRepository = documentChunkRepository;
             _fileUploadService = fileUploadService;
             _scopeFactory = scopeFactory;
@@ -34,7 +37,7 @@ namespace ServiceLayer.Implements
         public async Task<(bool Success, string Message, int DocumentId)> UploadDocumentAsync(
             IFormFile file,
             string subjectId,
-            int? chapterId)
+            string? chapterId)
         {
             if (file == null || file.Length == 0)
                 return (false, "Vui lòng chọn file tải lên.", 0);
@@ -67,6 +70,8 @@ namespace ServiceLayer.Implements
                 return (false, $"Lỗi lưu file: {uploadError}", 0);
 
             var fileSize = _fileUploadService.GetFileSize(filePath);
+            var chapter = await _chapterRepository.GetByIdAsync(chapterId);
+
 
             var document = new Document
             {
@@ -74,7 +79,7 @@ namespace ServiceLayer.Implements
                 FilePath = filePath,
                 FileSize = fileSize,
                 SubjectId = subject.Id,
-                ChapterId = chapterId,
+                ChapterId = chapter.Id,
                 IndexStatus = "Pending",
                 UploadDate = DateTime.UtcNow
             };
@@ -99,7 +104,7 @@ namespace ServiceLayer.Implements
             return (true, "Tải lên thành công, đang xử lý dữ liệu AI...", document.Id);
         }
 
-        public async Task<IEnumerable<Document>> GetDocumentsAsync(string subjectId, int? chapterId = null)
+        public async Task<IEnumerable<Document>> GetDocumentsAsync(string subjectId, string? chapterId = null)
         {
             return await _documentRepository.GetCompletedDocumentsAsync(subjectId, chapterId);
         }

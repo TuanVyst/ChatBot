@@ -38,18 +38,18 @@
 
     <main class="layout">
         <!-- CREATE CHAPTER SECTION -->
-        @if (Model.Subjects.Any(s => s.Name == Model.SelectedSubject))
+        @if (!string.IsNullOrEmpty(Model.SelectedSubjectId) && Model.Subjects.Any(s => s.Id.ToString() == Model.SelectedSubjectId))
         {
-            var currentSub = Model.Subjects.First(s => s.Name == Model.SelectedSubject);
+            var currentSub = Model.Subjects.First(s => s.Id.ToString() == Model.SelectedSubjectId);
             <section class="card">
                 <div class="card-header">
-                    <h2>Tạo Chapter mới cho @Model.SelectedSubject</h2>
+                    <h2>Tạo Chapter mới cho @currentSub.Name</h2>
                 </div>
                 <form class="upload-form" asp-action="CreateChapter" asp-controller="Home" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="subjectId" value="@currentSub.Id" />
-                    <input type="hidden" name="subjectName" value="@Model.SelectedSubject" />
-                    
+                    <input type="hidden" name="subjectName" value="@Model.SelectedSubjectId" />
+
                     <label>
                         <span>Tên Chapter</span>
                         <input type="text" name="name" required placeholder="Ví dụ: Chương 1" />
@@ -86,7 +86,7 @@
                         <option value="">Chọn Chapter</option>
                         @foreach (var chap in Model.Chapters)
                         {
-                            <option value="@chap.Id">@chap.Name</option>
+                            <option value="@chap.Id" selected="@(chap.Id.ToString() == Model.SelectedChapterId)">@chap.Name</option>
                         }
                     </select>
                 </label>
@@ -129,7 +129,7 @@
                             <option value="">Tat ca chapter</option>
                             @foreach (var chap in Model.Chapters)
                             {
-                                <option value="@chap.Id" selected="@(chap.Id == Model.SelectedChapterId)">@chap.Name</option>
+                                <option value="@chap.Id" selected="@(chap.Id.ToString() == Model.SelectedChapterId)">@chap.Name</option>
                             }
                         </select>
                     </form>

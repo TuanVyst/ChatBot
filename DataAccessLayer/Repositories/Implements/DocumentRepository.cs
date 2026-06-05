@@ -37,7 +37,7 @@ namespace DataAccessLayer.Repositories.Implements
                 .FirstOrDefaultAsync(d => d.Id == id);
         }
 
-        public async Task<List<Document>> GetCompletedDocumentsAsync(string? subjectId = null, int? chapterId = null)
+        public async Task<List<Document>> GetCompletedDocumentsAsync(string? subjectId = null, string? chapterId = null)
         {
             IQueryable<Document> query = _context.Documents.Include(d => d.Subject).Include(d => d.Chapter);
 
@@ -51,9 +51,10 @@ namespace DataAccessLayer.Repositories.Implements
                  query = query.Where(d => d.Subject.Name == subjectId);
             }
 
-            if (chapterId.HasValue)
+            if (!string.IsNullOrWhiteSpace(chapterId))
             {
-                query = query.Where(d => d.ChapterId == chapterId.Value);
+                // ChapterId is stored as a Guid, so compare by string form
+                query = query.Where(d => d.ChapterId.ToString() == chapterId);
             }
 
             return await query.ToListAsync();

@@ -96,6 +96,14 @@ namespace ChatBot.Controllers
                 selectedSubjectId = subjectList.First().Id.ToString();
             }
 
+            // Load chapters for the selected subject (if any)
+            var chapters = new List<BusinessObject.Entities.Chapter>();
+            if (!string.IsNullOrEmpty(selectedSubjectId) && Guid.TryParse(selectedSubjectId, out var subjGuid))
+            {
+                var chs = await _chapterService.GetChaptersBySubjectIdAsync(subjGuid);
+                chapters = chs.ToList();
+            }
+
             var documents = await _documentService.GetDocumentsAsync(selectedSubjectId);
             var pendingCount = documents.Count(d => string.Equals(d.IndexStatus, "Pending", StringComparison.OrdinalIgnoreCase));
             
@@ -104,6 +112,7 @@ namespace ChatBot.Controllers
                 Subjects = subjectList,
                 Documents = documents.ToList(),
                 SelectedSubjectId = selectedSubjectId,
+                Chapters = chapters,
                 PendingCount = pendingCount,
                 Message = message,
                 Error = error,
@@ -136,7 +145,7 @@ namespace ChatBot.Controllers
 
       
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Upload(IFormFile file, string subjectName, int? chapterId)
+        public async Task<IActionResult> Upload(IFormFile file, string subjectName, string chapterId)
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId)) return RedirectToAction("Login", "Auth");
@@ -146,7 +155,7 @@ namespace ChatBot.Controllers
             var subjectId = subjectName;
             if (string.IsNullOrEmpty(subjectId) || !subjects.Any(s => s.Id.ToString() == subjectId)) return RedirectToAction(nameof(Index), new { error = "Unauthorized subject" });
 
-            var (success, message, _) = await _documentService.UploadDocumentAsync(file, subjectId, chapterName);
+            var (success, message, _) = await _documentService.UploadDocumentAsync(file, subjectId, chapterId);
 
             if (success)
             {
@@ -166,7 +175,8 @@ namespace ChatBot.Controllers
             if (!string.IsNullOrEmpty(subjectName))
             {
                 var subjects = await _subjectService.GetSubjectsByTeacherId(userId);
-                if (!subjects.Any(s => s.Name == subjectName)) return RedirectToAction(nameof(Index), new { error = "Unauthorized subject" });
+                // subjectName in UI is actually the subject Id (string GUID). Validate by Id.
+                if (!subjects.Any(s => s.Id.ToString() == subjectName)) return RedirectToAction(nameof(Index), new { error = "Unauthorized subject" });
             }
 
             var (success, message) = await _documentService.ReindexDocumentAsync(id);
