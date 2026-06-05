@@ -53,7 +53,7 @@ namespace ServiceLayer.Implements
             var account = new Account
             {
                 Account_id = Guid.NewGuid(),
-                Username = request.Email,
+                Username = string.IsNullOrEmpty(request.Username) ? request.Email : request.Username,
                 Password = string.IsNullOrEmpty(request.Password) ? Guid.NewGuid().ToString("N") + "@A1" : request.Password,
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
@@ -68,7 +68,7 @@ namespace ServiceLayer.Implements
                 User_id = Guid.NewGuid(),
                 Account_id = account.Account_id,
                 Email = request.Email,
-                Name = request.Email.Split('@')[0]
+                Name = account.Username
             };
 
             await _accountRepository.CreateAccountWithUserInfoAsync(account, userInfo);
@@ -190,7 +190,7 @@ namespace ServiceLayer.Implements
                 {
                     Account_id = Guid.NewGuid(),
 
-                    Username = request.Email,
+                    Username = string.IsNullOrEmpty(request.Username) ? request.Email : request.Username,
                     // Use provided password from registration flow if available; otherwise generate a random one
                     Password = string.IsNullOrEmpty(request.Password) ? Guid.NewGuid().ToString("N") + "@A1" : request.Password,
                     CreatedAt = DateTime.UtcNow,
@@ -203,7 +203,7 @@ namespace ServiceLayer.Implements
                     User_id = Guid.NewGuid(),
                     Account_id = account.Account_id,
                     Email = request.Email,
-                    Name = request.Email.Split('@')[0]
+                    Name = account.Username
                 };
 
                 await _accountRepository.CreateAccountWithUserInfoAsync(account, userInfo);
