@@ -139,5 +139,19 @@ namespace ServiceLayer.Implements
 
             return (true, "Đang tiến hành tái chỉ mục trong nền.");
         }
+
+        public async Task<(bool Success, string Message)> DeleteDocumentAsync(int id)
+        {
+            var document = await _documentRepository.GetByIdWithChunksAsync(id);
+            if (document == null)
+                return (false, "Tài liệu không tồn tại.");
+
+            await _documentChunkRepository.DeleteByDocumentIdAsync(id);
+            _fileUploadService.DeleteFile(document.FilePath);
+            await _documentRepository.DeleteAsync(document);
+            await _documentRepository.SaveChangesAsync();
+
+            return (true, "Xóa tài liệu thành công.");
+        }
     }
 }

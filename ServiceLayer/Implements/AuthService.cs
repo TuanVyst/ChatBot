@@ -50,11 +50,12 @@ namespace ServiceLayer.Implements
             {
                 roleEnum = parsedRole;
             }
+            var rawPassword = string.IsNullOrEmpty(request.Password) ? Guid.NewGuid().ToString("N") + "@A1" : request.Password;
             var account = new Account
             {
                 Account_id = Guid.NewGuid(),
                 Username = string.IsNullOrEmpty(request.Username) ? request.Email : request.Username,
-                Password = string.IsNullOrEmpty(request.Password) ? Guid.NewGuid().ToString("N") + "@A1" : request.Password,
+                Password = global::BCrypt.Net.BCrypt.HashPassword(rawPassword),
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
                 LastLogin = DateTime.UtcNow,
@@ -62,7 +63,6 @@ namespace ServiceLayer.Implements
             };
 
             // Map roleName to RoleEnum if needed; here assume Teacher
-            // Create user information
             var userInfo = new UserInformation
             {
                 User_id = Guid.NewGuid(),
@@ -79,7 +79,7 @@ namespace ServiceLayer.Implements
                 <p>Xin chào,</p>
                 <p>Tài khoản giảng viên đã được tạo</p>
                 <p>Email: {request.Email}</p>
-                <p>Password: {account.Password}</p>
+                <p>Password: {rawPassword}</p>
                 <p>Vui lòng đổi mật khẩu sau khi đăng nhập.</p>
             </div>";
 
@@ -106,8 +106,12 @@ namespace ServiceLayer.Implements
                 return (false, "Tài khoản của bạn đã bị khóa.", null, false);
             }
 
-            // 3. Kiểm tra Mật khẩu (So sánh trực tiếp, sau này bạn dùng BCrypt/Identity thì thay đổi chỗ này)
-            if (account.Password != password)
+            // 3. Kiểm tra Mật khẩu (hỗ trợ BCrypt hash và plaintext cũ)
+            var isPasswordValid = account.Password.StartsWith("$2")
+                ? global::BCrypt.Net.BCrypt.Verify(password, account.Password)
+                : account.Password == password;
+
+            if (!isPasswordValid)
             {
                 return (false, "Email hoặc mật khẩu không chính xác.", null, false);
             }
@@ -186,13 +190,14 @@ namespace ServiceLayer.Implements
             if (existingUserInfo == null)
             {
 
+                var rawPassword = string.IsNullOrEmpty(request.Password) ? Guid.NewGuid().ToString("N") + "@A1" : request.Password;
+
                 account = new Account
                 {
                     Account_id = Guid.NewGuid(),
 
                     Username = string.IsNullOrEmpty(request.Username) ? request.Email : request.Username,
-                    // Use provided password from registration flow if available; otherwise generate a random one
-                    Password = string.IsNullOrEmpty(request.Password) ? Guid.NewGuid().ToString("N") + "@A1" : request.Password,
+                    Password = global::BCrypt.Net.BCrypt.HashPassword(rawPassword),
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true,
                     Role = RoleEnum.Student

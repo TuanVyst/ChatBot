@@ -136,13 +136,25 @@ namespace ChatBot.Controllers
                 await SignInWithClaimsAsync(user.Id.ToString(), user.Email, user.FullName ?? model.Email.Split('@')[0], user.Role ?? "Customer");
             }
 
-            // Redirect admin to Admin dashboard
+            // Redirect based on role
             if (user != null && !string.IsNullOrEmpty(user.Role) && user.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
             {
                 return RedirectToAction("Index", "Admin");
             }
 
-            return RedirectToAction("Index", "Home");
+            if (user != null && !string.IsNullOrEmpty(user.Role) && user.Role.Equals("Lecture", StringComparison.OrdinalIgnoreCase))
+            {
+                return RedirectToAction("Index", "Lecturer");
+            }
+
+            if (user != null && !string.IsNullOrEmpty(user.Role) && user.Role.Equals("Student", StringComparison.OrdinalIgnoreCase))
+            {
+                HttpContext.Session.SetString("UserId", user.Id.ToString());
+                HttpContext.Session.SetString("FullName", user.FullName ?? "");
+                return RedirectToAction("Dashboard", "Student");
+            }
+
+            return RedirectToAction("Login", "Auth");
         }
 
         #endregion
@@ -233,7 +245,12 @@ namespace ChatBot.Controllers
                 if (userResult.Role == BusinessObject.Enums.RoleEnum.Admin)
                     return RedirectToAction("Index", "Admin");
 
-                return RedirectToAction("Index", "Home");
+                if (userResult.Role == BusinessObject.Enums.RoleEnum.Lecture)
+                    return RedirectToAction("Index", "Lecturer");
+
+                HttpContext.Session.SetString("UserId", userResult.AccountId.ToString());
+                HttpContext.Session.SetString("FullName", userResult.Name ?? "");
+                return RedirectToAction("Dashboard", "Student");
             }
             catch (Exception ex)
             {

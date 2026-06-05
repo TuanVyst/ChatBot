@@ -38,7 +38,7 @@
         formData.append('accountId', accountId);
         formData.append('subjectId', subjectId);
 
-        fetch('/Home/RemoveStudentFromSubject', {
+        fetch('/Lecturer/RemoveStudentFromSubject', {
             method: 'POST',
             headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value },
             body: formData
