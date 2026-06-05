@@ -1,10 +1,13 @@
 ﻿using ChatBot.Models;
 using DataAccessLayer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using BusinessObject.Entities;
 
 namespace ChatBot.Controllers
 {
+    [Authorize(Roles = "Student")]
     public class StudentController : Controller
     {
         private readonly AppDbContext _context;
@@ -76,12 +79,48 @@ namespace ChatBot.Controllers
             return File(stream, contentType, doc.FileName);
         }
 
-        public IActionResult Chat(Guid? subjectId, int? documentId)
+        public async Task<IActionResult> Chat(Guid? subjectId, int? documentId)
         {
-            ViewBag.SubjectId = subjectId;
-            ViewBag.DocumentId = documentId;
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserId")))
+                return RedirectToAction("Login", "Auth");
 
-            return View();
+            var userIdStr = HttpContext.Session.GetString("UserId");
+            if (!Guid.TryParse(userIdStr, out var studentId))
+                return RedirectToAction("Login", "Auth");
+
+            var enrolledSubjectIds = await _context.StudentSubjects
+                .Where(ss => ss.AccountId == studentId)
+                .Select(ss => ss.SubjectId)
+                .ToListAsync();
+
+            var subjects = await _context.Subjects
+                .Where(s => enrolledSubjectIds.Contains(s.Id))
+                .OrderBy(s => s.Code)
+                .ToListAsync();
+
+            var documents = new List<Document>();
+            if (subjects.Any())
+            {
+                var subjectIds = subjects.Select(s => s.Id).ToList();
+                documents = await _context.Documents
+                    .Include(d => d.Subject)
+                    .Include(d => d.Chapter)
+                    .Where(d => subjectIds.Contains(d.SubjectId))
+                    .Where(d => d.IndexStatus == "Completed")
+                    .OrderByDescending(d => d.UploadDate)
+                    .ToListAsync();
+            }
+
+            var model = new StudentChatViewModel
+            {
+                Subjects = subjects,
+                Documents = documents,
+                FullName = HttpContext.Session.GetString("FullName") ?? "Student",
+                SelectedSubjectId = subjectId,
+                SelectedDocumentId = documentId
+            };
+
+            return View(model);
         }
     }
 }

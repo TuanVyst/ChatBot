@@ -7,6 +7,7 @@ using ServiceLayer.Implements;
 using ServiceLayer.Interfaces;
 using DataAccessLayer.Repositories;
 using BusinessObject.Entities;
+using BCrypt.Net;
 
 
 DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
@@ -134,7 +135,7 @@ void SeedDatabase(IHost app)
                 var adminAccount = new Account
                 {
                     Username = "admin",
-                    Password = "123456", // In a real app, hash this password
+                    Password = global::BCrypt.Net.BCrypt.HashPassword("123456"),
                     Role = BusinessObject.Enums.RoleEnum.Admin,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow

@@ -1,4 +1,5 @@
 using BusinessObject.Entities;
+using ChatBot.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServiceLayer.Interfaces;
@@ -180,31 +181,45 @@ namespace ChatBot.Controllers
 
         public IActionResult CreateTeacher()
         {
-            return View();
+            return View(new CreateTeacherViewModel());
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateTeacher(Account account)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateTeacher(CreateTeacherViewModel model)
         {
-            // Instead of creating the account immediately, send OTP to the teacher email
-            if (!ModelState.IsValid) return View(account);
+            // Send OTP to the teacher email
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Error = "Vui lòng kiểm tra lại các trường đã nhập.";
+                return View(model);
+            }
+
+            // Check if email already exists
+            var existingUserInfo = await _accountRepository.GetUserInfoByEmailAsync(model.Email);
+            if (existingUserInfo != null)
+            {
+                ModelState.AddModelError("Email", "Email đã tồn tại trong hệ thống.");
+                ViewBag.Error = "Email '" + model.Email + "' đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.";
+                return View(model);
+            }
 
             try
             {
-                // Use auth service to send OTP and inform the view
-                var otpMessage = await _authService.RequestOtpAsync(account.Username);
+                // Send OTP to teacher email
+                var otpMessage = await _authService.RequestOtpAsync(model.Email);
 
                 // Store pending info to TempData for verification step
-                // Store pending in TempData and redirect to a dedicated admin verify OTP page
-                TempData["AdminPendingEmail"] = account.Username;
-                TempData["AdminPendingPassword"] = account.Password;
+                TempData["AdminPendingUsername"] = model.Username;
+                TempData["AdminPendingEmail"] = model.Email;
+                TempData["AdminPendingPassword"] = model.Password;
                 TempData["OtpSentMessage"] = otpMessage;
                 return RedirectToAction("AdminVerifyOtp");
             }
             catch (Exception ex)
             {
-                ViewBag.Error = ex.Message;
-                return View(account);
+                ViewBag.Error = "Lỗi khi gửi OTP: " + ex.Message;
+                return View(model);
             }
         }
 
@@ -225,6 +240,7 @@ namespace ChatBot.Controllers
         {
             var pendingEmail = TempData["AdminPendingEmail"]?.ToString();
             var pendingPassword = TempData["AdminPendingPassword"]?.ToString();
+            var pendingUsername = TempData["AdminPendingUsername"]?.ToString();
 
             if (string.IsNullOrEmpty(pendingEmail))
                 return RedirectToAction("Users");
@@ -232,6 +248,7 @@ namespace ChatBot.Controllers
             // Re-store for POST
             TempData["AdminPendingEmail"] = pendingEmail;
             TempData["AdminPendingPassword"] = pendingPassword;
+            if (!string.IsNullOrEmpty(pendingUsername)) TempData["AdminPendingUsername"] = pendingUsername;
 
             ViewBag.PendingEmail = pendingEmail;
             return View();
@@ -258,6 +275,7 @@ namespace ChatBot.Controllers
         {
             TempData.Remove("AdminPendingEmail");
             TempData.Remove("AdminPendingPassword");
+            TempData.Remove("AdminPendingUsername");
             return RedirectToAction("Users");
         }
 
@@ -267,6 +285,7 @@ namespace ChatBot.Controllers
         {
             var pendingEmail = TempData["AdminPendingEmail"]?.ToString();
             var pendingPassword = TempData["AdminPendingPassword"]?.ToString();
+            var pendingUsername = TempData["AdminPendingUsername"]?.ToString();
 
             if (string.IsNullOrEmpty(pendingEmail) || !string.Equals(pendingEmail, email, StringComparison.OrdinalIgnoreCase))
             {
@@ -278,7 +297,8 @@ namespace ChatBot.Controllers
             {
                 Email = pendingEmail,
                 OtpCode = otpCode,
-                Password = pendingPassword
+                Password = pendingPassword,
+                Username = pendingUsername
             };
 
             try

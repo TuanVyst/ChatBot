@@ -66,6 +66,12 @@ namespace DataAccessLayer.Repositories.Implements
             return Task.CompletedTask;
         }
 
+        public Task DeleteAsync(Document document)
+        {
+            _context.Documents.Remove(document);
+            return Task.CompletedTask;
+        }
+
         public Task SaveChangesAsync()
         {
             return _context.SaveChangesAsync();

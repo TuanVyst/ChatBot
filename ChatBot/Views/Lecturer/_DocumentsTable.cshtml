@@ -1,0 +1,70 @@
+@model ChatBot.Models.DashboardViewModel
+
+@if (Model.Documents == null || Model.Documents.Count == 0)
+{
+    <div class="empty-state">
+        <i class="ph ph-file-x"></i>
+        <p>No documents found.</p>
+    </div>
+}
+else
+{
+    <table class="doc-table">
+        <thead>
+            <tr>
+                <th>File Name</th>
+                <th>Subject</th>
+                <th>Chapter</th>
+                <th>Size</th>
+                <th>Status</th>
+                <th style="text-align:right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var doc in Model.Documents)
+            {
+                <tr>
+                    <td>
+                        <div class="doc-name">@doc.FileName</div>
+                        <div class="doc-meta">@doc.UploadDate.ToString("MMM dd, yyyy")</div>
+                    </td>
+                    <td style="color:var(--text-muted);">@(doc.Subject?.Name ?? "-")</td>
+                    <td style="color:var(--text-muted);">@(doc.Chapter?.Name ?? "Default")</td>
+                    <td style="color:var(--text-muted);font-size:13px;">@(doc.FileSize == 0 ? "-" : string.Format("{0:0.##} MB", doc.FileSize / 1024d / 1024d))</td>
+                    <td>
+                        <span class="status-badge @doc.IndexStatus.ToLower()">
+                            @if (doc.IndexStatus.Equals("Completed", StringComparison.OrdinalIgnoreCase)) { <text>Indexed</text> }
+                            else if (doc.IndexStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase)) { <text>Processing</text> }
+                            else { <text>Failed</text> }
+                        </span>
+                    </td>
+                    <td style="text-align:right;">
+                        <div class="doc-actions" style="justify-content:flex-end;">
+                            <a asp-action="Download" asp-controller="Lecturer" asp-route-id="@doc.Id" target="_blank" class="icon-btn view" title="View">
+                                <i class="ph ph-eye"></i>
+                            </a>
+                            <button type="button" class="icon-btn chunks" title="View Chunks" onclick="viewChunks(@doc.Id, '@doc.FileName')">
+                                <i class="ph ph-puzzle-piece"></i>
+                            </button>
+                            <form method="post" asp-action="Reindex" asp-controller="Lecturer" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@doc.Id" />
+                                <input type="hidden" name="subjectName" value="@Model.SelectedSubjectId" />
+                                <button type="submit" class="icon-btn reindex" title="Re-index">
+                                    <i class="ph ph-arrows-clockwise"></i>
+                                </button>
+                            </form>
+                            <form method="post" asp-action="DeleteDocument" asp-controller="Lecturer" style="display:inline;" onsubmit="return confirm('Delete this document?')">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@doc.Id" />
+                                <button type="submit" class="icon-btn delete" title="Delete">
+                                    <i class="ph ph-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

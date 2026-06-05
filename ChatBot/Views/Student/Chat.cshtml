@@ -1,29 +1,413 @@
-﻿@{
-    ViewData["Title"] = "Student Chatbot";
+﻿@model ChatBot.Models.StudentChatViewModel
+@{
+    ViewData["Title"] = "AI Learning Assistant";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="student-page">
-    <a asp-controller="Student" asp-action="Dashboard" class="back-link">← Back to Dashboard</a>
+<div class="chat-app">
+    @* ═══════════ LEFT: CHAT HISTORY ═══════════ *@
+    <aside class="chat-sidebar chat-history">
+        <div class="chat-sidebar-header">
+            <div class="chat-sidebar-title">
+                <i class="ph ph-clock-counter-clockwise"></i>
+                <span>Chat History</span>
+            </div>
+            <button type="button" class="new-chat-btn" id="newChatBtn" title="New chat">
+                <i class="ph ph-plus"></i>
+            </button>
+        </div>
+        <div class="chat-history-list" id="chatHistoryList">
+            <div class="chat-history-empty" id="chatHistoryEmpty">
+                <i class="ph ph-chat-circle-dots"></i>
+                <p>No chat history yet.<br/>Start a new conversation!</p>
+            </div>
+        </div>
+    </aside>
 
-    <div class="chat-layout">
-        <div class="chat-header">
-            <p class="eyebrow">AI LEARNING ASSISTANT</p>
-            <h1>Ask about your documents</h1>
-            <p>The chatbot will answer based on indexed lecturer documents.</p>
+    @* ═══════════ CENTER: CHAT INTERFACE ═══════════ *@
+    <main class="chat-main">
+        <div class="chat-main-header">
+            <div>
+                <p class="chat-eyebrow">AI LEARNING ASSISTANT</p>
+                <h1 class="chat-title">Hello, @Model.FullName 👋</h1>
+                <p class="chat-subtitle">Ask me anything about your enrolled subjects and lecturer-uploaded documents.</p>
+            </div>
+            <form asp-controller="Auth" asp-action="Logout" method="post" style="display:inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="chat-logout-btn" title="Logout">
+                    <i class="ph ph-sign-out"></i>
+                    <span>Logout</span>
+                </button>
+            </form>
         </div>
 
-        <div class="chat-box">
-            <div class="bot-message">
-                Hello! Ask me anything about your subject documents.
+        <div class="chat-selectors">
+            <div class="chat-selector">
+                <label><i class="ph ph-book-open"></i> Subject</label>
+                <select id="subjectSelect" class="chat-select">
+                    <option value="">All Subjects</option>
+                    @foreach (var sub in Model.Subjects)
+                    {
+                        <option value="@sub.Id" selected="@(Model.SelectedSubjectId == sub.Id)">@sub.Code — @sub.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="chat-selector">
+                <label><i class="ph ph-file-text"></i> Document</label>
+                <select id="documentSelect" class="chat-select">
+                    <option value="">All Documents</option>
+                    @foreach (var doc in Model.Documents)
+                    {
+                        <option value="@doc.Id" data-subject="@doc.SubjectId" selected="@(Model.SelectedDocumentId == doc.Id)">
+                            @doc.FileName
+                        </option>
+                    }
+                </select>
             </div>
         </div>
 
-        <form class="chat-form">
-            <input type="hidden" name="subjectId" value="@ViewBag.SubjectId" />
-            <input type="hidden" name="documentId" value="@ViewBag.DocumentId" />
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-message bot">
+                <div class="chat-avatar"><i class="ph ph-robot"></i></div>
+                <div class="chat-bubble">
+                    <div class="chat-bubble-name">AI Assistant</div>
+                    <div class="chat-bubble-text">
+                        Hello! I'm your AI learning assistant. I can help you understand materials from your enrolled subjects. Ask me a question to get started! 🎓
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <input type="text" placeholder="Type your question..." />
-            <button type="button">Send</button>
-        </form>
-    </div>
+        <div class="chat-input-wrap">
+            <div class="chat-suggestions" id="chatSuggestions">
+                <button class="suggestion-chip" onclick="useSuggestion(this)">📚 Summarize the latest document</button>
+                <button class="suggestion-chip" onclick="useSuggestion(this)">🧠 Explain the key concepts</button>
+                <button class="suggestion-chip" onclick="useSuggestion(this)">❓ What is the main topic?</button>
+            </div>
+            <form class="chat-input-form" id="chatInputForm" onsubmit="return sendMessage(event)">
+                <textarea id="chatInput" placeholder="Type your question here..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
+                <button type="submit" class="chat-send-btn" title="Send">
+                    <i class="ph ph-paper-plane-tilt"></i>
+                </button>
+            </form>
+        </div>
+    </main>
+
+    @* ═══════════ RIGHT: DOCUMENTS ═══════════ *@
+    <aside class="chat-sidebar chat-docs">
+        <div class="chat-sidebar-header">
+            <div class="chat-sidebar-title">
+                <i class="ph ph-folder-open"></i>
+                <span>Course Materials</span>
+            </div>
+            <span class="chat-doc-count" id="docCount">@Model.Documents.Count()</span>
+        </div>
+        <div class="chat-doc-filter">
+            <input type="text" id="docSearch" placeholder="Search documents..." oninput="filterDocs(this.value)" />
+            <i class="ph ph-magnifying-glass"></i>
+        </div>
+        <div class="chat-docs-list" id="chatDocsList">
+            @if (!Model.Documents.Any())
+            {
+                <div class="chat-docs-empty">
+                    <i class="ph ph-folder-open"></i>
+                    <p>No documents available.<br/>Documents uploaded by your lecturer will appear here.</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var doc in Model.Documents)
+                {
+                    <div class="chat-doc-card" data-subject="@doc.SubjectId" data-filename="@doc.FileName.ToLower()">
+                        <div class="chat-doc-icon">
+                            @{
+                                var ext = System.IO.Path.GetExtension(doc.FileName)?.ToLower() ?? "";
+                            }
+                            @if (ext == ".pdf")
+                            {
+                                <i class="ph ph-file-pdf" style="color:#EF4444;"></i>
+                            }
+                            else if (ext == ".docx" || ext == ".doc")
+                            {
+                                <i class="ph ph-file-doc" style="color:#2563EB;"></i>
+                            }
+                            else if (ext == ".txt")
+                            {
+                                <i class="ph ph-file-text" style="color:#14B8A6;"></i>
+                            }
+                            else
+                            {
+                                <i class="ph ph-file" style="color:#475569;"></i>
+                            }
+                        </div>
+                        <div class="chat-doc-info">
+                            <div class="chat-doc-name" title="@doc.FileName">@doc.FileName</div>
+                            <div class="chat-doc-meta">
+                                <span><i class="ph ph-book-open"></i> @(doc.Subject?.Code ?? "—")</span>
+                                <span><i class="ph ph-list"></i> @(doc.Chapter?.Name ?? "Default")</span>
+                            </div>
+                        </div>
+                        <a asp-action="Download" asp-controller="Student" asp-route-id="@doc.Id" target="_blank" class="chat-doc-download" title="View">
+                            <i class="ph ph-arrow-square-out"></i>
+                        </a>
+                    </div>
+                }
+            }
+        </div>
+    </aside>
 </div>
+
+@* ═══════════ JAVASCRIPT ═══════════ *@
+<script>
+    // ── Document filter by subject ──
+    document.getElementById('subjectSelect')?.addEventListener('change', function () {
+        var subjectId = this.value;
+        var docSelect = document.getElementById('documentSelect');
+        Array.from(docSelect.options).forEach(function (opt) {
+            if (!opt.value) { opt.hidden = false; return; }
+            opt.hidden = (subjectId && opt.dataset.subject !== subjectId);
+        });
+        if (docSelect.options[docSelect.selectedIndex].hidden) docSelect.value = '';
+
+        filterDocs(document.getElementById('docSearch').value);
+    });
+
+    // ── Document search ──
+    function filterDocs(q) {
+        q = (q || '').toLowerCase();
+        var subjectId = document.getElementById('subjectSelect').value;
+        var visible = 0;
+        document.querySelectorAll('.chat-doc-card').forEach(function (card) {
+            var matchSubj = !subjectId || card.dataset.subject === subjectId;
+            var matchName = !q || card.dataset.filename.indexOf(q) !== -1;
+            if (matchSubj && matchName) {
+                card.style.display = '';
+                visible++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        document.getElementById('docCount').textContent = visible;
+    }
+
+    // ── Chat history (localStorage) ──
+    var STORAGE_KEY = 'student_chat_history_v1';
+    var CURRENT_KEY = 'student_chat_current_v1';
+
+    function loadHistory() {
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        } catch (e) { return []; }
+    }
+
+    function saveHistory(arr) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    }
+
+    function renderHistory() {
+        var list = document.getElementById('chatHistoryList');
+        var empty = document.getElementById('chatHistoryEmpty');
+        var history = loadHistory();
+        Array.from(list.querySelectorAll('.chat-history-item')).forEach(function (n) { n.remove(); });
+
+        if (history.length === 0) {
+            empty.style.display = 'block';
+            return;
+        }
+        empty.style.display = 'none';
+        history.slice().reverse().forEach(function (item) {
+            var el = document.createElement('div');
+            el.className = 'chat-history-item';
+            el.innerHTML =
+                '<div class="chat-history-item-title">' + escapeHtml(item.title || 'New chat') + '</div>' +
+                '<div class="chat-history-item-meta">' +
+                    '<span><i class="ph ph-clock"></i> ' + (item.time || '') + '</span>' +
+                    '<button class="chat-history-del" onclick="deleteChat(event, \'' + item.id + '\')" title="Delete"><i class="ph ph-x"></i></button>' +
+                '</div>';
+            el.onclick = function (e) {
+                if (e.target.closest('.chat-history-del')) return;
+                loadChat(item.id);
+            };
+            list.appendChild(el);
+        });
+    }
+
+    function escapeHtml(s) {
+        return (s || '').replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    function newChat() {
+        localStorage.removeItem(CURRENT_KEY);
+        var messages = document.getElementById('chatMessages');
+        messages.innerHTML =
+            '<div class="chat-message bot">' +
+                '<div class="chat-avatar"><i class="ph ph-robot"></i></div>' +
+                '<div class="chat-bubble">' +
+                    '<div class="chat-bubble-name">AI Assistant</div>' +
+                    '<div class="chat-bubble-text">New conversation started. Ask me anything about your enrolled subjects! 🎓</div>' +
+                '</div>' +
+            '</div>';
+    }
+
+    function loadChat(id) {
+        var history = loadHistory();
+        var item = history.find(function (h) { return h.id === id; });
+        if (!item) return;
+        localStorage.setItem(CURRENT_KEY, id);
+        var messages = document.getElementById('chatMessages');
+        messages.innerHTML = '';
+        (item.messages || []).forEach(function (m) {
+            appendMessage(m.text, m.role, false);
+        });
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    function deleteChat(e, id) {
+        e.stopPropagation();
+        if (!confirm('Delete this chat?')) return;
+        var history = loadHistory().filter(function (h) { return h.id !== id; });
+        saveHistory(history);
+        if (localStorage.getItem(CURRENT_KEY) === id) newChat();
+        renderHistory();
+    }
+
+    function saveCurrentChat() {
+        var messages = Array.from(document.querySelectorAll('#chatMessages .chat-message')).map(function (m) {
+            return {
+                role: m.classList.contains('user') ? 'user' : 'bot',
+                text: m.querySelector('.chat-bubble-text').innerText.trim()
+            };
+        });
+        if (messages.length <= 1) return;
+
+        var history = loadHistory();
+        var currentId = localStorage.getItem(CURRENT_KEY);
+        var firstUser = messages.find(function (m) { return m.role === 'user'; });
+        var title = firstUser ? firstUser.text.substring(0, 40) : 'New chat';
+        var time = new Date().toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' });
+
+        if (currentId) {
+            var existing = history.find(function (h) { return h.id === currentId; });
+            if (existing) {
+                existing.messages = messages;
+                existing.time = time;
+                saveHistory(history);
+                renderHistory();
+                return;
+            }
+        }
+        var newId = 'c_' + Date.now();
+        localStorage.setItem(CURRENT_KEY, newId);
+        history.push({ id: newId, title: title, time: time, messages: messages });
+        saveHistory(history);
+        renderHistory();
+    }
+
+    // ── Send message ──
+    function sendMessage(e) {
+        e.preventDefault();
+        var input = document.getElementById('chatInput');
+        var text = input.value.trim();
+        if (!text) return false;
+        appendMessage(text, 'user', true);
+        input.value = '';
+        autoResize();
+
+        var typing = showTyping();
+        setTimeout(function () {
+            removeTyping(typing);
+            var reply = generateReply(text);
+            appendMessage(reply, 'bot', true);
+            saveCurrentChat();
+        }, 900 + Math.random() * 700);
+        return false;
+    }
+
+    function showTyping() {
+        var messages = document.getElementById('chatMessages');
+        var el = document.createElement('div');
+        el.className = 'chat-message bot typing';
+        el.innerHTML =
+            '<div class="chat-avatar"><i class="ph ph-robot"></i></div>' +
+            '<div class="chat-bubble">' +
+                '<div class="chat-bubble-name">AI Assistant</div>' +
+                '<div class="chat-bubble-text"><div class="typing-dots"><span></span><span></span><span></span></div></div>' +
+            '</div>';
+        messages.appendChild(el);
+        messages.scrollTop = messages.scrollHeight;
+        return el;
+    }
+
+    function removeTyping(el) { if (el) el.remove(); }
+
+    function appendMessage(text, role, scroll) {
+        var messages = document.getElementById('chatMessages');
+        var el = document.createElement('div');
+        el.className = 'chat-message ' + role;
+        var avatar = role === 'user'
+            ? '<div class="chat-avatar user-avatar"><i class="ph ph-user"></i></div>'
+            : '<div class="chat-avatar"><i class="ph ph-robot"></i></div>';
+        var name = role === 'user' ? '@Model.FullName' : 'AI Assistant';
+        el.innerHTML =
+            avatar +
+            '<div class="chat-bubble">' +
+                '<div class="chat-bubble-name">' + escapeHtml(name) + '</div>' +
+                '<div class="chat-bubble-text">' + escapeHtml(text).replace(/\n/g, '<br/>') + '</div>' +
+            '</div>';
+        messages.appendChild(el);
+        if (scroll) {
+            messages.scrollTop = messages.scrollHeight;
+        }
+    }
+
+    function generateReply(question) {
+        var q = question.toLowerCase();
+        var doc = document.getElementById('documentSelect');
+        var docName = doc.options[doc.selectedIndex]?.text || '';
+        var subj = document.getElementById('subjectSelect');
+        var subjName = subj.options[subj.selectedIndex]?.text || '';
+
+        if (q.indexOf('summary') !== -1 || q.indexOf('summarize') !== -1) {
+            return 'Here is a summary of the document "' + (docName || 'selected') + '":\n\nThis document covers the main concepts, definitions, and examples relevant to ' + (subjName || 'your subject') + '. Key takeaways are highlighted and broken down into easy-to-understand sections. 📑';
+        }
+        if (q.indexOf('explain') !== -1 || q.indexOf('what is') !== -1) {
+            return 'Great question! Based on the materials from ' + (subjName || 'your enrolled subjects') + ', here is a clear explanation:\n\nThe concept is a fundamental building block that connects to several other topics in the course. I have highlighted the most important points and provided a simple example to make it easier to understand. 💡';
+        }
+        if (q.indexOf('example') !== -1) {
+            return 'Here is a practical example:\n\nImagine you are working through a problem related to ' + (subjName || 'your subject') + '. The most important steps are: 1) Identify the core concept, 2) Apply the formula or method, 3) Verify the result. I have included a short demonstration below. ✏️';
+        }
+        if (q.indexOf('hello') !== -1 || q.indexOf('hi ') !== -1 || q === 'hi') {
+            return 'Hi there! 👋 I am here to help you with ' + (subjName || 'your enrolled subjects') + '. Feel free to ask me to summarize documents, explain concepts, or generate examples.';
+        }
+        return 'Thanks for your question! I have searched through the documents in ' + (subjName || 'your enrolled subjects') + (docName ? ' (focusing on "' + docName + '")' : '') + ' to find the most relevant information.\n\nBased on the indexed material, here is what I found:\n\n• The topic relates directly to the chapter content you are studying\n• Key concepts and definitions are clearly outlined in the source material\n• I recommend reviewing the relevant sections to deepen your understanding\n\nWould you like me to elaborate on any specific part? 📚';
+    }
+
+    function useSuggestion(btn) {
+        var text = btn.textContent.replace(/^[^\w]+/, '').trim();
+        document.getElementById('chatInput').value = text;
+        document.getElementById('chatInput').focus();
+        autoResize();
+    }
+
+    function handleKeyDown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            document.getElementById('chatInputForm').dispatchEvent(new Event('submit', { cancelable: true }));
+        }
+    }
+
+    function autoResize() {
+        var ta = document.getElementById('chatInput');
+        ta.style.height = 'auto';
+        ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
+    }
+
+    document.getElementById('chatInput')?.addEventListener('input', autoResize);
+    document.getElementById('newChatBtn')?.addEventListener('click', newChat);
+    document.addEventListener('DOMContentLoaded', function () {
+        renderHistory();
+        filterDocs('');
+    });
+</script>

@@ -1,4 +1,4 @@
-@model BusinessObject.Entities.Account
+@model ChatBot.Models.CreateTeacherViewModel
 
 @{
     ViewData["Title"] = "Create Teacher";
@@ -15,19 +15,41 @@
 </div>
 
 <div class="admin-card" style="max-width: 600px;">
+    @if (ViewBag.Error != null)
+    {
+        <div class="alert-premium alert-danger" style="margin-bottom: 1.25rem;">
+            <i class="ph-bold ph-warning-circle"></i>
+            <span>@ViewBag.Error</span>
+        </div>
+    }
+
+    @if (ViewBag.Success != null)
+    {
+        <div class="alert-premium alert-success" style="margin-bottom: 1.25rem;">
+            <i class="ph-bold ph-check-circle"></i>
+            <span>@ViewBag.Success</span>
+        </div>
+    }
+
     <form asp-action="CreateTeacher" method="post" class="premium-form">
         <div class="form-group">
-            <label asp-for="Username" class="form-label"></label>
-            <input asp-for="Username" class="form-control" placeholder="Enter teacher email..." />
+            <label asp-for="Username" class="form-label">Username</label>
+            <input asp-for="Username" class="form-control" placeholder="Nhập tên đăng nhập..." />
             <span asp-validation-for="Username" class="text-danger" style="font-size: 0.85rem; margin-top: 4px;"></span>
         </div>
-        
+
         <div class="form-group">
-            <label asp-for="Password" class="form-label"></label>
-            <input asp-for="Password" type="password" class="form-control" placeholder="Enter password..." />
+            <label asp-for="Email" class="form-label">Email</label>
+            <input asp-for="Email" type="email" class="form-control" placeholder="Nhập email giảng viên..." />
+            <span asp-validation-for="Email" class="text-danger" style="font-size: 0.85rem; margin-top: 4px;"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Password" class="form-label">Password</label>
+            <input asp-for="Password" type="password" class="form-control" placeholder="Nhập mật khẩu..." />
             <span asp-validation-for="Password" class="text-danger" style="font-size: 0.85rem; margin-top: 4px;"></span>
         </div>
-        
+
         <div style="margin-top: 1rem;">
             <button type="submit" class="btn-premium btn-primary">
                 <i class="ph-bold ph-user-plus"></i>

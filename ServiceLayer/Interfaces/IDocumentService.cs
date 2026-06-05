@@ -14,5 +14,7 @@ namespace ServiceLayer.Interfaces
         Task<Document?> GetByIdAsync(int id);
 
         Task<(bool Success, string Message)> ReindexDocumentAsync(int id);
+
+        Task<(bool Success, string Message)> DeleteDocumentAsync(int id);
     }
 }
