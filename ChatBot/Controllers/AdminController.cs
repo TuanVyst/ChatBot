@@ -1,4 +1,5 @@
 using BusinessObject.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServiceLayer.Interfaces;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using System.Text.Json;
 
 namespace ChatBot.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
         private readonly IUniversityService _universityService;
