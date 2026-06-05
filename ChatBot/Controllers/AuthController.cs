@@ -1,4 +1,7 @@
 ﻿using ChatBot.Models;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ServiceLayer.Interfaces;
@@ -6,6 +9,8 @@ using BusinessObject.Dtos.RequestModel;
 using BusinessObject.Enums;
 
 using System;
+using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace ChatBot.Controllers
@@ -128,10 +133,7 @@ namespace ChatBot.Controllers
             var user = result.User;
             if (user != null)
             {
-                HttpContext.Session.SetString("UserId", user.Id.ToString());
-                HttpContext.Session.SetString("Email", user.Email);
-                HttpContext.Session.SetString("FullName", user.FullName ?? model.Email.Split('@')[0]);
-                HttpContext.Session.SetString("Role", user.Role ?? "Customer");
+                await SignInWithClaimsAsync(user.Id.ToString(), user.Email, user.FullName ?? model.Email.Split('@')[0], user.Role ?? "Customer");
             }
 
             // Redirect admin to Admin dashboard
@@ -221,13 +223,11 @@ namespace ChatBot.Controllers
                 // OTP đúng -> Tiến hành lưu Session (sử dụng typed DTO)
                 var userResult = result;
 
-                HttpContext.Session.SetString("UserId", userResult.AccountId.ToString());
-                HttpContext.Session.SetString("Email", userResult.Email);
-                HttpContext.Session.SetString("FullName", userResult.Name ?? model.Email.Split('@')[0]);
-
-                // Set role from returned result
-                var roleStr = userResult.Role.ToString();
-                HttpContext.Session.SetString("Role", roleStr);
+                await SignInWithClaimsAsync(
+                    userResult.AccountId.ToString(),
+                    userResult.Email,
+                    userResult.Name ?? model.Email.Split('@')[0],
+                    userResult.Role.ToString());
 
                 // Redirect based on role
                 if (userResult.Role == BusinessObject.Enums.RoleEnum.Admin)
@@ -250,12 +250,48 @@ namespace ChatBot.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             HttpContext.Session.Clear();
             return RedirectToAction("Login", "Auth");
         }
 
         #endregion
+
+
+        #region ================= ACCESS DENIED =================
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult AccessDenied()
+        {
+            return View();
+        }
+
+        #endregion
+
+
+        private async Task SignInWithClaimsAsync(string userId, string email, string fullName, string role)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, userId),
+                new Claim(ClaimTypes.Email, email ?? string.Empty),
+                new Claim(ClaimTypes.Name, fullName ?? email ?? string.Empty),
+                new Claim(ClaimTypes.Role, role ?? "Customer"),
+                new Claim("FullName", fullName ?? string.Empty)
+            };
+
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
+
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claimsPrincipal,
+                new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
+                });
+        }
     }
 }

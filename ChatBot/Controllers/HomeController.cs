@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ChatBot.Models;
@@ -8,6 +10,7 @@ using ServiceLayer.Interfaces;
 
 namespace ChatBot.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
         private readonly IDocumentService _documentService;
@@ -64,7 +67,7 @@ namespace ChatBot.Controllers
        
         public async Task<IActionResult> Index(string? subjectName = null, string? message = null, string? error = null)
         {
-            var userIdStr = HttpContext.Session.GetString("UserId");
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
             {
                 return RedirectToAction("Login", "Auth");
@@ -104,7 +107,7 @@ namespace ChatBot.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Upload(IFormFile file, string subjectName, string chapterName = "Default")
         {
-            var userIdStr = HttpContext.Session.GetString("UserId");
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId)) return RedirectToAction("Login", "Auth");
             var subjects = await _subjectService.GetSubjectsByTeacherId(userId);
             // The UI sends the selected subject's Id as the subjectName form value.
@@ -126,7 +129,7 @@ namespace ChatBot.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reindex(int id, string? subjectName = null)
         {
-            var userIdStr = HttpContext.Session.GetString("UserId");
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId)) return RedirectToAction("Login", "Auth");
             
             if (!string.IsNullOrEmpty(subjectName))
