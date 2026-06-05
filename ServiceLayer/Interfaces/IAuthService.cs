@@ -1,5 +1,4 @@
-﻿using BusinessObject.Dtos;
-using BusinessObject.Dtos.RequestModel;
+﻿using BusinessObject.Dtos.RequestModel;
 using BusinessObject.Entities;
 using System;
 using System.Collections.Generic;

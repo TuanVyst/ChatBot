@@ -1,6 +1,6 @@
 using BusinessObject.Enums;
 
-namespace BusinessObject.Dtos
+namespace BusinessObject.Dtos.RequestModel
 {
     public class AuthenticationResultDto
     {

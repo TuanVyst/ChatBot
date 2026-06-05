@@ -71,26 +71,28 @@ namespace ChatBot.Controllers
             }
 
             var subjects = await _subjectService.GetSubjectsByTeacherId(userId);
-            var subjectNames = subjects.Select(s => s.Name).ToList();
+            var subjectList = subjects.ToList();
 
-            if (!string.IsNullOrEmpty(subjectName) && !subjectNames.Contains(subjectName))
+            // We expect the query param to be a subject id (string GUID)
+            string? selectedSubjectId = subjectName;
+            if (!string.IsNullOrEmpty(selectedSubjectId) && !subjectList.Any(s => s.Id.ToString() == selectedSubjectId))
             {
-                subjectName = subjectNames.FirstOrDefault(); 
+                selectedSubjectId = subjectList.FirstOrDefault()?.Id.ToString();
             }
 
-            if (string.IsNullOrEmpty(subjectName) && subjectNames.Any())
+            if (string.IsNullOrEmpty(selectedSubjectId) && subjectList.Any())
             {
-                subjectName = subjectNames.First();
+                selectedSubjectId = subjectList.First().Id.ToString();
             }
 
-            var documents = await _documentService.GetDocumentsAsync(subjectName);
+            var documents = await _documentService.GetDocumentsAsync(selectedSubjectId);
             var pendingCount = documents.Count(d => string.Equals(d.IndexStatus, "Pending", StringComparison.OrdinalIgnoreCase));
             
             var model = new DashboardViewModel
             {
-                Subjects = subjectNames,
+                Subjects = subjectList,
                 Documents = documents.ToList(),
-                SelectedSubject = subjectName,
+                SelectedSubjectId = selectedSubjectId,
                 PendingCount = pendingCount,
                 Message = message,
                 Error = error,
@@ -105,9 +107,12 @@ namespace ChatBot.Controllers
             var userIdStr = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId)) return RedirectToAction("Login", "Auth");
             var subjects = await _subjectService.GetSubjectsByTeacherId(userId);
-            if (!subjects.Any(s => s.Name == subjectName)) return RedirectToAction(nameof(Index), new { error = "Unauthorized subject" });
+            // The UI sends the selected subject's Id as the subjectName form value.
+            // Treat subjectName as subjectId here and validate by Id.
+            var subjectId = subjectName;
+            if (string.IsNullOrEmpty(subjectId) || !subjects.Any(s => s.Id.ToString() == subjectId)) return RedirectToAction(nameof(Index), new { error = "Unauthorized subject" });
 
-            var (success, message, _) = await _documentService.UploadDocumentAsync(file, subjectName, chapterName);
+            var (success, message, _) = await _documentService.UploadDocumentAsync(file, subjectId, chapterName);
 
             if (success)
             {
