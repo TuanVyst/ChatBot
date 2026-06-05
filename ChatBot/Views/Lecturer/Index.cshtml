@@ -167,11 +167,18 @@
                                 <td style="color:var(--text-muted);">@(doc.Chapter?.Name ?? "Default")</td>
                                 <td style="color:var(--text-muted);font-size:13px;">@(doc.FileSize == 0 ? "-" : string.Format("{0:0.##} MB", doc.FileSize / 1024d / 1024d))</td>
                                 <td>
-                                    <span class="status-badge @doc.IndexStatus.ToLower()">
+                                    <span class="status-badge @doc.IndexStatus.ToLower()" id="status-badge-@doc.Id">
                                         @if (doc.IndexStatus.Equals("Completed", StringComparison.OrdinalIgnoreCase)) { <text>Indexed</text> }
                                         else if (doc.IndexStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase)) { <text>Processing</text> }
                                         else { <text>Failed</text> }
                                     </span>
+                                    @if (doc.IndexStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <div class="doc-progress-container" id="progress-container-@doc.Id" style="margin-top: 8px; width: 100%; height: 6px; background: #e2e8f0; border-radius: 4px; overflow: hidden;" data-doc-id="@doc.Id">
+                                            <div class="doc-progress-bar" id="progress-bar-@doc.Id" style="height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease;"></div>
+                                        </div>
+                                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px; text-align: center;" id="progress-text-@doc.Id">0%</div>
+                                    }
                                 </td>
                                 <td style="text-align:right;">
                                     <div class="doc-actions" style="justify-content:flex-end;">
@@ -623,6 +630,41 @@
         document.getElementById('documentIframe').src = '/Lecturer/ViewOriginal/' + docId;
         openModal('documentModal');
     }
+
+    // ─── Poll Document Progress ───
+    function pollDocumentProgress() {
+        const containers = document.querySelectorAll('.doc-progress-container');
+        if (containers.length === 0) return;
+
+        containers.forEach(container => {
+            const docId = container.getAttribute('data-doc-id');
+            fetch('/Lecturer/GetProgress/' + docId)
+                .then(r => r.json())
+                .then(data => {
+                    const progress = data.progress || 0;
+                    const bar = document.getElementById('progress-bar-' + docId);
+                    const text = document.getElementById('progress-text-' + docId);
+                    const badge = document.getElementById('status-badge-' + docId);
+
+                    if (bar) bar.style.width = progress + '%';
+                    if (text) text.innerText = progress + '%';
+
+                    if (progress >= 100) {
+                        if (badge) {
+                            badge.className = 'status-badge completed';
+                            badge.innerText = 'Indexed';
+                        }
+                        if (container) container.style.display = 'none';
+                        if (text) text.style.display = 'none';
+                    }
+                })
+                .catch(e => console.error(e));
+        });
+    }
+
+    // Poll every 2 seconds
+    setInterval(pollDocumentProgress, 2000);
+    pollDocumentProgress();
 
     // ─── Auto-open modal on TempData ───
     document.addEventListener('DOMContentLoaded', function() {
