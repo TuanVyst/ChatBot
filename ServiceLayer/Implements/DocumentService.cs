@@ -95,10 +95,9 @@ namespace ServiceLayer.Implements
             await _documentChunkRepository.DeleteByDocumentIdAsync(id);
             await _documentChunkRepository.SaveChangesAsync();
 
-            var (indexSuccess, indexError   ) = await _indexingService.IndexDocumentAsync(document);
-                if (!indexSuccess)
+            var (indexSuccess, indexError) = await _indexingService.IndexDocumentAsync(document);
+            if (!indexSuccess)
             {
-               
                 return (false, $"Lỗi khi tái chỉ mục: {indexError}");
             }
 

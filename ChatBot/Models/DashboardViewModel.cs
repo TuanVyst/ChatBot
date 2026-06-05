@@ -5,9 +5,11 @@ namespace ChatBot.Models
 {
     public class DashboardViewModel
     {
-        public IReadOnlyList<string> Subjects { get; init; } = new List<string>();
+        // Subjects now contains Subject entities so the UI can use Id and Name
+        public IReadOnlyList<Subject> Subjects { get; init; } = new List<Subject>();
         public List<Document> Documents { get; init; } = new();
-        public string? SelectedSubject { get; init; }
+        // SelectedSubjectId stores the selected subject's Id (string GUID)
+        public string? SelectedSubjectId { get; init; }
         public string ChapterName { get; init; } = "Default";
         public string? Message { get; init; }
         public string? Error { get; init; }

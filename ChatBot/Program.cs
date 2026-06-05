@@ -46,7 +46,7 @@ builder.Services.AddScoped<ISubjectService, SubjectService>();
 
 
 
-builder.Services.AddScoped<IAccountRepository, DataAccessLayer.Repositories.Implements.AccountRepository>();
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
