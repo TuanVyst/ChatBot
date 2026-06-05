@@ -76,7 +76,7 @@
                         <option value="">Chon mon hoc</option>
                         @foreach (var subject in Model.Subjects)
                         {
-                            <option value="@subject.Name" selected="@(subject.Name == Model.SelectedSubject)">@subject.Name</option>
+                            <option value="@subject.Id.ToString()" selected="@(subject.Id.ToString() == Model.SelectedSubjectId)">@subject.Name</option>
                         }
                     </select>
                 </label>
@@ -122,7 +122,7 @@
                             <option value="">Tat ca mon hoc</option>
                             @foreach (var subject in Model.Subjects)
                             {
-                                <option value="@subject.Name" selected="@(subject.Name == Model.SelectedSubject)">@subject.Name</option>
+                                <option value="@subject.Id.ToString()" selected="@(subject.Id.ToString() == Model.SelectedSubjectId)">@subject.Name</option>
                             }
                         </select>
                         <select name="chapterId" onchange="this.form.submit()">
@@ -165,26 +165,16 @@
                             <span>@(doc.Subject?.Name ?? "-")</span>
                             <span>@(doc.Chapter?.Name ?? "Default")</span>
                             <span>@(doc.FileSize == 0 ? "-" : string.Format("{0:0.##} MB", doc.FileSize / 1024d / 1024d))</span>
-                            
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <span class="status @doc.IndexStatus.ToLower()" id="status-@doc.Id">@doc.IndexStatus</span>
-                                @if (isProcessing)
-                                {
-                                    <progress id="prog-@doc.Id" value="0" max="100" style="width:100px;" data-doc-id="@doc.Id"></progress>
-                                }
-                            </div>
-                            
-                            <div>
-                                <form method="post" asp-action="Reindex" asp-controller="Home" style="display:inline-block;">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@doc.Id" />
-                                    <input type="hidden" name="subjectName" value="@Model.SelectedSubject" />
-                                    <button type="submit" @(isProcessing ? "disabled" : "")>Reindex</button>
-                                </form>
-                                <div style="margin-top:6px; display:flex; gap:8px;">
-                                    <button class="ghost" type="button" onclick="openDocModal('/Home/Download/@doc.Id', '@doc.FileName')">Xem gốc</button>
-                                    <a class="ghost" asp-action="Chunks" asp-controller="Home" asp-route-id="@doc.Id">Xem Chunks</a>
-                                </div>
+                            <span class="status @doc.IndexStatus.ToLower()">@doc.IndexStatus</span>
+                            <form method="post" asp-action="Reindex" asp-controller="Home">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@doc.Id" />
+                                <input type="hidden" name="subjectName" value="@Model.SelectedSubjectId" />
+                                <button type="submit">Reindex</button>
+                            </form>
+                            <div style="margin-top:6px; display:flex; gap:8px;">
+                                <a class="ghost" asp-action="Download" asp-controller="Home" asp-route-id="@doc.Id" target="_blank">Xem / Tải</a>
+                                <a class="ghost" asp-action="Chunks" asp-controller="Home" asp-route-id="@doc.Id">Xem Chunks</a>
                             </div>
                         </div>
                     }

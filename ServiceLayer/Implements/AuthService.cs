@@ -3,7 +3,6 @@ using BusinessObject.Entities;
 using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using ServiceLayer.Interfaces;
-using BusinessObject.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -46,15 +45,15 @@ namespace ServiceLayer.Implements
             if (existingUserInfo != null)
                 return (false, "Email đã tồn tại trong hệ thống.");
             
-            var roleEnum = BusinessObject.Enums.RoleEnum.Lecture;
-            if (!string.IsNullOrEmpty(roleName) && Enum.TryParse<BusinessObject.Enums.RoleEnum>(roleName, true, out var parsedRole))
+            var roleEnum = RoleEnum.Lecture;
+            if (!string.IsNullOrEmpty(roleName) && Enum.TryParse<RoleEnum>(roleName, true, out var parsedRole))
             {
                 roleEnum = parsedRole;
             }
             var account = new Account
             {
                 Account_id = Guid.NewGuid(),
-                Username = request.Email,
+                Username = string.IsNullOrEmpty(request.Username) ? request.Email : request.Username,
                 Password = string.IsNullOrEmpty(request.Password) ? Guid.NewGuid().ToString("N") + "@A1" : request.Password,
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
@@ -64,12 +63,12 @@ namespace ServiceLayer.Implements
 
             // Map roleName to RoleEnum if needed; here assume Teacher
             // Create user information
-            var userInfo = new BusinessObject.Entities.UserInformation
+            var userInfo = new UserInformation
             {
                 User_id = Guid.NewGuid(),
                 Account_id = account.Account_id,
                 Email = request.Email,
-                Name = request.Email.Split('@')[0]
+                Name = account.Username
             };
 
             await _accountRepository.CreateAccountWithUserInfoAsync(account, userInfo);
@@ -119,7 +118,7 @@ namespace ServiceLayer.Implements
                 Id = account.Account_id,
                 Email = userInfo.Email,
                 FullName = userInfo.Name,
-                Role = account.Role.ToString() ?? "Customer" // RoleEnum -> string
+                Role = account.Role.ToString()
             };
 
             // Include LastLogin
@@ -191,12 +190,12 @@ namespace ServiceLayer.Implements
                 {
                     Account_id = Guid.NewGuid(),
 
-                    Username = request.Email,
+                    Username = string.IsNullOrEmpty(request.Username) ? request.Email : request.Username,
                     // Use provided password from registration flow if available; otherwise generate a random one
                     Password = string.IsNullOrEmpty(request.Password) ? Guid.NewGuid().ToString("N") + "@A1" : request.Password,
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true,
-                    Role = BusinessObject.Enums.RoleEnum.Lecture
+                    Role = RoleEnum.Lecture
                 };
 
                 var userInfo = new UserInformation
@@ -204,7 +203,7 @@ namespace ServiceLayer.Implements
                     User_id = Guid.NewGuid(),
                     Account_id = account.Account_id,
                     Email = request.Email,
-                    Name = request.Email.Split('@')[0]
+                    Name = account.Username
                 };
 
                 await _accountRepository.CreateAccountWithUserInfoAsync(account, userInfo);

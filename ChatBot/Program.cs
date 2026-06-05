@@ -1,4 +1,5 @@
 using DataAccessLayer;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using DataAccessLayer.Repositories.Interfaces;
 using DataAccessLayer.Repositories.Implements;
@@ -48,10 +49,21 @@ builder.Services.AddScoped<IChapterService, ChapterService>();
 
 
 
-builder.Services.AddScoped<IAccountRepository, DataAccessLayer.Repositories.Implements.AccountRepository>();
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.Cookie.Name = "ChatBot.Auth";
+    });
+
+builder.Services.AddAuthorization();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSession();
@@ -89,6 +101,7 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

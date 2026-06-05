@@ -28,6 +28,10 @@
         <p>Nhập email và mật khẩu để đăng ký. Hệ thống sẽ gửi mã OTP tới email để xác minh.</p>
 
         <form asp-controller="Auth" asp-action="Register" method="post">
+            <label>Tên đăng nhập</label>
+            <input asp-for="Username" placeholder="Nhập tên đăng nhập" />
+            <div class="field-error"><span asp-validation-for="Username"></span></div>
+
             <label>Email</label>
             <input asp-for="Email" placeholder="Nhập email" />
             <div class="field-error"><span asp-validation-for="Email"></span></div>

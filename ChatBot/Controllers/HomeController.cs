@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ChatBot.Models;
@@ -8,6 +10,7 @@ using ServiceLayer.Interfaces;
 
 namespace ChatBot.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
         private readonly IDocumentService _documentService;
@@ -72,39 +75,35 @@ namespace ChatBot.Controllers
        
         public async Task<IActionResult> Index(string? subjectName = null, int? chapterId = null, string? message = null, string? error = null)
         {
-            var userIdStr = HttpContext.Session.GetString("UserId");
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
             {
                 return RedirectToAction("Login", "Auth");
             }
 
-            var subjects = (await _subjectService.GetSubjectsByTeacherId(userId)).ToList();
+            var subjects = await _subjectService.GetSubjectsByTeacherId(userId);
+            var subjectList = subjects.ToList();
 
-            if (!string.IsNullOrEmpty(subjectName) && !subjects.Any(s => s.Name == subjectName))
+            // We expect the query param to be a subject id (string GUID)
+            string? selectedSubjectId = subjectName;
+            if (!string.IsNullOrEmpty(selectedSubjectId) && !subjectList.Any(s => s.Id.ToString() == selectedSubjectId))
             {
-                subjectName = subjects.FirstOrDefault()?.Name; 
+                selectedSubjectId = subjectList.FirstOrDefault()?.Id.ToString();
             }
 
-            if (string.IsNullOrEmpty(subjectName) && subjects.Any())
+            if (string.IsNullOrEmpty(selectedSubjectId) && subjectList.Any())
             {
-                subjectName = subjects.First().Name;
+                selectedSubjectId = subjectList.First().Id.ToString();
             }
 
-            var selectedSubject = subjects.FirstOrDefault(s => s.Name == subjectName);
-            var chapters = selectedSubject != null 
-                ? (await _chapterService.GetChaptersBySubjectIdAsync(selectedSubject.Id)).ToList() 
-                : new List<BusinessObject.Entities.Chapter>();
-
-            var documents = await _documentService.GetDocumentsAsync(subjectName ?? string.Empty, chapterId);
+            var documents = await _documentService.GetDocumentsAsync(selectedSubjectId);
             var pendingCount = documents.Count(d => string.Equals(d.IndexStatus, "Pending", StringComparison.OrdinalIgnoreCase));
             
             var model = new DashboardViewModel
             {
-                Subjects = subjects,
+                Subjects = subjectList,
                 Documents = documents.ToList(),
-                SelectedSubject = subjectName,
-                Chapters = chapters,
-                SelectedChapterId = chapterId,
+                SelectedSubjectId = selectedSubjectId,
                 PendingCount = pendingCount,
                 Message = message,
                 Error = error,
@@ -139,12 +138,15 @@ namespace ChatBot.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Upload(IFormFile file, string subjectName, int? chapterId)
         {
-            var userIdStr = HttpContext.Session.GetString("UserId");
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId)) return RedirectToAction("Login", "Auth");
             var subjects = await _subjectService.GetSubjectsByTeacherId(userId);
-            if (!subjects.Any(s => s.Name == subjectName)) return RedirectToAction(nameof(Index), new { error = "Unauthorized subject" });
+            // The UI sends the selected subject's Id as the subjectName form value.
+            // Treat subjectName as subjectId here and validate by Id.
+            var subjectId = subjectName;
+            if (string.IsNullOrEmpty(subjectId) || !subjects.Any(s => s.Id.ToString() == subjectId)) return RedirectToAction(nameof(Index), new { error = "Unauthorized subject" });
 
-            var (success, message, _) = await _documentService.UploadDocumentAsync(file, subjectName, chapterId);
+            var (success, message, _) = await _documentService.UploadDocumentAsync(file, subjectId, chapterName);
 
             if (success)
             {
@@ -158,7 +160,7 @@ namespace ChatBot.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reindex(int id, string? subjectName = null)
         {
-            var userIdStr = HttpContext.Session.GetString("UserId");
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId)) return RedirectToAction("Login", "Auth");
             
             if (!string.IsNullOrEmpty(subjectName))

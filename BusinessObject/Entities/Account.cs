@@ -12,7 +12,7 @@ namespace BusinessObject.Entities
         public Guid Account_id { get; set; } = Guid.NewGuid();
 
         [ForeignKey("Role")]
-        public RoleEnum Role { get; set; } = RoleEnum.User;
+        public RoleEnum Role { get; set; } = RoleEnum.Student;
 
         [Required]
         [MaxLength(100)]

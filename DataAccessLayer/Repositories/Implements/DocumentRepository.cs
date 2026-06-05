@@ -23,13 +23,17 @@ namespace DataAccessLayer.Repositories.Implements
 
         public async Task<Document?> GetByIdAsync(int id)
         {
-            return await _context.Documents.FirstOrDefaultAsync(d => d.Id == id);
+            return await _context.Documents
+                .Include(d => d.Subject)
+                .Include(d => d.DocumentChunks)
+                .FirstOrDefaultAsync(d => d.Id == id);
         }
 
         public async Task<Document?> GetByIdWithChunksAsync(int id)
         {
             return await _context.Documents
                 .Include(d => d.DocumentChunks)
+                .Include(d => d.Subject)
                 .FirstOrDefaultAsync(d => d.Id == id);
         }
 
