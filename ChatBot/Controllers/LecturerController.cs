@@ -85,6 +85,25 @@ namespace ChatBot.Controllers
             return File(stream, contentType, fileName);
         }
 
+        public async Task<IActionResult> ViewOriginal(int id)
+        {
+            var doc = await _documentService.GetByIdAsync(id);
+            if (doc == null) return NotFound();
+
+            if (!System.IO.File.Exists(doc.FilePath))
+                return NotFound("File not found on server.");
+
+            var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+            if (!provider.TryGetContentType(doc.FilePath, out var contentType))
+            {
+                contentType = "application/octet-stream";
+            }
+
+            var stream = System.IO.File.OpenRead(doc.FilePath);
+
+            return File(stream, contentType);
+        }
+
         public async Task<IActionResult> Index(string? subjectName = null, string? chapterId = null, string? message = null, string? error = null)
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);

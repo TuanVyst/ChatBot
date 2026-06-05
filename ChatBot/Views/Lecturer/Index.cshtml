@@ -175,8 +175,11 @@
                                 </td>
                                 <td style="text-align:right;">
                                     <div class="doc-actions" style="justify-content:flex-end;">
-                                        <a asp-action="Download" asp-controller="Lecturer" asp-route-id="@doc.Id" target="_blank" class="icon-btn view" title="View">
+                                        <button type="button" class="icon-btn view" title="View Document" onclick="viewOriginalDocument(@doc.Id, '@doc.FileName')">
                                             <i class="ph ph-eye"></i>
+                                        </button>
+                                        <a asp-action="Download" asp-controller="Lecturer" asp-route-id="@doc.Id" class="icon-btn download" title="Download" target="_blank">
+                                            <i class="ph ph-download-simple"></i>
                                         </a>
                                         <button type="button" class="icon-btn chunks" title="View Chunks" onclick="viewChunks(@doc.Id, '@doc.FileName')">
                                             <i class="ph ph-puzzle-piece"></i>
@@ -474,6 +477,19 @@
     </div>
 </div>
 
+@* ─── Document Modal ─── *@
+<div id="documentModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:90%; width:1000px; height:85vh; display:flex; flex-direction:column;">
+        <div class="modal-header">
+            <h3 id="documentModalTitle">Document Viewer</h3>
+            <button class="modal-close" onclick="closeModal('documentModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="flex:1; padding:0;">
+            <iframe id="documentIframe" src="" style="width:100%; height:100%; border:none;"></iframe>
+        </div>
+    </div>
+</div>
+
 @* ═══════════ JAVASCRIPT ═══════════ *@
 <script>
     // ─── Modal Controls ───
@@ -599,6 +615,13 @@
             .then(function(html) {
                 document.getElementById('chunksModalBody').innerHTML = html;
             });
+    }
+
+    // ─── View Original Document ───
+    function viewOriginalDocument(docId, fileName) {
+        document.getElementById('documentModalTitle').innerText = 'Document: ' + fileName;
+        document.getElementById('documentIframe').src = '/Lecturer/ViewOriginal/' + docId;
+        openModal('documentModal');
     }
 
     // ─── Auto-open modal on TempData ───
