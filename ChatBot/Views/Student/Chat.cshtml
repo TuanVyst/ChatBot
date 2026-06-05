@@ -1,0 +1,29 @@
+﻿@{
+    ViewData["Title"] = "Student Chatbot";
+}
+
+<div class="student-page">
+    <a asp-controller="Student" asp-action="Dashboard" class="back-link">← Back to Dashboard</a>
+
+    <div class="chat-layout">
+        <div class="chat-header">
+            <p class="eyebrow">AI LEARNING ASSISTANT</p>
+            <h1>Ask about your documents</h1>
+            <p>The chatbot will answer based on indexed lecturer documents.</p>
+        </div>
+
+        <div class="chat-box">
+            <div class="bot-message">
+                Hello! Ask me anything about your subject documents.
+            </div>
+        </div>
+
+        <form class="chat-form">
+            <input type="hidden" name="subjectId" value="@ViewBag.SubjectId" />
+            <input type="hidden" name="documentId" value="@ViewBag.DocumentId" />
+
+            <input type="text" placeholder="Type your question..." />
+            <button type="button">Send</button>
+        </form>
+    </div>
+</div>
