@@ -77,21 +77,67 @@ namespace DataAccessLayer.Migrations
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Code = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     UniversityId = table.Column<int>(type: "integer", nullable: false),
-                    LectureAccountId = table.Column<Guid>(type: "uuid", nullable: true),
-                    TeacherAccount_id = table.Column<Guid>(type: "uuid", nullable: true)
+                    LectureAccountId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Subjects", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Subjects_Accounts_TeacherAccount_id",
-                        column: x => x.TeacherAccount_id,
+                        name: "FK_Subjects_Accounts_LectureAccountId",
+                        column: x => x.LectureAccountId,
                         principalTable: "Accounts",
                         principalColumn: "Account_id");
                     table.ForeignKey(
                         name: "FK_Subjects_Universities_UniversityId",
                         column: x => x.UniversityId,
                         principalTable: "Universities",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Chapters",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    SubjectId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Chapters", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Chapters_Subjects_SubjectId",
+                        column: x => x.SubjectId,
+                        principalTable: "Subjects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StudentSubjects",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    AccountId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SubjectId = table.Column<Guid>(type: "uuid", nullable: false),
+                    EnrolledAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StudentSubjects", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StudentSubjects_Accounts_AccountId",
+                        column: x => x.AccountId,
+                        principalTable: "Accounts",
+                        principalColumn: "Account_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_StudentSubjects_Subjects_SubjectId",
+                        column: x => x.SubjectId,
+                        principalTable: "Subjects",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -107,13 +153,19 @@ namespace DataAccessLayer.Migrations
                     FileSize = table.Column<long>(type: "bigint", nullable: false),
                     UploadDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     SubjectId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ChapterName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    ChapterId = table.Column<Guid>(type: "uuid", nullable: false),
                     IndexStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     ErrorMessage = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Documents", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Documents_Chapters_ChapterId",
+                        column: x => x.ChapterId,
+                        principalTable: "Chapters",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Documents_Subjects_SubjectId",
                         column: x => x.SubjectId,
@@ -145,9 +197,19 @@ namespace DataAccessLayer.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Chapters_SubjectId",
+                table: "Chapters",
+                column: "SubjectId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DocumentChunks_DocumentId",
                 table: "DocumentChunks",
                 column: "DocumentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Documents_ChapterId",
+                table: "Documents",
+                column: "ChapterId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Documents_SubjectId",
@@ -155,9 +217,19 @@ namespace DataAccessLayer.Migrations
                 column: "SubjectId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Subjects_TeacherAccount_id",
+                name: "IX_StudentSubjects_AccountId",
+                table: "StudentSubjects",
+                column: "AccountId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentSubjects_SubjectId",
+                table: "StudentSubjects",
+                column: "SubjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Subjects_LectureAccountId",
                 table: "Subjects",
-                column: "TeacherAccount_id");
+                column: "LectureAccountId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Subjects_UniversityId",
@@ -177,10 +249,16 @@ namespace DataAccessLayer.Migrations
                 name: "DocumentChunks");
 
             migrationBuilder.DropTable(
+                name: "StudentSubjects");
+
+            migrationBuilder.DropTable(
                 name: "UserInformations");
 
             migrationBuilder.DropTable(
                 name: "Documents");
+
+            migrationBuilder.DropTable(
+                name: "Chapters");
 
             migrationBuilder.DropTable(
                 name: "Subjects");

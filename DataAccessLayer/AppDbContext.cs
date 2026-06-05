@@ -1,4 +1,4 @@
-﻿using BusinessObject.Entities;
+using BusinessObject.Entities;
 using Microsoft.EntityFrameworkCore;
 using Pgvector.EntityFrameworkCore;
 namespace DataAccessLayer
@@ -15,6 +15,8 @@ namespace DataAccessLayer
         public DbSet<UserInformation> UserInformations { get; set; }
         public DbSet<University> Universities { get; set; }
         public DbSet<Subject> Subjects { get; set; }
+        public DbSet<Chapter> Chapters { get; set; }
+        public DbSet<StudentSubject> StudentSubjects { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Kích hoạt extension pgvector trong PostgreSQL

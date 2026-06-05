@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BusinessObject.Entities;
@@ -37,18 +37,27 @@ namespace DataAccessLayer.Repositories.Implements
                 .FirstOrDefaultAsync(d => d.Id == id);
         }
 
-        public async Task<List<Document>> GetCompletedDocumentsAsync(string? subjectId = null)
+        public async Task<List<Document>> GetCompletedDocumentsAsync(string? subjectId = null, string? chapterId = null)
         {
-            IQueryable<Document> query = _context.Documents;
+            IQueryable<Document> query = _context.Documents.Include(d => d.Subject).Include(d => d.Chapter);
 
-            if (!string.IsNullOrWhiteSpace(subjectId))
+            if (!string.IsNullOrWhiteSpace(subjectId) && Guid.TryParse(subjectId, out var parsedSubjectId))
             {
-                query = query.Where(d => d.SubjectId.ToString() == subjectId);
+                query = query.Where(d => d.SubjectId == parsedSubjectId);
+            }
+            else if (!string.IsNullOrWhiteSpace(subjectId))
+            {
+                 // Handle subjectName case from old implementation
+                 query = query.Where(d => d.Subject.Name == subjectId);
             }
 
-            return await query
-                .Where(d => d.IndexStatus == "Completed")
-                .ToListAsync();
+            if (!string.IsNullOrWhiteSpace(chapterId))
+            {
+                // ChapterId is stored as a Guid, so compare by string form
+                query = query.Where(d => d.ChapterId.ToString() == chapterId);
+            }
+
+            return await query.ToListAsync();
         }
 
         public Task UpdateAsync(Document document)

@@ -1,0 +1,43 @@
+@model ChatBot.Models.DashboardViewModel
+
+<div class="table">
+    <div class="table-head">
+        <span>Tai lieu</span>
+        <span>Mon hoc</span>
+        <span>Chapter</span>
+        <span>Kich thuoc</span>
+        <span>Trang thai</span>
+        <span>Xu ly</span>
+    </div>
+    @if (Model.Documents == null || Model.Documents.Count == 0)
+    {
+        <div class="table-row empty">Chua co tai lieu nao.</div>
+    }
+    else
+    {
+        @foreach (var doc in Model.Documents)
+        {
+            <div class="table-row" id="doc-row-@doc.Id">
+                <div>
+                    <strong>@doc.FileName</strong>
+                    <span class="sub">@doc.UploadDate.ToString("g")</span>
+                </div>
+                <span>@(doc.Subject?.Name ?? "-")</span>
+                <span>@(doc.Chapter?.Name ?? "Default")</span>
+                <span>@(doc.FileSize == 0 ? "-" : string.Format("{0:0.##} MB", doc.FileSize / 1024d / 1024d))</span>
+                <span class="status @doc.IndexStatus.ToLower()">@doc.IndexStatus</span>
+                <form method="post" asp-action="Reindex" asp-controller="Home">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@doc.Id" />
+                    <input type="hidden" name="subjectName" value="@Model.SelectedSubjectId" />
+                    <button type="submit">Reindex</button>
+                </form>
+                <div style="margin-top:6px; display:flex; gap:8px;">
+                    <a class="ghost" asp-action="Download" asp-controller="Home" asp-route-id="@doc.Id" target="_blank">Xem / Tải</a>
+                    <a class="ghost" asp-action="Chunks" asp-controller="Home" asp-route-id="@doc.Id">Xem Chunks</a>
+                    <a class="ghost" asp-action="StudentsInSubject" asp-controller="Home" asp-route-subjectId="@doc.SubjectId">Xem Sinh viên</a>
+                </div>
+            </div>
+        }
+    }
+</div>

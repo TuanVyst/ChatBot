@@ -1,0 +1,26 @@
+@model BusinessObject.Entities.Subject
+
+@{
+    ViewData["Title"] = "Add Student to Subject";
+}
+
+<div class="admin-header">
+    <h1 class="page-title">Add Student to @Model.Name</h1>
+    <div class="admin-actions">
+        <a asp-action="Index" asp-controller="Home" class="btn-secondary btn-premium">Back</a>
+    </div>
+</div>
+
+<div class="admin-card" style="max-width:600px;">
+    <form asp-action="AddStudentToSubject" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="subjectId" value="@Model.Id" />
+        <div class="form-group">
+            <label>Email or Username</label>
+            <input type="email" name="email" class="form-control" placeholder="student@example.edu" required />
+        </div>
+        <div style="margin-top:1rem;">
+            <button type="submit" class="btn-premium btn-primary">Add Student</button>
+        </div>
+    </form>
+</div>

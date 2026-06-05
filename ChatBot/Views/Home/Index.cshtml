@@ -34,116 +34,331 @@
                 </div>
             </div>
         </div>
-        <!-- hero-panel removed per UI cleanup -->
     </header>
 
+    <style>
+        .four-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; box-sizing: border-box; width: 100%; align-items: start; }
+        .grid-item { box-sizing: border-box; display: flex; flex-direction: column; }
+        .grid-item .card { width: 100%; height: 100%; }
+        .card { border-radius:12px; padding:16px; box-sizing:border-box; }
+        #documents-container .table { max-width:100%; box-sizing:border-box; }
+        @@media (max-width: 1100px) {
+            .four-grid { grid-template-columns: 1fr; }
+            .grid-item { grid-column: 1 !important; }
+        }
+    </style>
+
     <main class="layout">
-        <section class="card">
-            <div class="card-header">
-                <h2>Upload tai lieu</h2>
-                <span class="hint">Ho tro PDF, DOCX, TXT</span>
-            </div>
-            <form class="upload-form" asp-action="Upload" asp-controller="Home" method="post" enctype="multipart/form-data">
-                @Html.AntiForgeryToken()
-                <label>
-                    <span>Mon hoc</span>
-                    <select name="subjectName" required>
-                        <option value="">Chon mon hoc</option>
-                        @foreach (var subject in Model.Subjects)
-                        {
-                            <option value="@subject.Id.ToString()" selected="@(subject.Id.ToString() == Model.SelectedSubjectId)">@subject.Name</option>
-                        }
-                    </select>
-                </label>
-                <label>
-                    <span>Chapter</span>
-                    <input type="text" name="chapterName" value="@Model.ChapterName" placeholder="Vi du: Chuong 1" />
-                </label>
-                <label class="file-input">
-                    <span>File</span>
-                    <input type="file" name="file" required />
-                    <em>Chua chon file</em>
-                </label>
-                <button type="submit" id="uploadBtn">Upload va index</button>
-                <div class="helper">
-                    Kich thuoc toi da va dinh dang phu thuoc cau hinh server.
-                </div>
-            </form>
-            @if (!string.IsNullOrWhiteSpace(Model.Message))
+        <div class="four-grid">
+            @if (Model.Subjects.Any())
             {
-                <div class="notice success">@Model.Message</div>
-            }
-            @if (!string.IsNullOrWhiteSpace(Model.Error))
-            {
-                <div class="notice error">@Model.Error</div>
-            }
-        </section>
-
-        <section class="card">
-            <div class="card-header">
-                <div>
-                    <h2>Danh sach tai lieu</h2>
-                    <span class="hint">Tu MVC + Database</span>
-                </div>
-                <div class="filters">
-                    <form method="get" asp-action="Index" asp-controller="Home">
-                        <select name="subjectName" onchange="this.form.submit()">
-                            <option value="">Tat ca mon hoc</option>
-                            @foreach (var subject in Model.Subjects)
-                            {
-                                <option value="@subject.Id.ToString()" selected="@(subject.Id.ToString() == Model.SelectedSubjectId)">@subject.Name</option>
-                            }
-                        </select>
-                    </form>
-                    <button type="button" class="ghost" onclick="location.reload()">Tải lại</button>
-                </div>
-            </div>
-
-            <div class="table">
-                <div class="table-head">
-                    <span>Tai lieu</span>
-                    <span>Mon hoc</span>
-                    <span>Chapter</span>
-                    <span>Kich thuoc</span>
-                    <span>Trang thai</span>
-                    <span>Xu ly</span>
-                </div>
-                @if (Model.Documents.Count == 0)
-                {
-                    <div class="table-row empty">Chua co tai lieu nao.</div>
-                }
-                else
-                {
-                    @foreach (var doc in Model.Documents)
-                    {
-                        <div class="table-row">
-                            <div>
-                                <strong>@doc.FileName</strong>
-                                <span class="sub">@doc.UploadDate.ToString("g")</span>
-                            </div>
-                            <span>@doc.Subject.Name</span>
-                            <span>@(string.IsNullOrWhiteSpace(doc.ChapterName) ? "Default" : doc.ChapterName)</span>
-                            <span>@(doc.FileSize == 0 ? "-" : string.Format("{0:0.##} MB", doc.FileSize / 1024d / 1024d))</span>
-                            <span class="status @doc.IndexStatus.ToLower()">@doc.IndexStatus</span>
-                            <form method="post" asp-action="Reindex" asp-controller="Home">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@doc.Id" />
-                                <input type="hidden" name="subjectName" value="@Model.SelectedSubjectId" />
-                                <button type="submit">Reindex</button>
-                            </form>
-                            <div style="margin-top:6px; display:flex; gap:8px;">
-                                <a class="ghost" asp-action="Download" asp-controller="Home" asp-route-id="@doc.Id" target="_blank">Xem / Tải</a>
-                                <a class="ghost" asp-action="Chunks" asp-controller="Home" asp-route-id="@doc.Id">Xem Chunks</a>
-                            </div>
+                <!-- Ô bên trái: Tạo Chapter -->
+                <div class="grid-item" style="grid-column: 1;">
+                    <section class="card">
+                        <div class="card-header">
+                            <h3>Tạo Chapter mới</h3>
                         </div>
+                        <form asp-action="CreateChapter" asp-controller="Home" method="post">
+                            @Html.AntiForgeryToken()
+                            <label>
+                                <span>Môn học</span>
+                                <select name="subjectId" required>
+                                    <option value="">-- Chọn môn học --</option>
+                                    @foreach(var sub in Model.Subjects)
+                                    {
+                                        <option value="@sub.Id" selected="@(sub.Id.ToString() == Model.SelectedSubjectId)">@sub.Name</option>
+                                    }
+                                </select>
+                            </label>
+                            <label>
+                                <span>Tên Chapter</span>
+                                <input type="text" name="name" required placeholder="Ví dụ: Chương 1" />
+                            </label>
+                            <label>
+                                <span>Mô tả (tùy chọn)</span>
+                                <input type="text" name="description" placeholder="Mô tả..." />
+                            </label>
+                            <button type="submit">Tạo Chapter</button>
+                        </form>
+                        @if (TempData["ChapterSuccess"] != null)
+                        {
+                            <div class="notice success" style="margin-top:12px;">@TempData["ChapterSuccess"]</div>
+                        }
+                        @if (TempData["ChapterError"] != null)
+                        {
+                            <div class="notice error" style="margin-top:12px;">@TempData["ChapterError"]</div>
+                        }
+                    </section>
+                </div>
+
+                <!-- Ô bên phải: Thêm sinh viên -->
+                <div class="grid-item" style="grid-column: 2;">
+                    <section class="card">
+                        <div class="card-header">
+                            <h3>Thêm sinh viên</h3>
+                        </div>
+                        <form asp-action="AddStudentToSubject" asp-controller="Home" method="post">
+                            @Html.AntiForgeryToken()
+                            <label>
+                                <span>Môn học</span>
+                                <select name="subjectId" id="currentSubjectId" required>
+                                    <option value="">-- Chọn môn học --</option>
+                                    @foreach(var sub in Model.Subjects)
+                                    {
+                                        <option value="@sub.Id" selected="@(sub.Id.ToString() == Model.SelectedSubjectId)">@sub.Name</option>
+                                    }
+                                </select>
+                            </label>
+                            <label>
+                                <span>Email sinh viên</span>
+                                <input type="email" name="email" required placeholder="student@example.edu" />
+                            </label>
+                            <div style="display:flex; gap:12px; margin-top:12px;">
+                                <button type="submit" class="btn-primary">Thêm sinh viên</button>
+                                <button type="button" class="ghost" onclick="viewStudentsList()">Xem danh sách</button>
+                            </div>
+                        </form>
+                        @if (TempData["StudentSuccess"] != null)
+                        {
+                            <div class="notice success" style="margin-top:12px;">@TempData["StudentSuccess"]</div>
+                        }
+                        @if (TempData["StudentError"] != null)
+                        {
+                            <div class="notice error" style="margin-top:12px;">@TempData["StudentError"]</div>
+                        }
+                    </section>
+                </div>
+            }
+
+            <!-- Ô dưới bên trái: Danh sách tài liệu -->
+            <div class="grid-item" style="grid-column: 1; overflow-x: auto;">
+                <section class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2>Danh sach tai lieu</h2>
+                            <span class="hint">Tu MVC + Database</span>
+                        </div>
+                        <div class="filters">
+                            <form method="get" asp-action="Index" asp-controller="Home">
+                                <select name="subjectName" onchange="this.form.submit()">
+                                    <option value="">Tat ca mon hoc</option>
+                                    @foreach (var subject in Model.Subjects)
+                                    {
+                                        <option value="@subject.Id.ToString()" selected="@(subject.Id.ToString() == Model.SelectedSubjectId)">@subject.Name</option>
+                                    }
+                                </select>
+                                <select id="filter-chapter" name="chapterId" onchange="onFilterChange()">
+                                    <option value="">Tat ca chapter</option>
+                                    @foreach (var chap in Model.Chapters)
+                                    {
+                                        <option value="@chap.Id.ToString()" selected="@(chap.Id.ToString() == Model.SelectedChapterId)">@chap.Name</option>
+                                    }
+                                </select>
+                            </form>
+                            <button type="button" class="ghost" onclick="location.reload()">Tải lại</button>
+                        </div>
+                    </div>
+
+                    @* Documents table partial *@
+                    <div id="documents-container">
+                        @Html.Partial("_DocumentsTable", Model)
+                    </div>
+
+                    <div class="legend">
+                        <span class="chip completed">Completed</span>
+                        <span class="chip pending">Pending</span>
+                        <span class="chip failed">Failed</span>
+                    </div>
+                    @if (TempData["ListSuccess"] != null)
+                    {
+                        <div class="notice success" style="margin-top:12px;">@TempData["ListSuccess"]</div>
                     }
-                }
+                    @if (TempData["ListError"] != null)
+                    {
+                        <div class="notice error" style="margin-top:12px;">@TempData["ListError"]</div>
+                    }
+                </section>
             </div>
-            <div class="legend">
-                <span class="chip completed">Completed</span>
-                <span class="chip pending">Pending</span>
-                <span class="chip failed">Failed</span>
+
+            <!-- Ô dưới bên phải: Upload tài liệu -->
+            <div class="grid-item" style="grid-column: 2;">
+                <section class="card">
+                    <div class="card-header">
+                        <h2>Upload tai lieu</h2>
+                        <span class="hint">Ho tro PDF, DOCX, TXT</span>
+                    </div>
+                    <form class="upload-form" asp-action="Upload" asp-controller="Home" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <label>
+                            <span>Mon hoc</span>
+                            <select name="subjectName" required onchange="window.location.href='?subjectName=' + this.value;">
+                                <option value="">Chon mon hoc</option>
+                                @foreach (var subject in Model.Subjects)
+                                {
+                                    <option value="@subject.Id.ToString()" selected="@(subject.Id.ToString() == Model.SelectedSubjectId)">@subject.Name</option>
+                                }
+                            </select>
+                        </label>
+                        <label>
+                            <span>Chapter</span>
+                            <select name="chapterId" required>
+                                <option value="">Chọn Chapter</option>
+                                @foreach (var chap in Model.Chapters)
+                                {
+                                    <option value="@chap.Id.ToString()" selected="@(chap.Id.ToString() == Model.SelectedChapterId)">@chap.Name</option>
+                                }
+                            </select>
+                        </label>
+                        <label class="file-input">
+                            <span>File</span>
+                            <input type="file" name="file" required />
+                            <em>Chua chon file</em>
+                        </label>
+                        <button type="submit" id="uploadBtn">Upload va index</button>
+                        <div class="helper">
+                            Kich thuoc toi da va dinh dang phu thuoc cau hinh server.
+                        </div>
+                    </form>
+
+                    @if (TempData["UploadSuccess"] != null)
+                    {
+                        <div class="notice success" id="main-notice-msg" style="margin-top:12px;">@TempData["UploadSuccess"]</div>
+                    }
+                    @if (TempData["UploadError"] != null)
+                    {
+                        <div class="notice error" style="margin-top:12px;">@TempData["UploadError"]</div>
+                    }
+                </section>
             </div>
-        </section>
+        </div>
     </main>
 </div>
+
+<!-- Modal Xem tài liệu gốc -->
+<div id="docModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999;">
+    <div style="background:#fff; width:80%; height:90%; margin:2% auto; border-radius:8px; display:flex; flex-direction:column;">
+        <div style="padding:16px; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; align-items:center;">
+            <h3 id="docModalTitle" style="margin:0;">Tài liệu gốc</h3>
+            <button onclick="closeDocModal()" style="background:transparent; border:none; font-size:20px; cursor:pointer;">&times;</button>
+        </div>
+        <div style="flex:1; padding:16px;">
+            <iframe id="docModalFrame" src="" style="width:100%; height:100%; border:1px solid #ddd; border-radius:4px;"></iframe>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Danh sách sinh viên -->
+<div id="studentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999;">
+    <div style="background:#fff; width:60%; max-height:80%; margin:5% auto; border-radius:8px; display:flex; flex-direction:column;">
+        <div style="padding:16px; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0;">Danh sách sinh viên</h3>
+            <button onclick="closeStudentsModal()" style="background:transparent; border:none; font-size:20px; cursor:pointer;">&times;</button>
+        </div>
+        <div id="studentsModalBody" style="flex:1; padding:16px; overflow-y:auto;">
+            <!-- content will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+    function viewStudentsList() {
+        var subjectId = document.getElementById('currentSubjectId').value;
+        fetch('/Home/StudentsInSubject?subjectId=' + encodeURIComponent(subjectId))
+            .then(res => res.text())
+            .then(html => {
+                document.getElementById('studentsModalBody').innerHTML = html;
+                document.getElementById('studentsModal').style.display = 'block';
+            });
+    }
+
+    function closeStudentsModal() {
+        document.getElementById('studentsModal').style.display = 'none';
+        document.getElementById('studentsModalBody').innerHTML = '';
+    }
+    function onFilterChange() {
+        var subjectSelect = document.querySelector('select[name="subjectName"]');
+        var chapterSelect = document.getElementById('filter-chapter');
+        var subjectId = subjectSelect ? subjectSelect.value : '';
+        var chapterId = chapterSelect ? chapterSelect.value : '';
+
+        // Fetch partial documents list and replace the documents container
+        var url = '/Home/DocumentsPartial?subjectName=' + encodeURIComponent(subjectId) + '&chapterId=' + encodeURIComponent(chapterId);
+        fetch(url, { method: 'GET', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (res) { return res.text(); })
+            .then(function (html) {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+                var newTable = doc.querySelector('.table');
+                var oldTable = document.querySelector('.table');
+                if (newTable && oldTable) {
+                    oldTable.replaceWith(newTable);
+                }
+            })
+            .catch(function (err) { console.error('Failed to fetch documents partial', err); });
+    }
+    function openDocModal(url, title) {
+        document.getElementById('docModalTitle').innerText = title;
+        document.getElementById('docModalFrame').src = url;
+        document.getElementById('docModal').style.display = 'block';
+    }
+    function closeDocModal() {
+        document.getElementById('docModal').style.display = 'none';
+        document.getElementById('docModalFrame').src = '';
+    }
+
+    // Polling for progress
+    document.addEventListener("DOMContentLoaded", function() {
+        var progressBars = document.querySelectorAll("progress[data-doc-id]");
+        
+        if (progressBars.length > 0) {
+            var intervalId = setInterval(function() {
+                var pendingCount = 0;
+                
+                progressBars.forEach(function(p) {
+                    var docId = p.getAttribute("data-doc-id");
+                    var statusSpan = document.getElementById("status-" + docId);
+                    
+                    if (p.style.display !== 'none') {
+                        pendingCount++;
+                        fetch('/Home/GetProgress/' + docId)
+                            .then(r => r.json())
+                            .then(data => {
+                                p.value = data.progress;
+                                if (data.progress >= 100) {
+                                    p.style.display = 'none';
+                                    if (statusSpan) {
+                                        statusSpan.className = 'status completed';
+                                        statusSpan.innerText = 'Completed';
+                                    }
+                                    alert("Đã xử lý xong tài liệu ID: " + docId);
+                                    location.reload(); // Reload to get fresh states
+                                } else if (data.progress > 0 && statusSpan && statusSpan.innerText === 'Pending') {
+                                    statusSpan.className = 'status processing';
+                                    statusSpan.innerText = 'Processing';
+                                }
+                            });
+                    }
+                });
+
+                if (pendingCount === 0) {
+                    clearInterval(intervalId);
+                }
+            }, 2000);
+        }
+    });
+
+    // Bind the subject select to re-run partial update when subject changes
+    document.addEventListener('DOMContentLoaded', function() {
+        var subjectSelects = document.querySelectorAll('select[name="subjectName"]');
+        subjectSelects.forEach(function(sel) {
+            sel.addEventListener('change', function() {
+                // when subject changes, reload the page to get chapters for that subject
+                // but we also trigger partial update for documents
+                var subjectId = this.value;
+                var chapterSelect = document.getElementById('filter-chapter');
+                if (chapterSelect) chapterSelect.selectedIndex = 0;
+                onFilterChange();
+            });
+        });
+    });
+</script>

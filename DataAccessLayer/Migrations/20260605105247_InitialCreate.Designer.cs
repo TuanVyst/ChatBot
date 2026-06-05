@@ -13,7 +13,7 @@ using Pgvector;
 namespace DataAccessLayer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260603181800_InitialCreate")]
+    [Migration("20260605105247_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -60,6 +60,31 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("Accounts");
                 });
 
+            modelBuilder.Entity("BusinessObject.Entities.Chapter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectId");
+
+                    b.ToTable("Chapters");
+                });
+
             modelBuilder.Entity("BusinessObject.Entities.Document", b =>
                 {
                     b.Property<int>("Id")
@@ -68,10 +93,8 @@ namespace DataAccessLayer.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ChapterName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                    b.Property<Guid>("ChapterId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("text");
@@ -100,6 +123,8 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ChapterId");
 
                     b.HasIndex("SubjectId");
 
@@ -135,6 +160,32 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("DocumentChunks");
                 });
 
+            modelBuilder.Entity("BusinessObject.Entities.StudentSubject", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("EnrolledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("SubjectId");
+
+                    b.ToTable("StudentSubjects");
+                });
+
             modelBuilder.Entity("BusinessObject.Entities.Subject", b =>
                 {
                     b.Property<Guid>("Id")
@@ -154,15 +205,12 @@ namespace DataAccessLayer.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<Guid?>("TeacherAccount_id")
-                        .HasColumnType("uuid");
-
                     b.Property<int>("UniversityId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TeacherAccount_id");
+                    b.HasIndex("LectureAccountId");
 
                     b.HasIndex("UniversityId");
 
@@ -226,13 +274,32 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("UserInformations");
                 });
 
+            modelBuilder.Entity("BusinessObject.Entities.Chapter", b =>
+                {
+                    b.HasOne("BusinessObject.Entities.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Subject");
+                });
+
             modelBuilder.Entity("BusinessObject.Entities.Document", b =>
                 {
+                    b.HasOne("BusinessObject.Entities.Chapter", "Chapter")
+                        .WithMany("Documents")
+                        .HasForeignKey("ChapterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("BusinessObject.Entities.Subject", "Subject")
                         .WithMany("Documents")
                         .HasForeignKey("SubjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Chapter");
 
                     b.Navigation("Subject");
                 });
@@ -248,11 +315,30 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Document");
                 });
 
+            modelBuilder.Entity("BusinessObject.Entities.StudentSubject", b =>
+                {
+                    b.HasOne("BusinessObject.Entities.Account", "Student")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BusinessObject.Entities.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Subject");
+                });
+
             modelBuilder.Entity("BusinessObject.Entities.Subject", b =>
                 {
                     b.HasOne("BusinessObject.Entities.Account", "Teacher")
                         .WithMany()
-                        .HasForeignKey("TeacherAccount_id");
+                        .HasForeignKey("LectureAccountId");
 
                     b.HasOne("BusinessObject.Entities.University", "University")
                         .WithMany("Subjects")
@@ -274,6 +360,11 @@ namespace DataAccessLayer.Migrations
                         .IsRequired();
 
                     b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("BusinessObject.Entities.Chapter", b =>
+                {
+                    b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("BusinessObject.Entities.Document", b =>
