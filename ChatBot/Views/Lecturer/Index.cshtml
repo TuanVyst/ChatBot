@@ -415,7 +415,7 @@
             <button class="modal-close" onclick="closeModal('uploadModal')">&times;</button>
         </div>
         <div class="modal-body">
-            <form asp-action="Upload" asp-controller="Lecturer" method="post" enctype="multipart/form-data">
+            <form id="modalUploadForm" asp-action="Upload" asp-controller="Lecturer" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
                 <div class="form-group">
                     <label class="form-label">Subject</label>
@@ -437,21 +437,40 @@
                         }
                     </select>
                 </div>
-                <div class="upload-zone" onclick="document.getElementById('modalFileInput').click()">
+                <div class="upload-zone" id="modalUploadZone" onclick="document.getElementById('modalFileInput').click()">
                     <i class="ph ph-cloud-arrow-up upload-zone-icon"></i>
                     <div class="upload-zone-title">Drop files here</div>
                     <div class="upload-zone-sub">or</div>
                     <button type="button" class="upload-browse-btn" onclick="event.stopPropagation();document.getElementById('modalFileInput').click()">
                         <i class="ph ph-folder-open"></i> Browse Files
                     </button>
-                    <input type="file" name="file" id="modalFileInput" required style="display:none;" accept=".pdf,.docx,.txt" />
+                    <input type="file" name="file" id="modalFileInput" required style="display:none;" accept=".pdf,.docx,.txt" onchange="onModalFileSelected(this)" />
                     <div class="format-badges">
                         <span class="format-badge">PDF</span>
                         <span class="format-badge">DOCX</span>
                         <span class="format-badge">TXT</span>
                     </div>
                 </div>
-                <button type="submit" class="btn-primary btn-full" style="margin-top:16px;height:48px;">
+
+                @* Selected file indicator for modal *@
+                <div id="modalFileInfo" style="display:none;margin-top:12px;padding:12px 16px;background:var(--bg);border-radius:var(--radius-sm);font-size:14px;color:var(--text-muted);">
+                    <i class="ph ph-file" style="margin-right:8px;color:var(--primary);"></i>
+                    <span id="modalFileName"></span>
+                    <span style="float:right;font-size:12px;" id="modalFileSize"></span>
+                </div>
+
+                @* Progress bar for modal *@
+                <div class="upload-progress" id="modalUploadProgress">
+                    <div class="progress-bar-track">
+                        <div class="progress-bar-fill" id="modalProgressFill"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span id="modalProgressLabel">Uploading...</span>
+                        <span id="modalProgressPercent">0%</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-full" style="margin-top:16px;height:48px;" id="modalUploadSubmitBtn">
                     <i class="ph ph-arrow-circle-up"></i> Upload & Index
                 </button>
             </form>
@@ -491,13 +510,15 @@
             <h3 id="documentModalTitle">Document Viewer</h3>
             <button class="modal-close" onclick="closeModal('documentModal')">&times;</button>
         </div>
-        <div class="modal-body" style="flex:1; padding:0;">
+        <div class="modal-body" style="flex:1; padding:0; overflow:auto; position: relative;">
             <iframe id="documentIframe" src="" style="width:100%; height:100%; border:none;"></iframe>
+            <div id="docxContainer" style="display:none; padding: 20px; background: white; min-height: 100%;"></div>
         </div>
     </div>
 </div>
 
 @* ═══════════ JAVASCRIPT ═══════════ *@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
 <script>
     // ─── Modal Controls ───
     function openModal(id) {
@@ -586,6 +607,72 @@
         }, 400);
     });
 
+    // ─── Modal Drag & Drop Upload ───
+    var modalUploadZone = document.getElementById('modalUploadZone');
+    var modalFileInput = document.getElementById('modalFileInput');
+
+    if (modalUploadZone) {
+        modalUploadZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        modalUploadZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+
+        modalUploadZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                modalFileInput.files = e.dataTransfer.files;
+                onModalFileSelected(modalFileInput);
+            }
+        });
+    }
+
+    function onModalFileSelected(input) {
+        var fileInfo = document.getElementById('modalFileInfo');
+        var fileName = document.getElementById('modalFileName');
+        var fileSize = document.getElementById('modalFileSize');
+        if (input.files && input.files[0]) {
+            var file = input.files[0];
+            fileName.textContent = file.name;
+            fileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+            fileInfo.style.display = 'block';
+        }
+    }
+
+    document.getElementById('modalUploadForm')?.addEventListener('submit', function(e) {
+        var progress = document.getElementById('modalUploadProgress');
+        var fill = document.getElementById('modalProgressFill');
+        var percent = document.getElementById('modalProgressPercent');
+        var label = document.getElementById('modalProgressLabel');
+        var submitBtn = document.getElementById('modalUploadSubmitBtn');
+
+        if (!modalFileInput.files || !modalFileInput.files[0]) {
+            e.preventDefault();
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Uploading...';
+        progress.classList.add('active');
+
+        var p = 0;
+        var interval = setInterval(function() {
+            p += Math.random() * 15 + 5;
+            if (p > 95) p = 95;
+            fill.style.width = p + '%';
+            percent.textContent = Math.round(p) + '%';
+            if (p >= 95) {
+                clearInterval(interval);
+                label.textContent = 'Indexing...';
+            }
+        }, 400);
+    });
+
     function showUploadSuccess(msg) {
         var el = document.getElementById('uploadSuccess');
         if (el) {
@@ -627,7 +714,36 @@
     // ─── View Original Document ───
     function viewOriginalDocument(docId, fileName) {
         document.getElementById('documentModalTitle').innerText = 'Document: ' + fileName;
-        document.getElementById('documentIframe').src = '/Lecturer/ViewOriginal/' + docId;
+        const iframe = document.getElementById('documentIframe');
+        const docxContainer = document.getElementById('docxContainer');
+        
+        if (fileName.toLowerCase().endsWith('.docx')) {
+            iframe.style.display = 'none';
+            docxContainer.style.display = 'block';
+            docxContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-muted);"><i class="ph ph-spinner ph-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br/>Loading document...</div>';
+            
+            fetch('/Lecturer/ViewOriginal/' + docId)
+                .then(r => r.arrayBuffer())
+                .then(buffer => {
+                    mammoth.convertToHtml({arrayBuffer: buffer})
+                        .then(result => {
+                            docxContainer.innerHTML = '<div class="docx-content" style="max-width: 800px; margin: 0 auto; color: black;">' + result.value + '</div>';
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            docxContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: red;">Failed to render document.</div>';
+                        });
+                })
+                .catch(err => {
+                    console.error(err);
+                    docxContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: red;">Failed to load document.</div>';
+                });
+        } else {
+            docxContainer.style.display = 'none';
+            iframe.style.display = 'block';
+            iframe.src = '/Lecturer/ViewOriginal/' + docId;
+        }
+        
         openModal('documentModal');
     }
 

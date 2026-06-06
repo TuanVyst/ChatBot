@@ -1,4 +1,4 @@
-﻿@model ChatBot.Models.StudentDashboardViewModel
+@model ChatBot.Models.StudentDashboardViewModel
 
 @{
     ViewData["Title"] = "Student Dashboard";
@@ -12,7 +12,17 @@
             <p>View subjects, read lecturer documents, download files, and ask AI about learning materials.</p>
         </div>
 
-        <a asp-controller="Student" asp-action="Chat" class="primary-btn">Ask Chatbot</a>
+        <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <a asp-controller="Student" asp-action="Chat" class="primary-btn" style="display: flex; align-items: center; gap: 8px;">
+                <i class="ph ph-chat-teardrop-dots"></i> Ask Chatbot
+            </a>
+            <form asp-controller="Auth" asp-action="Logout" method="post" style="margin: 0;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="secondary-btn" style="background: white; display: flex; align-items: center; gap: 8px;" title="Logout">
+                    <i class="ph ph-sign-out"></i> Logout
+                </button>
+            </form>
+        </div>
     </div>
 
     <h2>My Subjects</h2>

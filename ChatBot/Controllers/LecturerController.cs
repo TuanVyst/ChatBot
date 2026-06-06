@@ -106,6 +106,8 @@ namespace ChatBot.Controllers
                 contentType = "application/octet-stream";
             }
 
+            Response.Headers.Append("Content-Disposition", $"inline; filename=\"{doc.FileName}\"");
+
             var stream = System.IO.File.OpenRead(doc.FilePath);
 
             return File(stream, contentType);
