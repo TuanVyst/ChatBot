@@ -19,206 +19,134 @@
     </div>
 </div>
 
-@* ═══════════ HERO SECTION ═══════════ *@
-<div class="hero-section">
-    <div class="hero-content">
-        <div class="hero-greeting">Welcome back 👋</div>
-        <h1 class="hero-title">Teaching Management Dashboard</h1>
-        <p class="hero-desc">Manage courses, chapters, students and learning resources efficiently.</p>
-    </div>
-    <div class="hero-illustration">
-        <svg width="200" height="160" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M40 120L100 80L160 120L100 150L40 120Z" fill="white" fill-opacity="0.15" stroke="white" stroke-width="2"/>
-            <path d="M40 90L100 50L160 90" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            <path d="M100 50L100 18" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M82 30L100 18L118 30" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            <circle cx="100" cy="16" r="4" fill="white" fill-opacity="0.6"/>
-            <rect x="72" y="102" width="56" height="8" rx="4" fill="white" fill-opacity="0.15"/>
-            <rect x="78" y="112" width="44" height="6" rx="3" fill="white" fill-opacity="0.1"/>
-            <circle cx="60" cy="80" r="6" fill="white" fill-opacity="0.2"/>
-            <circle cx="140" cy="80" r="6" fill="white" fill-opacity="0.2"/>
-            <path d="M92 126L100 132L108 126" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            <path d="M100 132V145" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-    </div>
-</div>
-
-@* ═══════════ STATISTICS ROW ═══════════ *@
-<div class="stats-row">
-    <div class="stat-card">
-        <div class="stat-card-top">
-            <div class="stat-icon-circle blue">📚</div>
-            <span class="stat-value">@Model.Subjects.Count</span>
-        </div>
-        <div>
-            <div class="stat-label">Subjects</div>
-            <div class="stat-sub">Active Courses</div>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-card-top">
-            <div class="stat-icon-circle teal">👨‍🎓</div>
-            <span class="stat-value">@Model.TotalStudents</span>
-        </div>
-        <div>
-            <div class="stat-label">Students</div>
-            <div class="stat-sub">Enrolled</div>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-card-top">
-            <div class="stat-icon-circle amber">📄</div>
-            <span class="stat-value">@Model.Documents.Count</span>
-        </div>
-        <div>
-            <div class="stat-label">Documents</div>
-            <div class="stat-sub">Indexed Files</div>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-card-top">
-            <div class="stat-icon-circle green">⏳</div>
-            <span class="stat-value">@Model.PendingCount</span>
-        </div>
-        <div>
-            <div class="stat-label">Pending</div>
-            <div class="stat-sub">Processing</div>
-        </div>
-    </div>
-</div>
-
-@* ═══════════ QUICK ACTION CARDS ═══════════ *@
-<div class="quick-actions-row">
-    <div class="action-card" onclick="openModal('chapterModal')">
-        <div class="action-card-icon">📚</div>
-        <div class="action-card-title">Create Chapter</div>
-        <div class="action-card-desc">Add a new chapter to organize your course materials</div>
-    </div>
-    <div class="action-card" onclick="openModal('studentModal')">
-        <div class="action-card-icon">👨‍🎓</div>
-        <div class="action-card-title">Add Student</div>
-        <div class="action-card-desc">Enroll a student to a subject by their email</div>
-    </div>
-    <div class="action-card" onclick="openModal('uploadModal')">
-        <div class="action-card-icon">📄</div>
-        <div class="action-card-title">Upload Document</div>
-        <div class="action-card-desc">Upload and index learning materials for your courses</div>
-    </div>
-</div>
-
-@* ═══════════ CONTENT GRID ═══════════ *@
-<div class="content-grid">
-    @* ─── Left: Documents Table ─── *@
-    <div class="card">
-        <div class="card-header">
-            <h2>Recent Documents</h2>
-            <div style="display:flex;gap:8px;align-items:center;">
-                <form method="get" asp-action="Index" asp-controller="Lecturer" style="display:flex;gap:8px;">
-                    <select name="subjectName" class="form-select" style="height:36px;font-size:13px;padding:0 30px 0 10px;min-width:140px;" onchange="this.form.submit()">
-                        <option value="">All Subjects</option>
-                        @foreach (var sub in Model.Subjects)
-                        {
-                            <option value="@sub.Id.ToString()" selected="@(sub.Id.ToString() == Model.SelectedSubjectId)">@sub.Name</option>
-                        }
-                    </select>
-                    <select name="chapterId" class="form-select" style="height:36px;font-size:13px;padding:0 30px 0 10px;min-width:140px;" onchange="this.form.submit()">
-                        <option value="">All Chapters</option>
-                        @foreach (var ch in Model.Chapters)
-                        {
-                            <option value="@ch.Id.ToString()" selected="@(ch.Id.ToString() == Model.SelectedChapterId)">@ch.Name</option>
-                        }
-                    </select>
-                    <button type="button" class="icon-btn" onclick="location.reload()" title="Refresh">
-                        <i class="ph ph-arrows-clockwise"></i>
-                    </button>
-                </form>
+@* ═══════════ DASHBOARD GRID ═══════════ *@
+<div class="dashboard-grid">
+    @* ─── LEFT COLUMN ─── *@
+    <div class="left-col">
+        @* Mini Action Cards *@
+        <div class="mini-actions">
+            <div class="mini-action-card" onclick="openModal('chapterModal')">
+                <div class="mini-action-icon">📚</div>
+                <div class="mini-action-title">Create Chapter</div>
+            </div>
+            <div class="mini-action-card" onclick="openModal('studentModal')">
+                <div class="mini-action-icon">👨‍🎓</div>
+                <div class="mini-action-title">Add Student</div>
             </div>
         </div>
-        <div class="card-body" style="padding:0;">
-            @if (Model.Documents.Count == 0)
-            {
-                <div class="empty-state">
-                    <i class="ph ph-file-x"></i>
-                    <p>No documents yet. Upload your first document to get started.</p>
+
+        @* Recent Documents *@
+        <div class="card">
+            <div class="card-header">
+                <h2>Recent Documents</h2>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <form method="get" asp-action="Index" asp-controller="Lecturer" style="display:flex;gap:8px;">
+                        <select name="subjectName" class="form-select" style="height:36px;font-size:13px;padding:0 30px 0 10px;min-width:140px;" onchange="this.form.submit()">
+                            <option value="">All Subjects</option>
+                            @foreach (var sub in Model.Subjects)
+                            {
+                                <option value="@sub.Id.ToString()" selected="@(sub.Id.ToString() == Model.SelectedSubjectId)">@sub.Name</option>
+                            }
+                        </select>
+                        <select name="chapterId" class="form-select" style="height:36px;font-size:13px;padding:0 30px 0 10px;min-width:140px;" onchange="this.form.submit()">
+                            <option value="">All Chapters</option>
+                            @foreach (var ch in Model.Chapters)
+                            {
+                                <option value="@ch.Id.ToString()" selected="@(ch.Id.ToString() == Model.SelectedChapterId)">@ch.Name</option>
+                            }
+                        </select>
+                        <button type="button" class="icon-btn" onclick="location.reload()" title="Refresh">
+                            <i class="ph ph-arrows-clockwise"></i>
+                        </button>
+                    </form>
                 </div>
-            }
-            else
-            {
-                <table class="doc-table">
-                    <thead>
-                        <tr>
-                            <th>File Name</th>
-                            <th>Subject</th>
-                            <th>Chapter</th>
-                            <th>Size</th>
-                            <th>Status</th>
-                            <th style="text-align:right;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var doc in Model.Documents.Take(10))
-                        {
+            </div>
+            <div class="card-body" style="padding:0;">
+                @if (Model.Documents.Count == 0)
+                {
+                    <div class="empty-state">
+                        <i class="ph ph-file-x"></i>
+                        <p>No documents yet. Upload your first document to get started.</p>
+                    </div>
+                }
+                else
+                {
+                    <table class="doc-table">
+                        <thead>
                             <tr>
-                                <td>
-                                    <div class="doc-name">@doc.FileName</div>
-                                    <div class="doc-meta">@doc.UploadDate.ToString("MMM dd, yyyy")</div>
-                                </td>
-                                <td style="color:var(--text-muted);">@(doc.Subject?.Name ?? "-")</td>
-                                <td style="color:var(--text-muted);">@(doc.Chapter?.Name ?? "Default")</td>
-                                <td style="color:var(--text-muted);font-size:13px;">@(doc.FileSize == 0 ? "-" : string.Format("{0:0.##} MB", doc.FileSize / 1024d / 1024d))</td>
-                                <td>
-                                    <span class="status-badge @doc.IndexStatus.ToLower()" id="status-badge-@doc.Id">
-                                        @if (doc.IndexStatus.Equals("Completed", StringComparison.OrdinalIgnoreCase)) { <text>Indexed</text> }
-                                        else if (doc.IndexStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase)) { <text>Processing</text> }
-                                        else { <text>Failed</text> }
-                                    </span>
-                                    @if (doc.IndexStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        <div class="doc-progress-container" id="progress-container-@doc.Id" style="margin-top: 8px; width: 100%; height: 6px; background: #e2e8f0; border-radius: 4px; overflow: hidden;" data-doc-id="@doc.Id">
-                                            <div class="doc-progress-bar" id="progress-bar-@doc.Id" style="height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease;"></div>
-                                        </div>
-                                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px; text-align: center;" id="progress-text-@doc.Id">0%</div>
-                                    }
-                                </td>
-                                <td style="text-align:right;">
-                                    <div class="doc-actions" style="justify-content:flex-end;">
-                                        <button type="button" class="icon-btn view" title="View Document" onclick="viewOriginalDocument(@doc.Id, '@doc.FileName')">
-                                            <i class="ph ph-eye"></i>
-                                        </button>
-                                        <a asp-action="Download" asp-controller="Lecturer" asp-route-id="@doc.Id" class="icon-btn download" title="Download" target="_blank">
-                                            <i class="ph ph-download-simple"></i>
-                                        </a>
-                                        <button type="button" class="icon-btn chunks" title="View Chunks" onclick="viewChunks(@doc.Id, '@doc.FileName')">
-                                            <i class="ph ph-puzzle-piece"></i>
-                                        </button>
-                                        <form method="post" asp-action="Reindex" asp-controller="Lecturer" style="display:inline;">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@doc.Id" />
-                                            <input type="hidden" name="subjectName" value="@Model.SelectedSubjectId" />
-                                            <button type="submit" class="icon-btn reindex" title="Re-index">
-                                                <i class="ph ph-arrows-clockwise"></i>
-                                            </button>
-                                        </form>
-                                        <form method="post" asp-action="DeleteDocument" asp-controller="Lecturer" style="display:inline;" onsubmit="return confirm('Delete this document?')">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@doc.Id" />
-                                            <button type="submit" class="icon-btn delete" title="Delete">
-                                                <i class="ph ph-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
+                                <th>File Name</th>
+                                <th>Subject</th>
+                                <th>Chapter</th>
+                                <th>Size</th>
+                                <th>Status</th>
+                                <th style="text-align:right;">Actions</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            }
+                        </thead>
+                        <tbody>
+                            @foreach (var doc in Model.Documents.Take(10))
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="doc-name">@doc.FileName</div>
+                                        <div class="doc-meta">@doc.UploadDate.ToString("MMM dd, yyyy")</div>
+                                    </td>
+                                    <td style="color:var(--text-muted);">@(doc.Subject?.Name ?? "-")</td>
+                                    <td style="color:var(--text-muted);">@(doc.Chapter?.Name ?? "Default")</td>
+                                    <td style="color:var(--text-muted);font-size:13px;">@(doc.FileSize == 0 ? "-" : string.Format("{0:0.##} MB", doc.FileSize / 1024d / 1024d))</td>
+                                    <td>
+                                        <span class="status-badge @doc.IndexStatus.ToLower()" id="status-badge-@doc.Id">
+                                            @if (doc.IndexStatus.Equals("Completed", StringComparison.OrdinalIgnoreCase)) { <text>Indexed</text> }
+                                            else if (doc.IndexStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase)) { <text>Processing</text> }
+                                            else { <text>Failed</text> }
+                                        </span>
+                                        @if (doc.IndexStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <div class="doc-progress-container" id="progress-container-@doc.Id" style="margin-top: 8px; width: 100%; height: 6px; background: #e2e8f0; border-radius: 4px; overflow: hidden;" data-doc-id="@doc.Id">
+                                                <div class="doc-progress-bar" id="progress-bar-@doc.Id" style="height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease;"></div>
+                                            </div>
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px; text-align: center;" id="progress-text-@doc.Id">0%</div>
+                                        }
+                                    </td>
+                                    <td style="text-align:right;">
+                                        <div class="doc-actions" style="justify-content:flex-end;">
+                                            <button type="button" class="icon-btn view" title="View Document" onclick="viewOriginalDocument(@doc.Id, '@doc.FileName')">
+                                                <i class="ph ph-eye"></i>
+                                            </button>
+                                            <a asp-action="Download" asp-controller="Lecturer" asp-route-id="@doc.Id" class="icon-btn download" title="Download" target="_blank">
+                                                <i class="ph ph-download-simple"></i>
+                                            </a>
+                                            <button type="button" class="icon-btn chunks" title="View Chunks" onclick="viewChunks(@doc.Id, '@doc.FileName')">
+                                                <i class="ph ph-puzzle-piece"></i>
+                                            </button>
+                                            <form method="post" asp-action="Reindex" asp-controller="Lecturer" style="display:inline;">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@doc.Id" />
+                                                <input type="hidden" name="subjectName" value="@Model.SelectedSubjectId" />
+                                                <button type="submit" class="icon-btn reindex" title="Re-index">
+                                                    <i class="ph ph-arrows-clockwise"></i>
+                                                </button>
+                                            </form>
+                                            <form method="post" asp-action="DeleteDocument" asp-controller="Lecturer" style="display:inline;" onsubmit="return confirm('Delete this document?')">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@doc.Id" />
+                                                <button type="submit" class="icon-btn delete" title="Delete">
+                                                    <i class="ph ph-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
         </div>
     </div>
 
-    @* ─── Right: Upload Section ─── *@
-    <div>
-        <div class="card" style="margin-bottom:20px;">
+    @* ─── RIGHT COLUMN ─── *@
+    <div class="right-col">
+        <div class="card upload-card">
             <div class="card-header">
                 <h3><i class="ph ph-upload" style="color:var(--primary);margin-right:8px;"></i>Upload Document</h3>
             </div>
@@ -245,15 +173,13 @@
                             }
                         </select>
                     </div>
-
                     @* Drag & Drop Zone *@
                     <div class="upload-zone" id="uploadZone">
                         <i class="ph ph-cloud-arrow-up upload-zone-icon"></i>
                         <div class="upload-zone-title">Drop files here</div>
                         <div class="upload-zone-sub">or</div>
                         <button type="button" class="upload-browse-btn" onclick="document.getElementById('fileInput').click()">
-                            <i class="ph ph-folder-open"></i>
-                            Browse Files
+                            <i class="ph ph-folder-open"></i> Browse Files
                         </button>
                         <input type="file" name="file" id="fileInput" required style="display:none;" accept=".pdf,.docx,.txt" onchange="onFileSelected(this)" />
                         <div class="format-badges">
@@ -262,14 +188,12 @@
                             <span class="format-badge">TXT</span>
                         </div>
                     </div>
-
                     @* Selected file indicator *@
                     <div id="fileInfo" style="display:none;margin-top:12px;padding:12px 16px;background:var(--bg);border-radius:var(--radius-sm);font-size:14px;color:var(--text-muted);">
                         <i class="ph ph-file" style="margin-right:8px;color:var(--primary);"></i>
                         <span id="fileName"></span>
                         <span style="float:right;font-size:12px;" id="fileSize"></span>
                     </div>
-
                     @* Progress bar *@
                     <div class="upload-progress" id="uploadProgress">
                         <div class="progress-bar-track">
@@ -280,7 +204,6 @@
                             <span id="progressPercent">0%</span>
                         </div>
                     </div>
-
                     @* Success animation *@
                     <div class="upload-success" id="uploadSuccess">
                         <div class="upload-success-icon">
@@ -291,13 +214,10 @@
                             <div style="font-size:13px;color:var(--text-muted);">Your document has been uploaded and queued for indexing.</div>
                         </div>
                     </div>
-
                     <button type="submit" class="btn-primary btn-full" style="margin-top:16px;height:48px;" id="uploadSubmitBtn">
-                        <i class="ph ph-arrow-circle-up"></i>
-                        Upload & Index
+                        <i class="ph ph-arrow-circle-up"></i> Upload & Index
                     </button>
                 </form>
-
                 @if (TempData["UploadSuccess"] != null)
                 {
                     <script>document.addEventListener('DOMContentLoaded', function() { showUploadSuccess('@TempData["UploadSuccess"]'); });</script>
@@ -308,7 +228,6 @@
                 }
             </div>
         </div>
-
         @if (TempData["ListSuccess"] != null)
         {
             <div class="notice success" style="margin-bottom:12px;">@TempData["ListSuccess"]</div>
@@ -403,77 +322,6 @@
             {
                 <div class="notice error">@TempData["StudentError"]</div>
             }
-        </div>
-    </div>
-</div>
-
-@* ─── Upload Document Modal ─── *@
-<div id="uploadModal" class="modal-overlay">
-    <div class="modal-box">
-        <div class="modal-header">
-            <h3>📄 Upload Document</h3>
-            <button class="modal-close" onclick="closeModal('uploadModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <form id="modalUploadForm" asp-action="Upload" asp-controller="Lecturer" method="post" enctype="multipart/form-data">
-                @Html.AntiForgeryToken()
-                <div class="form-group">
-                    <label class="form-label">Subject</label>
-                    <select name="subjectName" class="form-select" required>
-                        <option value="">Select subject</option>
-                        @foreach (var sub in Model.Subjects)
-                        {
-                            <option value="@sub.Id.ToString()" selected="@(sub.Id.ToString() == Model.SelectedSubjectId)">@sub.Name</option>
-                        }
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Chapter</label>
-                    <select name="chapterId" class="form-select" required>
-                        <option value="">Select chapter</option>
-                        @foreach (var ch in Model.Chapters)
-                        {
-                            <option value="@ch.Id.ToString()">@ch.Name</option>
-                        }
-                    </select>
-                </div>
-                <div class="upload-zone" id="modalUploadZone" onclick="document.getElementById('modalFileInput').click()">
-                    <i class="ph ph-cloud-arrow-up upload-zone-icon"></i>
-                    <div class="upload-zone-title">Drop files here</div>
-                    <div class="upload-zone-sub">or</div>
-                    <button type="button" class="upload-browse-btn" onclick="event.stopPropagation();document.getElementById('modalFileInput').click()">
-                        <i class="ph ph-folder-open"></i> Browse Files
-                    </button>
-                    <input type="file" name="file" id="modalFileInput" required style="display:none;" accept=".pdf,.docx,.txt" onchange="onModalFileSelected(this)" />
-                    <div class="format-badges">
-                        <span class="format-badge">PDF</span>
-                        <span class="format-badge">DOCX</span>
-                        <span class="format-badge">TXT</span>
-                    </div>
-                </div>
-
-                @* Selected file indicator for modal *@
-                <div id="modalFileInfo" style="display:none;margin-top:12px;padding:12px 16px;background:var(--bg);border-radius:var(--radius-sm);font-size:14px;color:var(--text-muted);">
-                    <i class="ph ph-file" style="margin-right:8px;color:var(--primary);"></i>
-                    <span id="modalFileName"></span>
-                    <span style="float:right;font-size:12px;" id="modalFileSize"></span>
-                </div>
-
-                @* Progress bar for modal *@
-                <div class="upload-progress" id="modalUploadProgress">
-                    <div class="progress-bar-track">
-                        <div class="progress-bar-fill" id="modalProgressFill"></div>
-                    </div>
-                    <div class="progress-text">
-                        <span id="modalProgressLabel">Uploading...</span>
-                        <span id="modalProgressPercent">0%</span>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-primary btn-full" style="margin-top:16px;height:48px;" id="modalUploadSubmitBtn">
-                    <i class="ph ph-arrow-circle-up"></i> Upload & Index
-                </button>
-            </form>
         </div>
     </div>
 </div>
@@ -586,72 +434,6 @@
         var submitBtn = document.getElementById('uploadSubmitBtn');
 
         if (!fileInput.files || !fileInput.files[0]) {
-            e.preventDefault();
-            return;
-        }
-
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Uploading...';
-        progress.classList.add('active');
-
-        var p = 0;
-        var interval = setInterval(function() {
-            p += Math.random() * 15 + 5;
-            if (p > 95) p = 95;
-            fill.style.width = p + '%';
-            percent.textContent = Math.round(p) + '%';
-            if (p >= 95) {
-                clearInterval(interval);
-                label.textContent = 'Indexing...';
-            }
-        }, 400);
-    });
-
-    // ─── Modal Drag & Drop Upload ───
-    var modalUploadZone = document.getElementById('modalUploadZone');
-    var modalFileInput = document.getElementById('modalFileInput');
-
-    if (modalUploadZone) {
-        modalUploadZone.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            this.classList.add('dragover');
-        });
-
-        modalUploadZone.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            this.classList.remove('dragover');
-        });
-
-        modalUploadZone.addEventListener('drop', function(e) {
-            e.preventDefault();
-            this.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0) {
-                modalFileInput.files = e.dataTransfer.files;
-                onModalFileSelected(modalFileInput);
-            }
-        });
-    }
-
-    function onModalFileSelected(input) {
-        var fileInfo = document.getElementById('modalFileInfo');
-        var fileName = document.getElementById('modalFileName');
-        var fileSize = document.getElementById('modalFileSize');
-        if (input.files && input.files[0]) {
-            var file = input.files[0];
-            fileName.textContent = file.name;
-            fileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-            fileInfo.style.display = 'block';
-        }
-    }
-
-    document.getElementById('modalUploadForm')?.addEventListener('submit', function(e) {
-        var progress = document.getElementById('modalUploadProgress');
-        var fill = document.getElementById('modalProgressFill');
-        var percent = document.getElementById('modalProgressPercent');
-        var label = document.getElementById('modalProgressLabel');
-        var submitBtn = document.getElementById('modalUploadSubmitBtn');
-
-        if (!modalFileInput.files || !modalFileInput.files[0]) {
             e.preventDefault();
             return;
         }
