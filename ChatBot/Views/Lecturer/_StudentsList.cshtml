@@ -4,6 +4,7 @@
     <div class="card-header">
         <h3>Danh sách sinh viên trong môn học</h3>
     </div>
+
     <div style="padding:12px;">
         @if (!Model?.Any() ?? true)
         {
@@ -19,9 +20,12 @@
                             <div style="font-weight:600;">@ui.Name</div>
                             <div style="font-size:0.9rem; color:#666;">@ui.Email</div>
                         </div>
-                        <div>
-                            <button class="btn-danger" onclick="removeStudent('@ui.Account_id')">Đá</button>
-                        </div>
+
+                        <button type="button"
+                                class="btn-danger"
+                                onclick="removeStudent('@ui.Account_id')">
+                            Xóa
+                        </button>
                     </li>
                 }
             </ul>
@@ -31,22 +35,41 @@
 
 <script>
     function removeStudent(accountId) {
-        if (!confirm('Bạn có chắc chắn muốn xóa sinh viên này khỏi môn học?')) return;
-        
-        var subjectId = document.querySelector('input[name="subjectId"]').value;
-        var formData = new FormData();
+        if (!confirm('Bạn có chắc chắn muốn xóa sinh viên này khỏi môn học?')) {
+            return;
+        }
+
+        const subjectSelect = document.querySelector('#studentModal select[name="subjectId"]');
+
+        if (!subjectSelect || !subjectSelect.value) {
+            alert('Không tìm thấy môn học đang chọn.');
+            return;
+        }
+
+        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+
+        const formData = new FormData();
         formData.append('accountId', accountId);
-        formData.append('subjectId', subjectId);
+        formData.append('subjectId', subjectSelect.value);
 
         fetch('/Lecturer/RemoveStudentFromSubject', {
             method: 'POST',
-            headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value },
+            headers: {
+                'RequestVerificationToken': tokenInput ? tokenInput.value : ''
+            },
             body: formData
-        }).then(r => r.json()).then(j => {
-            alert(j.message);
-            if (j.success) {
-                viewStudentsList(); // Reload the list
-            }
-        }).catch(e => console.error(e));
+        })
+            .then(r => r.json())
+            .then(j => {
+                alert(j.message);
+
+                if (j.success) {
+                    viewStudentsList();
+                }
+            })
+            .catch(e => {
+                console.error(e);
+                alert('Có lỗi khi xóa sinh viên.');
+            });
     }
 </script>

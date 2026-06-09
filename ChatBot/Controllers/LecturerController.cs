@@ -9,6 +9,7 @@ using ChatBot.Models;
 using ServiceLayer.Interfaces;
 using BusinessObject.Entities;
 
+
 namespace ChatBot.Controllers
 {
     [Authorize(Roles = "Lecture")]
@@ -371,6 +372,27 @@ namespace ChatBot.Controllers
             }
 
             return RedirectToAction(nameof(Index), new { subjectName });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ImportStudentsExcel(Guid subjectId,IFormFile file)
+        {
+            var teacherId =
+                Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+            var result =
+                await _subjectService.ImportStudentsFromExcelAsync(
+                    subjectId,
+                    file,
+                    teacherId);
+
+            if (result.Success)
+                TempData["StudentSuccess"] = result.Message;
+            else
+                TempData["StudentError"] = result.Message;
+
+            return RedirectToAction(nameof(Index), new { subjectName = subjectId.ToString() });
         }
     }
 }

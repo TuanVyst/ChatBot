@@ -1,0 +1,14 @@
+﻿DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=ChatBotDb
+DB_USER=postgres
+DB_PASSWORD=151004
+ASPNETCORE_ENVIRONMENT=Development
+
+ConnectionStrings__DefaultConnection=Host=localhost;Port=5432;Database=ChatBotDb;Username=postgres;Password=151004;Trust Server Certificate=true
+
+OPENAI_API_KEY=AIzaSyBoCvTLPcNm-HA1uj_JKjuITbWMZjIFfZo
+
+UploadFolderPath=D:\Upload
+MaxFileSize=314572800
+ChunkSize=512

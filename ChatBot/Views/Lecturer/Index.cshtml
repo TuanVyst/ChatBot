@@ -293,6 +293,7 @@
         <div class="modal-body">
             <form asp-action="AddStudentToSubject" asp-controller="Lecturer" method="post">
                 @Html.AntiForgeryToken()
+
                 <div class="form-group">
                     <label class="form-label">Subject</label>
                     <select name="subjectId" class="form-select" required>
@@ -303,17 +304,45 @@
                         }
                     </select>
                 </div>
+
                 <div class="form-group">
                     <label class="form-label">Student Email</label>
                     <input type="email" name="email" class="form-input" required placeholder="student@example.edu" />
                 </div>
-                <div style="display:flex;gap:10px;">
-                    <button type="submit" class="btn-primary" style="flex:1;height:48px;">Add Student</button>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button type="submit" class="btn-primary" style="flex:1;height:48px;">
+                        Add Student
+                    </button>
+
                     <button type="button" class="btn-secondary" onclick="viewStudentsList()" style="height:48px;white-space:nowrap;">
                         <i class="ph ph-list"></i> View List
                     </button>
+
+                    <button type="button" class="btn-secondary" onclick="document.getElementById('excelFile').click()" style="height:48px;white-space:nowrap;">
+                        <i class="ph ph-file-xls"></i> Upload Excel
+                    </button>
                 </div>
             </form>
+
+            <form id="excelImportForm"
+                  asp-action="ImportStudentsExcel"
+                  asp-controller="Lecturer"
+                  method="post"
+                  enctype="multipart/form-data"
+                  style="margin-top:15px;">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" id="excelSubjectId" name="subjectId" />
+
+                <input type="file"
+                       id="excelFile"
+                       name="file"
+                       accept=".xlsx,.xls"
+                       style="display:none;"
+                       onchange="submitExcelForm()" />
+            </form>
+
             @if (TempData["StudentSuccess"] != null)
             {
                 <div class="notice success">@TempData["StudentSuccess"]</div>
@@ -613,5 +642,24 @@
                 }
             }
         });
+
     });
+
+    function submitExcelForm() {
+    const subjectSelect =
+    document.querySelector('#studentModal select[name="subjectId"]');
+
+    if (!subjectSelect || !subjectSelect.value) {
+    alert('Please select a subject first.');
+    return;
+    }
+
+    document.getElementById('excelSubjectId').value = subjectSelect.value;
+
+    document.getElementById('excelImportForm').submit();
+    }
+
 </script>
+
+            
+
