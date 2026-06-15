@@ -1,0 +1,40 @@
+@using System.Linq
+@model Tuple<BusinessObject.Entities.Document, IEnumerable<BusinessObject.Entities.DocumentChunk>>
+@{
+    var doc = Model?.Item1;
+    var chunks = Model?.Item2;
+}
+<div style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+            <strong style="font-size:15px;">@doc?.FileName</strong>
+            <span style="color:var(--text-muted);font-size:13px;margin-left:10px;">
+                @(doc?.Subject?.Name ?? "Unknown") · @chunks?.Count() chunks
+            </span>
+        </div>
+    </div>
+</div>
+
+@if (chunks != null && chunks.Any())
+{
+    <div style="display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;padding-right:4px;">
+        @foreach (var c in chunks)
+        {
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;">
+                <div style="font-weight:600;font-size:12px;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
+                    Chunk @c.ChunkOrder
+                </div>
+                <div style="white-space:pre-wrap;line-height:1.7;font-size:14px;color:var(--text-dark);">
+                    @Html.Raw(System.Net.WebUtility.HtmlEncode(c.Content))
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div style="text-align:center;padding:40px 20px;color:var(--text-muted);">
+        <i class="ph ph-file-x" style="font-size:40px;display:block;margin-bottom:12px;color:var(--text-light);"></i>
+        <p>No chunks available for this document.</p>
+    </div>
+}

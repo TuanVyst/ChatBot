@@ -26,4 +26,13 @@
     <PackageReference Include="DotNetEnv" Version="3.2.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Pages\Admin\" />
+    <Folder Include="Pages\Student\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Controllers\LecturerController.cs" />
+  </ItemGroup>
+
 </Project>

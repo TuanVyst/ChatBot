@@ -67,6 +67,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();//////
 builder.Services.AddSession();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -106,6 +107,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapRazorPages();/////
 
 app.MapControllerRoute(
     name: "default",
