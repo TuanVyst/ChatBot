@@ -3,6 +3,7 @@
 
 @{
     ViewData["Title"] = "Student Dashboard";
+    Layout = "~/Pages/Shared/_StudentLayout.cshtml";
 }
 
 <div class="student-page">
@@ -48,6 +49,8 @@
 
     </div>
 
+    <div id="notification-banner" style="display:none; margin-bottom: 20px;"></div>
+
     <h2>My Subjects</h2>
 
     @if (!Model.StudentDashboard.Subjects.Any())
@@ -59,7 +62,7 @@
     }
     else
     {
-        <div class="subject-grid">
+        <div class="subject-grid" id="subject-list">
 
             @foreach (var subject in Model.StudentDashboard.Subjects)
             {
@@ -86,3 +89,51 @@
     }
 
 </div>
+
+@section Scripts {
+    <script>
+        function showNotifications(notifications) {
+            var banner = document.getElementById('notification-banner');
+            if (!banner || !notifications || notifications.length === 0) return;
+
+            var html = '';
+            notifications.forEach(function (n) {
+                var icon = n.type === 'enrolled' ? 'ph-user-plus' : 'ph-file-text';
+                var bg = n.type === 'enrolled' ? 'rgba(34,197,94,0.1)' : 'rgba(37,99,235,0.1)';
+                var border = n.type === 'enrolled' ? 'rgba(34,197,94,0.25)' : 'rgba(37,99,235,0.25)';
+                var color = n.type === 'enrolled' ? '#16A34A' : '#2563EB';
+                html += '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;margin-bottom:8px;'
+                    + 'background:' + bg + ';border:1px solid ' + border + ';border-radius:10px;font-size:14px;color:' + color + ';">'
+                    + '<i class="ph ' + icon + '" style="font-size:18px;flex-shrink:0;"></i>'
+                    + '<span>' + n.message + '</span>'
+                    + '</div>';
+            });
+            banner.innerHTML = html;
+            banner.style.display = 'block';
+        }
+
+        function loadNotifications() {
+            fetch('/Student/Dashboard?handler=Notifications')
+                .then(function (r) { return r.json(); })
+                .then(function (data) { showNotifications(data.notifications); })
+                .catch(function () {});
+        }
+
+        window.refreshStudentData = function () {
+            fetch(window.location.href)
+                .then(function (r) { return r.text(); })
+                .then(function (html) {
+                    var doc = new DOMParser().parseFromString(html, 'text/html');
+                    var newList = doc.getElementById('subject-list');
+                    var oldList = document.getElementById('subject-list');
+                    if (newList && oldList) {
+                        oldList.innerHTML = newList.innerHTML;
+                    }
+                });
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            loadNotifications();
+        });
+    </script>
+}

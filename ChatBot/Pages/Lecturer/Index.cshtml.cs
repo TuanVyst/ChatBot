@@ -1,9 +1,13 @@
 using System.Security.Claims;
 using BusinessObject.Entities;
+using ChatBot.Hubs;
 using ChatBot.Models;
+using DataAccessLayer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using ServiceLayer.Interfaces;
 
@@ -16,6 +20,8 @@ public class IndexModel : PageModel
     private readonly ISubjectService _subjectService;
     private readonly IChapterService _chapterService;
     private readonly IMemoryCache _cache;
+    private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly AppDbContext _context;
 
     public DashboardViewModel Dashboard { get; set; } = new();
 
@@ -23,12 +29,16 @@ public class IndexModel : PageModel
         IDocumentService documentService,
         ISubjectService subjectService,
         IChapterService chapterService,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        IHubContext<NotificationHub> hubContext,
+        AppDbContext context)
     {
         _documentService = documentService;
         _subjectService = subjectService;
         _chapterService = chapterService;
         _cache = cache;
+        _hubContext = hubContext;
+        _context = context;
     }
 
     public async Task<IActionResult> OnGetAsync(string? subjectName = null, string? chapterId = null)
@@ -239,7 +249,18 @@ public class IndexModel : PageModel
             await _subjectService.AddStudentToSubjectAsync(email.Trim(), subjGuid);
 
         if (success)
+        {
             TempData["StudentSuccess"] = message;
+
+            var subject = await _subjectService.GetSubjectById(subjectId);
+            var student = await _context.Accounts.FirstOrDefaultAsync(a => a.Username == email.Trim());
+            if (student != null)
+            {
+                await _hubContext.Clients.Group(student.Account_id.ToString())
+                    .SendAsync("RefreshData",
+                        $"Bạn đã được thêm vào môn học \"{subject?.Name ?? ""}\"");
+            }
+        }
         else
             TempData["StudentError"] = message;
 
@@ -255,6 +276,9 @@ public class IndexModel : PageModel
         if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var teacherId))
             return RedirectToPage("/Auth/Login");
 
+        var oldStudents = (await _subjectService.GetStudentsBySubjectIdAsync(subjectId))
+            .Select(s => s.Account_id).ToHashSet();
+
         var result =
             await _subjectService.ImportStudentsFromExcelAsync(
                 subjectId,
@@ -262,7 +286,19 @@ public class IndexModel : PageModel
                 teacherId);
 
         if (result.Success)
+        {
             TempData["StudentSuccess"] = result.Message;
+
+            var subject = await _subjectService.GetSubjectById(subjectId.ToString());
+            var allStudents = await _subjectService.GetStudentsBySubjectIdAsync(subjectId);
+            var newStudents = allStudents.Where(s => !oldStudents.Contains(s.Account_id));
+            foreach (var student in newStudents)
+            {
+                await _hubContext.Clients.Group(student.Account_id.ToString())
+                    .SendAsync("RefreshData",
+                        $"Bạn đã được thêm vào môn học \"{subject?.Name ?? ""}\"");
+            }
+        }
         else
             TempData["StudentError"] = result.Message;
 
@@ -275,6 +311,14 @@ public class IndexModel : PageModel
     {
         var (success, message) =
             await _subjectService.RemoveStudentFromSubjectAsync(accountId, subjectId);
+
+        if (success)
+        {
+            var subject = await _subjectService.GetSubjectById(subjectId.ToString());
+            await _hubContext.Clients.Group(accountId.ToString())
+                .SendAsync("RefreshData",
+                    $"Bạn đã bị xóa khỏi môn học \"{subject?.Name ?? ""}\"");
+        }
 
         return new JsonResult(new { success, message });
     }
@@ -304,7 +348,18 @@ public class IndexModel : PageModel
             await _documentService.UploadDocumentAsync(file, subjectId, chapterId);
 
         if (success)
+        {
             TempData["UploadSuccess"] = message;
+
+            var subject = await _subjectService.GetSubjectById(subjectId);
+            var students = await _subjectService.GetStudentsBySubjectIdAsync(Guid.Parse(subjectId));
+            foreach (var student in students)
+            {
+                await _hubContext.Clients.Group(student.Account_id.ToString())
+                    .SendAsync("RefreshData",
+                        $"Tài liệu mới \"{file.FileName}\" đã được upload vào môn học \"{subject?.Name ?? ""}\"");
+            }
+        }
         else
             TempData["UploadError"] = message;
 

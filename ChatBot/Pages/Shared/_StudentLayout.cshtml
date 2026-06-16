@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - RAG Chatbot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/regular/style.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/bold/style.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/fill/style.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/signalr-toast.css" asp-append-version="true" />
+</head>
+<body>
+    <div id="signalr-toast" class="signalr-toast" style="display:none;">
+        <i class="ph ph-bell ringing"></i>
+        <span id="signalr-toast-message"></span>
+    </div>
+
+    <main role="main" class="app">
+        @RenderBody()
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        function showStudentToast(message) {
+            var toast = document.getElementById('signalr-toast');
+            var toastMsg = document.getElementById('signalr-toast-message');
+            if (toast && toastMsg) {
+                toastMsg.textContent = message;
+                toast.style.display = 'flex';
+                setTimeout(function () { toast.style.display = 'none'; }, 4000);
+            }
+        }
+
+        var connection = new signalR.HubConnectionBuilder()
+            .withUrl('/notificationHub')
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on('RefreshData', function (message) {
+            showStudentToast(message);
+            if (typeof window.refreshStudentData === 'function') {
+                window.refreshStudentData();
+            }
+        });
+
+        connection.start()
+            .then(function () {
+                var userId = '@(Context.Session.GetString("UserId") ?? "")';
+                if (userId) {
+                    connection.invoke('JoinGroup', userId).catch(function (err) {
+                        console.error('JoinGroup error:', err);
+                    });
+                }
+            })
+            .catch(function (err) {
+                console.error('SignalR connection error:', err);
+            });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

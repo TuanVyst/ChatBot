@@ -3,6 +3,7 @@
 
 @{
     ViewData["Title"] = "Subject Detail";
+    Layout = "~/Pages/Shared/_StudentLayout.cshtml";
 }
 
 <div class="student-page">
@@ -33,7 +34,7 @@
     }
     else
     {
-        <div class="document-list">
+        <div class="document-list" id="document-list">
             @foreach (var doc in Model.SubjectDetail.Documents)
             {
                 <div class="document-card">
@@ -61,3 +62,20 @@
         </div>
     }
 </div>
+
+@section Scripts {
+    <script>
+        window.refreshStudentData = function () {
+            fetch(window.location.href)
+                .then(function (r) { return r.text(); })
+                .then(function (html) {
+                    var doc = new DOMParser().parseFromString(html, 'text/html');
+                    var newList = doc.getElementById('document-list');
+                    var oldList = document.getElementById('document-list');
+                    if (newList && oldList) {
+                        oldList.innerHTML = newList.innerHTML;
+                    }
+                });
+        };
+    </script>
+}
