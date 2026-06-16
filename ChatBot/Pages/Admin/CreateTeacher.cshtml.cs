@@ -38,11 +38,9 @@ public class CreateTeacherModel : PageModel
             return Page();
         }
 
-        var existingUser =
-            await _accountRepository.GetUserInfoByEmailAsync(
-                Teacher.Email);
+        var isValid = await _authService.ValidateAccountAsync(Teacher.Email);
 
-        if (existingUser != null)
+        if (!isValid)
         {
             Error = $"Email '{Teacher.Email}' đã tồn tại.";
             return Page();
