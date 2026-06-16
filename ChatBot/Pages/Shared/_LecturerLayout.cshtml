@@ -11,11 +11,78 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/bold/style.css" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/fill/style.css" />
     <link rel="stylesheet" href="~/css/lecturer.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/signalr-toast.css" asp-append-version="true" />
 </head>
 <body>
+    <div id="signalr-toast" class="signalr-toast" style="display:none;">
+        <i class="ph ph-bell ringing"></i>
+        <span id="signalr-toast-message"></span>
+    </div>
+
     <main class="lecturer-main">
         @RenderBody()
     </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/notificationHub")
+            .withAutomaticReconnect()
+            .build();
+
+        function showLecturerToast(message) {
+            const toast = document.getElementById('signalr-toast');
+            const toastMsg = document.getElementById('signalr-toast-message');
+            if (toast && toastMsg) {
+                toastMsg.textContent = message;
+                toast.style.display = 'flex';
+                setTimeout(function () { toast.style.display = 'none'; }, 4000);
+            }
+        }
+
+        connection.on("RefreshData", function (message) {
+            showLecturerToast(message);
+            refreshSelections();
+        });
+
+        connection.start()
+            .then(function () {
+                const userId = '@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "")';
+                if (userId) {
+                    connection.invoke("JoinGroup", userId).catch(function (err) {
+                        console.error("JoinGroup error: ", err);
+                    });
+                }
+            })
+            .catch(function (err) {
+                console.error("SignalR connection error: ", err);
+            });
+
+        async function refreshSelections() {
+            try {
+                const response = await fetch(window.location.href);
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                document.querySelectorAll('select').forEach(function (oldSel) {
+                    const name = oldSel.getAttribute('name');
+                    if (!name) return;
+                    const newSel = doc.querySelector('select[name="' + name + '"]');
+                    if (newSel) {
+                        var val = oldSel.value;
+                        oldSel.innerHTML = newSel.innerHTML;
+                        if (oldSel.querySelector('option[value="' + val + '"]')) {
+                            oldSel.value = val;
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Refresh error:", err);
+            }
+        }
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

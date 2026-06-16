@@ -22,12 +22,22 @@ public class DashboardModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserId")))
+        var userIdStr = HttpContext.Session.GetString("UserId");
+        if (string.IsNullOrEmpty(userIdStr))
+            return RedirectToPage("/Auth/Login");
+
+        if (!Guid.TryParse(userIdStr, out var studentId))
             return RedirectToPage("/Auth/Login");
 
         FullName = HttpContext.Session.GetString("FullName") ?? "Student";
 
+        var enrolledSubjectIds = await _context.StudentSubjects
+            .Where(ss => ss.AccountId == studentId)
+            .Select(ss => ss.SubjectId)
+            .ToListAsync();
+
         var subjects = await _context.Subjects
+            .Where(s => enrolledSubjectIds.Contains(s.Id))
             .OrderBy(s => s.Code)
             .ToListAsync();
 

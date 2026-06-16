@@ -1,7 +1,9 @@
 ﻿using BusinessObject.Entities;
+using ChatBot.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 using ServiceLayer.Interfaces;
 
 namespace ChatBot.Pages.Admin;
@@ -10,10 +12,12 @@ namespace ChatBot.Pages.Admin;
 public class AddStudentToSubjectModel : PageModel
 {
     private readonly ISubjectService _subjectService;
+    private readonly IHubContext<NotificationHub> _hubContext;
 
-    public AddStudentToSubjectModel(ISubjectService subjectService)
+    public AddStudentToSubjectModel(ISubjectService subjectService, IHubContext<NotificationHub> hubContext)
     {
         _subjectService = subjectService;
+        _hubContext = hubContext;
     }
 
     public Subject Subject { get; set; }
@@ -49,6 +53,17 @@ public class AddStudentToSubjectModel : PageModel
             await _subjectService.AddStudentToSubjectAsync(
                 Email.Trim(),
                 subjectGuid);
+
+        if (success)
+        {
+            var subject = await _subjectService.GetSubjectById(SubjectId);
+            if (subject?.LectureAccountId != null)
+            {
+                await _hubContext.Clients.Group(subject.LectureAccountId.ToString())
+                    .SendAsync("RefreshData",
+                        $"Sinh viên mới ({Email}) đã được thêm vào môn học \"{subject.Name}\"");
+            }
+        }
 
         TempData["Message"] = message;
 

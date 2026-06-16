@@ -73,6 +73,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();//////
 builder.Services.AddSession();
+builder.Services.AddSignalR();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -113,6 +114,7 @@ app.UseAuthorization();
 app.MapRazorPages();
 
 app.MapFallbackToPage("/Auth/Login");
+app.MapHub<ChatBot.Hubs.NotificationHub>("/notificationHub");
 
 SeedDatabase(app);
 

@@ -21,8 +21,18 @@ public class SubjectDetailModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(Guid id)
     {
-        if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserId")))
+        var userIdStr = HttpContext.Session.GetString("UserId");
+        if (string.IsNullOrEmpty(userIdStr))
             return RedirectToPage("/Auth/Login");
+
+        if (!Guid.TryParse(userIdStr, out var studentId))
+            return RedirectToPage("/Auth/Login");
+
+        var isEnrolled = await _context.StudentSubjects
+            .AnyAsync(ss => ss.AccountId == studentId && ss.SubjectId == id);
+
+        if (!isEnrolled)
+            return Forbid();
 
         var subject = await _context.Subjects
             .FirstOrDefaultAsync(s => s.Id == id);

@@ -19,6 +19,11 @@
     </div>
 </div>
 
+<div id="page-notice" class="page-notice" style="display:none;">
+    <i class="ph ph-check-circle" id="notice-icon"></i>
+    <span id="notice-text"></span>
+</div>
+
 @* ═══════════ DASHBOARD GRID ═══════════ *@
 <div class="dashboard-grid">
     @* ─── LEFT COLUMN ─── *@
@@ -494,6 +499,18 @@
     }, 400);
     });
 
+    function showPageNotice(msg, type) {
+    var el = document.getElementById('page-notice');
+    var icon = document.getElementById('notice-icon');
+    var text = document.getElementById('notice-text');
+    if (!el) return;
+    el.className = 'page-notice ' + (type || 'success');
+    if (text && msg) text.textContent = msg;
+    if (icon) icon.className = 'ph ' + (type === 'error' ? 'ph-x-circle' : 'ph-check-circle');
+    el.style.display = 'flex';
+    setTimeout(function () { el.style.display = 'none'; }, 5000);
+    }
+
     function showUploadSuccess(msg) {
     var el = document.getElementById('uploadSuccess');
     if (el) {
@@ -651,7 +668,7 @@
     @if (TempData["StudentSuccess"] != null)
     {
         <text>
-        alert('@TempData["StudentSuccess"]');
+        showPageNotice('@TempData["StudentSuccess"]', 'success');
         var studentSubjectSelect = document.querySelector('#studentModal select[name="subjectId"]');
         if (studentSubjectSelect) {
             studentSubjectSelect.value = '@Model.Dashboard.SelectedSubjectId';
@@ -661,7 +678,10 @@
     }
     @if (TempData["StudentError"] != null)
     {
-        <text>openModal('studentModal'); </text>
+        <text>
+        showPageNotice('@TempData["StudentError"]', 'error');
+        openModal('studentModal');
+        </text>
     }
 
     // ─── Dynamic Chapter Loading ───
