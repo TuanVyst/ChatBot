@@ -112,7 +112,7 @@ public class IndexModel : PageModel
         return new PartialViewResult
         {
             ViewName = "_StudentsList",
-            ViewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary<IEnumerable<UserInformation>>(ViewData)
+            ViewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary<IEnumerable<UserInformation>>(MetadataProvider, ModelState)
             {
                 Model = students
             }
@@ -156,7 +156,7 @@ public class IndexModel : PageModel
         {
             ViewName = "_ChunksPartial",
             ViewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary<
-        Tuple<Document, IEnumerable<DocumentChunk>>>(ViewData)
+        Tuple<Document, IEnumerable<DocumentChunk>>>(MetadataProvider, ModelState)
             {
                 Model = new Tuple<Document, IEnumerable<DocumentChunk>>(doc, chunks)
             }
