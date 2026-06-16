@@ -114,9 +114,9 @@ namespace ServiceLayer.Implements
         }
 
         public async Task<(bool Success, string Message)> ImportStudentsFromExcelAsync(
-    Guid subjectId,
-    IFormFile file,
-    Guid teacherId)
+            Guid subjectId,
+            IFormFile file,
+            Guid teacherId)
         {
             if (file == null || file.Length == 0)
                 return (false, "Vui lòng chọn file Excel.");
@@ -134,7 +134,6 @@ namespace ServiceLayer.Implements
 
             int addedCount = 0;
             int skippedCount = 0;
-            int createdAccountCount = 0;
 
             ExcelPackage.License.SetNonCommercialOrganization("FPT University");
 
@@ -153,9 +152,26 @@ namespace ServiceLayer.Implements
 
             for (int row = 2; row <= rowCount; row++)
             {
-                var studentCode = worksheet.Cells[row, 1].Text.Trim();
-                var fullName = worksheet.Cells[row, 2].Text.Trim();
-                var email = worksheet.Cells[row, 3].Text.Trim();
+                var val1 = worksheet.Cells[row, 1].Text.Trim();
+                var val3 = worksheet.Cells[row, 3].Text.Trim();
+
+                string email = "";
+                if (val3.Contains("@"))
+                {
+                    email = val3;
+                }
+                else if (val1.Contains("@"))
+                {
+                    email = val1;
+                }
+                else
+                {
+                    var val2 = worksheet.Cells[row, 2].Text.Trim();
+                    if (val2.Contains("@"))
+                    {
+                        email = val2;
+                    }
+                }
 
                 if (string.IsNullOrWhiteSpace(email))
                 {
@@ -167,43 +183,18 @@ namespace ServiceLayer.Implements
                     .Include(u => u.Account)
                     .FirstOrDefaultAsync(u => u.Email == email);
 
-                Account studentAccount;
-
-                if (userInfo == null)
+                if (userInfo == null || userInfo.Account == null)
                 {
-                    studentAccount = new Account
-                    {
-                        Account_id = Guid.NewGuid(),
-                        Username = string.IsNullOrWhiteSpace(studentCode) ? email : studentCode,
-                        Password = "123456",
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true,
-                        LastLogin = DateTime.UtcNow,
-                        Role = BusinessObject.Enums.RoleEnum.Student
-                    };
-
-                    userInfo = new UserInformation
-                    {
-                        User_id = Guid.NewGuid(),
-                        Account_id = studentAccount.Account_id,
-                        Name = string.IsNullOrWhiteSpace(fullName) ? studentCode : fullName,
-                        Email = email
-                    };
-
-                    await _context.Accounts.AddAsync(studentAccount);
-                    await _context.UserInformations.AddAsync(userInfo);
-
-                    createdAccountCount++;
+                    skippedCount++;
+                    continue;
                 }
-                else
-                {
-                    studentAccount = userInfo.Account;
 
-                    if (studentAccount.Role != BusinessObject.Enums.RoleEnum.Student)
-                    {
-                        skippedCount++;
-                        continue;
-                    }
+                var studentAccount = userInfo.Account;
+
+                if (studentAccount.Role != BusinessObject.Enums.RoleEnum.Student)
+                {
+                    skippedCount++;
+                    continue;
                 }
 
                 var existed = await _context.StudentSubjects
@@ -230,7 +221,7 @@ namespace ServiceLayer.Implements
             await _context.SaveChangesAsync();
 
             return (true,
-                $"Import thành công. Thêm vào lớp: {addedCount}, tạo tài khoản mới: {createdAccountCount}, bỏ qua: {skippedCount}.");
+                $"Import thành công. Đã thêm vào môn học: {addedCount} sinh viên, bỏ qua: {skippedCount} (email không tồn tại hoặc đã tham gia môn học).");
         }
     }
 }
