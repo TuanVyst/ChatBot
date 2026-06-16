@@ -4,6 +4,47 @@
     ViewData["Title"] = "Dashboard";
     Layout = "~/Pages/Shared/_LecturerLayout.cshtml";
 }
+<style>
+    .page-notice {
+        position: fixed !important;
+        top: 24px !important;
+        right: 24px !important;
+        z-index: 9999 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
+        min-width: 320px;
+        max-width: 450px;
+        animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        margin-bottom: 0 !important;
+        background-color: #ffffff !important;
+    }
+
+    .page-notice.success {
+        border-left: 5px solid #16A34A !important;
+        border-top: 1px solid #e3ded6 !important;
+        border-right: 1px solid #e3ded6 !important;
+        border-bottom: 1px solid #e3ded6 !important;
+        color: #16A34A !important;
+    }
+
+    .page-notice.error {
+        border-left: 5px solid #DC2626 !important;
+        border-top: 1px solid #e3ded6 !important;
+        border-right: 1px solid #e3ded6 !important;
+        border-bottom: 1px solid #e3ded6 !important;
+        color: #DC2626 !important;
+    }
+
+    @@keyframes slideInRight {
+        from {
+            transform: translateX(120%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
 @* ═══════════ TOP BAR WITH BACK BUTTON ═══════════ *@
 <div class="top-bar">
     <form asp-controller="Auth" asp-action="Logout" method="post" style="display:inline;">
@@ -409,6 +450,18 @@
     </div>
 </div>
 
+@* ─── Confirm Delete Modal ─── *@
+<div id="confirmDeleteModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:400px;text-align:center;padding:24px;">
+        <h3 style="margin-bottom:12px;">Xác nhận xóa</h3>
+        <p style="color:var(--text-muted);margin-bottom:20px;font-size:14px;">Bạn có chắc chắn muốn xóa sinh viên này khỏi môn học?</p>
+        <div style="display:flex;gap:12px;justify-content:center;">
+            <button type="button" class="btn-secondary" onclick="closeModal('confirmDeleteModal')" style="flex:1;height:38px;">Hủy</button>
+            <button type="button" class="btn-danger" id="confirmDeleteBtn" style="flex:1;height:38px;background-color:var(--danger);color:white;border:none;border-radius:var(--radius-sm);cursor:pointer;">Xóa</button>
+        </div>
+    </div>
+</div>
+
 @* ═══════════ JAVASCRIPT ═══════════ *@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
 <script>
@@ -499,33 +552,44 @@
     }, 400);
     });
 
+    let pageNoticeTimeout = null;
+    function decodeHtml(html) {
+        var txt = document.createElement("textarea");
+        txt.innerHTML = html;
+        return txt.value;
+    }
+
     function showPageNotice(msg, type) {
-    var el = document.getElementById('page-notice');
-    var icon = document.getElementById('notice-icon');
-    var text = document.getElementById('notice-text');
-    if (!el) return;
-    el.className = 'page-notice ' + (type || 'success');
-    if (text && msg) text.textContent = msg;
-    if (icon) icon.className = 'ph ' + (type === 'error' ? 'ph-x-circle' : 'ph-check-circle');
-    el.style.display = 'flex';
-    setTimeout(function () { el.style.display = 'none'; }, 5000);
+        var el = document.getElementById('page-notice');
+        var icon = document.getElementById('notice-icon');
+        var text = document.getElementById('notice-text');
+        if (!el) return;
+        el.className = 'page-notice ' + (type || 'success');
+        if (text && msg) text.textContent = decodeHtml(msg);
+        if (icon) icon.className = 'ph ' + (type === 'error' ? 'ph-x-circle' : 'ph-check-circle');
+        el.style.display = 'flex';
+        
+        if (pageNoticeTimeout) {
+            clearTimeout(pageNoticeTimeout);
+        }
+        pageNoticeTimeout = setTimeout(function () { el.style.display = 'none'; }, 5000);
     }
 
     function showUploadSuccess(msg) {
-    var el = document.getElementById('uploadSuccess');
-    if (el) {
-    el.classList.add('active');
-    var text = el.querySelector('.upload-success-text');
-    if (text && msg) text.textContent = msg;
-    setTimeout(function () { el.classList.remove('active'); }, 5000);
-    }
+        var el = document.getElementById('uploadSuccess');
+        if (el) {
+            el.classList.add('active');
+            var text = el.querySelector('.upload-success-text');
+            if (text && msg) text.textContent = decodeHtml(msg);
+            setTimeout(function () { el.classList.remove('active'); }, 5000);
+        }
     }
 
     // ─── View Students List ───
     function viewStudentsList() {
     var subjectSelect = document.querySelector('#studentModal select[name="subjectId"]');
     if (!subjectSelect || !subjectSelect.value) {
-    alert('Please select a subject first.');
+    showPageNotice('Please select a subject first.', 'error');
     return;
     }
     fetch('/Lecturer?handler=StudentsInSubject&subjectId=' + encodeURIComponent(subjectSelect.value))
@@ -537,15 +601,24 @@
     });
     }
 
+    let studentIdToDelete = null;
     function removeStudent(accountId) {
-        if (!confirm('Bạn có chắc chắn muốn xóa sinh viên này khỏi môn học?')) {
-            return;
-        }
+        studentIdToDelete = accountId;
+        openModal('confirmDeleteModal');
+    }
 
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        if (!studentIdToDelete) return;
+        closeModal('confirmDeleteModal');
+        executeRemoveStudent(studentIdToDelete);
+        studentIdToDelete = null;
+    });
+
+    function executeRemoveStudent(accountId) {
         const subjectSelect = document.querySelector('#studentModal select[name="subjectId"]');
 
         if (!subjectSelect || !subjectSelect.value) {
-            alert('Không tìm thấy môn học đang chọn.');
+            showPageNotice('Không tìm thấy môn học đang chọn.', 'error');
             return;
         }
 
@@ -564,7 +637,7 @@
         })
             .then(r => r.json())
             .then(j => {
-                alert(j.message);
+                showPageNotice(j.message, j.success ? 'success' : 'error');
 
                 if (j.success) {
                     viewStudentsList();
@@ -572,7 +645,7 @@
             })
             .catch(e => {
                 console.error(e);
-                alert('Có lỗi khi xóa sinh viên.');
+                showPageNotice('Có lỗi khi xóa sinh viên.', 'error');
             });
     }
 
@@ -730,7 +803,7 @@
     document.querySelector('#studentModal select[name="subjectId"]');
 
     if (!subjectSelect || !subjectSelect.value) {
-    alert('Please select a subject first.');
+    showPageNotice('Please select a subject first.', 'error');
     return;
     }
 
