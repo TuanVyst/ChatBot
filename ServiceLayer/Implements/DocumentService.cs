@@ -71,6 +71,11 @@ namespace ServiceLayer.Implements
 
             var fileSize = _fileUploadService.GetFileSize(filePath);
             var chapter = await _chapterRepository.GetByIdAsync(chapterId);
+            if (chapter == null)
+            {
+                _fileUploadService.DeleteFile(filePath);
+                return (false, "Chương không tồn tại hoặc không hợp lệ.", 0);
+            }
 
 
             var document = new Document

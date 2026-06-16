@@ -1,4 +1,4 @@
-﻿@page "/Student/Chat"
+@page "/Student/Chat"
 @model ChatBot.Pages.Student.ChatModel
 @{
     ViewData["Title"] = "AI Learning Assistant";
@@ -33,7 +33,7 @@
                 <h1 class="chat-title">Hello, @Model.StudentChat.FullName 👋</h1>
                 <p class="chat-subtitle">Ask me anything about your enrolled subjects and lecturer-uploaded documents.</p>
             </div>
-            <form asp-controller="Auth" asp-action="Logout" method="post" style="display:inline;">
+            <form asp-page="/Auth/Logout" method="post" style="display:inline;">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="chat-logout-btn" title="Logout">
                     <i class="ph ph-sign-out"></i>
@@ -148,7 +148,7 @@
                                 <span><i class="ph ph-list"></i> @(doc.Chapter?.Name ?? "Default")</span>
                             </div>
                         </div>
-                        <a asp-action="Download" asp-controller="Student" asp-route-id="@doc.Id" target="_blank" class="chat-doc-download" title="View">
+                        <a asp-page="/Student/Chat" asp-page-handler="Download" asp-route-id="@doc.Id" target="_blank" class="chat-doc-download" title="View">
                             <i class="ph ph-arrow-square-out"></i>
                         </a>
                     </div>

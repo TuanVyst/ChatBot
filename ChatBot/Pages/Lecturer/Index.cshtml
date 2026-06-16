@@ -1,4 +1,4 @@
-﻿@page "/Lecturer"
+@page "/Lecturer"
 @model ChatBot.Pages.Lecturer.IndexModel
 @{
     ViewData["Title"] = "Dashboard";
@@ -311,7 +311,7 @@
                         <option value="">Select subject</option>
                         @foreach (var sub in Model.Dashboard.Subjects)
                         {
-                            <option value="@sub.Id">@sub.Name</option>
+                            <option value="@sub.Id" selected="@(sub.Id.ToString() == Model.Dashboard.SelectedSubjectId)">@sub.Name</option>
                         }
                     </select>
                 </div>
@@ -520,6 +520,45 @@
     });
     }
 
+    function removeStudent(accountId) {
+        if (!confirm('Bạn có chắc chắn muốn xóa sinh viên này khỏi môn học?')) {
+            return;
+        }
+
+        const subjectSelect = document.querySelector('#studentModal select[name="subjectId"]');
+
+        if (!subjectSelect || !subjectSelect.value) {
+            alert('Không tìm thấy môn học đang chọn.');
+            return;
+        }
+
+        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+
+        const formData = new FormData();
+        formData.append('accountId', accountId);
+        formData.append('subjectId', subjectSelect.value);
+
+        fetch('/Lecturer?handler=RemoveStudent', {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': tokenInput ? tokenInput.value : ''
+            },
+            body: formData
+        })
+            .then(r => r.json())
+            .then(j => {
+                alert(j.message);
+
+                if (j.success) {
+                    viewStudentsList();
+                }
+            })
+            .catch(e => {
+                console.error(e);
+                alert('Có lỗi khi xóa sinh viên.');
+            });
+    }
+
     // ─── View Chunks ───
     function viewChunks(docId, fileName) {
     document.getElementById('chunksModalTitle').innerText = 'Chunks: ' + fileName;
@@ -609,7 +648,18 @@
     {
         <text>openModal('chapterModal'); </text>
     }
-    @if (TempData["StudentSuccess"] != null || TempData["StudentError"] != null)
+    @if (TempData["StudentSuccess"] != null)
+    {
+        <text>
+        alert('@TempData["StudentSuccess"]');
+        var studentSubjectSelect = document.querySelector('#studentModal select[name="subjectId"]');
+        if (studentSubjectSelect) {
+            studentSubjectSelect.value = '@Model.Dashboard.SelectedSubjectId';
+        }
+        viewStudentsList();
+        </text>
+    }
+    @if (TempData["StudentError"] != null)
     {
         <text>openModal('studentModal'); </text>
     }

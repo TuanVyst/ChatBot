@@ -119,6 +119,12 @@ public class IndexModel : PageModel
         };
     }
 
+    public async Task<IActionResult> OnGetChaptersBySubjectAsync(Guid subjectId)
+    {
+        var chapters = await _chapterService.GetChaptersBySubjectIdAsync(subjectId);
+        return new JsonResult(chapters.Select(c => new { id = c.Id, name = c.Name }));
+    }
+
     public IActionResult OnGetProgress(int id)
     {
         var progressKey = $"doc_progress_{id}";

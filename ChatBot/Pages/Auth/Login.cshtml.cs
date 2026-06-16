@@ -1,4 +1,4 @@
-﻿using ChatBot.Models;
+using ChatBot.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -67,16 +67,16 @@ public class LoginModel : PageModel
         }
 
         if (user?.Role?.Equals("Admin", StringComparison.OrdinalIgnoreCase) == true)
-            return Redirect("/Admin");
+            return RedirectToPage("/Admin/Index");
 
         if (user?.Role?.Equals("Lecture", StringComparison.OrdinalIgnoreCase) == true)
-            return Redirect("/Lecturer");
+            return RedirectToPage("/Lecturer/Index");
 
         if (user?.Role?.Equals("Student", StringComparison.OrdinalIgnoreCase) == true)
         {
             HttpContext.Session.SetString("UserId", user.Id.ToString());
             HttpContext.Session.SetString("FullName", user.FullName ?? "");
-            return Redirect("/Student/Dashboard");
+            return RedirectToPage("/Student/Dashboard");
         }
 
         return RedirectToPage("/Auth/Login");

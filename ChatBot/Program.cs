@@ -52,6 +52,10 @@ builder.Services.AddScoped<IChapterService, ChapterService>();
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddMemoryCache();
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "RequestVerificationToken";
+});
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
@@ -106,14 +110,9 @@ app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
-app.MapRazorPages();/////
+app.MapRazorPages();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Auth}/{action=Login}/{id?}");
-
-app.MapFallbackToController("Login", "Auth");
+app.MapFallbackToPage("/Auth/Login");
 
 SeedDatabase(app);
 

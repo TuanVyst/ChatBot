@@ -1,4 +1,4 @@
-﻿using BusinessObject.Dtos.RequestModel;
+using BusinessObject.Dtos.RequestModel;
 using BusinessObject.Enums;
 using ChatBot.Models;
 using Microsoft.AspNetCore.Authentication;
@@ -85,7 +85,7 @@ public class VerifyOtpModel : PageModel
                 }
 
                 TempData["Message"] = createResult.Message;
-                return Redirect("/Admin/Users");
+                return RedirectToPage("/Admin/Users");
             }
 
             var result = await _authService.VerifyOtpAndLoginAsync(request);
@@ -97,15 +97,15 @@ public class VerifyOtpModel : PageModel
                 result.Role.ToString());
 
             if (result.Role == RoleEnum.Admin)
-                return Redirect("/Admin");
+                return RedirectToPage("/Admin/Index");
 
             if (result.Role == RoleEnum.Lecture)
-                return Redirect("/Lecturer");
+                return RedirectToPage("/Lecturer/Index");
 
             HttpContext.Session.SetString("UserId", result.AccountId.ToString());
             HttpContext.Session.SetString("FullName", result.Name ?? "");
 
-            return Redirect("/Student/Dashboard");
+            return RedirectToPage("/Student/Dashboard");
         }
         catch (Exception ex)
         {

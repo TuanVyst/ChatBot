@@ -1,4 +1,4 @@
-﻿@page "/Student/SubjectDetail/{id:guid}"
+@page "/Student/SubjectDetail/{id:guid}"
 @model ChatBot.Pages.Student.SubjectDetailModel
 
 @{
@@ -7,8 +7,8 @@
 
 <div class="student-page">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <a asp-controller="Student" asp-action="Dashboard" class="back-link" style="margin-bottom: 0;">← Back to Dashboard</a>
-        <form asp-controller="Auth" asp-action="Logout" method="post" style="margin: 0;">
+        <a asp-page="/Student/Dashboard" class="back-link" style="margin-bottom: 0;">← Back to Dashboard</a>
+        <form asp-page="/Auth/Logout" method="post" style="margin: 0;">
             @Html.AntiForgeryToken()
             <button type="submit" class="secondary-btn" style="background: white; display: flex; align-items: center; gap: 8px; padding: 6px 12px; font-size: 14px;" title="Logout">
                 <i class="ph ph-sign-out"></i> Logout
@@ -49,8 +49,7 @@
                             Download
                         </a>
 
-                        <a asp-controller="Student"
-                           asp-action="Chat"
+                        <a asp-page="/Student/Chat"
                            asp-route-subjectId="@Model.SubjectDetail.Subject?.Id"
                            asp-route-documentId="@doc.Id"
                            class="primary-btn">
