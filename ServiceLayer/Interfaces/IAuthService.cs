@@ -16,5 +16,6 @@ namespace ServiceLayer.Interfaces
         Task<(bool Success, string Message, UserDto? User, bool RequireOtp)> LoginAsync(
         string email,
         string password);
+        Task<bool> ValidateAccountAsync(string email);
     }
 }
