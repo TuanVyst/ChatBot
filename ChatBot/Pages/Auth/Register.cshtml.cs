@@ -30,6 +30,13 @@ public class RegisterModel : PageModel
 
         try
         {
+            var isValid = await _authService.ValidateAccountAsync(Input.Email);
+            if (!isValid)
+            {
+                Error = $"Email '{Input.Email}' đã tồn tại.";
+                return Page();
+            }
+
             await _authService.RequestOtpAsync(Input.Email);
         }
         catch (Exception ex)
