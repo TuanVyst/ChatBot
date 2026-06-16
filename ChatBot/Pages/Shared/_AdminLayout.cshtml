@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admin Dashboard</title>
+
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/regular/style.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/bold/style.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/fill/style.css" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+</head>
+
+<body class="admin-body">
+    @{
+        var currentPage = ViewContext.RouteData.Values["Page"]?.ToString() ?? "";
+    }
+
+    <aside class="admin-sidebar">
+        <a asp-page="/Admin/Index" class="admin-brand">
+            <i class="ph-fill ph-robot"></i>
+            ChatBot Admin
+        </a>
+
+        <nav class="admin-nav">
+            <a asp-page="/Admin/Index"
+               class="nav-item @(currentPage == "/Admin/Index" ? "active" : "")">
+                <i class="ph ph-squares-four"></i>
+                Dashboard
+            </a>
+
+            <a asp-page="/Admin/Universities"
+               class="nav-item @(currentPage.Contains("Universit") ? "active" : "")">
+                <i class="ph ph-buildings"></i>
+                Universities
+            </a>
+
+            <a asp-page="/Admin/Subjects"
+               class="nav-item @(currentPage.Contains("Subject") ? "active" : "")">
+                <i class="ph ph-books"></i>
+                Subjects
+            </a>
+
+            <a asp-page="/Admin/Users"
+               class="nav-item @(currentPage.Contains("Users") || currentPage.Contains("CreateTeacher") || currentPage.Contains("AdminVerifyOtp") ? "active" : "")">
+                <i class="ph ph-users"></i>
+                Users
+            </a>
+
+            <form asp-page="/Auth/Logout" method="post" style="margin:0;">
+                <button type="submit" class="nav-item" style="background:transparent;border:none;width:100%;text-align:left;padding:1rem 1.25rem;cursor:pointer;">
+                    <i class="ph ph-sign-out"></i>
+                    Đăng xuất
+                </button>
+            </form>
+        </nav>
+
+        <div style="margin-top:auto;padding-top:2rem;">
+            <a asp-page="/Lecturer/Index" class="nav-item">
+                <i class="ph ph-arrow-left"></i>
+                Back to Site
+            </a>
+        </div>
+    </aside>
+
+    <main class="admin-main">
+        @RenderBody()
+    </main>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

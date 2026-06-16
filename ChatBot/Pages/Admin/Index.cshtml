@@ -1,0 +1,54 @@
+@page
+@model ChatBot.Pages.Admin.IndexModel
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="admin-header">
+    <h1 class="page-title">Admin Dashboard</h1>
+</div>
+
+<div class="dashboard-grid">
+
+    <a asp-page="/Admin/Universities" class="dash-card">
+        <div class="dash-icon">
+            <i class="ph-fill ph-buildings"></i>
+        </div>
+
+        <div>
+            <h3 class="dash-title">Universities</h3>
+            <p class="dash-desc">
+                Manage the list of partner universities and their associated metadata.
+            </p>
+        </div>
+    </a>
+
+    <a asp-page="/Admin/Subjects" class="dash-card secondary">
+        <div class="dash-icon">
+            <i class="ph-fill ph-books"></i>
+        </div>
+
+        <div>
+            <h3 class="dash-title">Subjects</h3>
+            <p class="dash-desc">
+                Organize and manage educational subjects and link them to universities.
+            </p>
+        </div>
+    </a>
+
+    <a asp-page="/Admin/Users" class="dash-card tertiary">
+        <div class="dash-icon">
+            <i class="ph-fill ph-users"></i>
+        </div>
+
+        <div>
+            <h3 class="dash-title">Users</h3>
+            <p class="dash-desc">
+                Manage system users, teacher accounts, and review their activity status.
+            </p>
+        </div>
+    </a>
+
+</div>

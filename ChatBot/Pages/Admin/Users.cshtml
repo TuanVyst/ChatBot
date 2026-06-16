@@ -1,0 +1,123 @@
+@page
+@model ChatBot.Pages.Admin.UsersModel
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Manage Users";
+}
+
+<div class="admin-header">
+    <h1 class="page-title">Users</h1>
+
+    <div class="admin-actions">
+        <a asp-page="/Admin/CreateTeacher" class="btn-premium btn-primary">
+            <i class="ph-bold ph-user-plus"></i>
+            Add Teacher
+        </a>
+    </div>
+</div>
+
+<div class="admin-card">
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="notice success">@TempData["Message"]</div>
+    }
+
+    @if (TempData["AdminPendingEmail"] != null)
+    {
+        <div style="margin-bottom:12px;">
+            <a class="btn-primary" asp-page="/Admin/AdminVerifyOtp">
+                Hoàn tất xác thực tài khoản giảng viên
+            </a>
+        </div>
+    }
+
+    <table class="premium-table">
+        <thead>
+            <tr>
+                <th>User Details</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th style="width:150px;text-align:right;">Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var item in Model.Users)
+            {
+                <tr>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <div style="width:40px;height:40px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:bold;color:#000;">
+                                @item.Email.Substring(0, 1).ToUpper()
+                            </div>
+
+                            <div>
+                                <div style="font-weight:600;color:var(--text-main);">
+                                    @item.Name
+                                </div>
+
+                                <div style="font-size:0.85rem;color:var(--text-muted);">
+                                    @item.Email
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td>
+                        <span style="background:rgba(90,103,216,0.1);color:var(--accent);padding:4px 10px;border-radius:6px;font-size:0.85rem;font-weight:500;">
+                            @item.Account.Role
+                        </span>
+                    </td>
+
+                    <td>
+                        @if (item.Account.IsActive)
+                        {
+                            <span class="badge badge-active">
+                                <i class="ph-fill ph-check-circle"></i> Active
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-inactive">
+                                <i class="ph-fill ph-x-circle"></i> Inactive
+                            </span>
+                        }
+                    </td>
+
+                    <td>
+                        <div class="table-actions" style="justify-content:flex-end;">
+
+                            <form method="post"
+                                  asp-page-handler="ToggleStatus"
+                                  asp-route-id="@item.Account.Account_id"
+                                  style="margin:0;">
+
+                                <button type="submit"
+                                        class="@(item.Account.IsActive ? "btn-danger" : "btn-success")"
+                                        style="border:none;cursor:pointer;display:flex;align-items:center;gap:4px;">
+
+                                    @if (item.Account.IsActive)
+                                    {
+                                        <i class="ph-bold ph-lock-key"></i>
+                                        <span>Deactivate</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="ph-bold ph-lock-key-open"></i>
+                                        <span>Activate</span>
+                                    }
+
+                                </button>
+
+                            </form>
+
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+</div>

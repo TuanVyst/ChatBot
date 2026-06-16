@@ -1,0 +1,88 @@
+﻿@page "/Student/Dashboard"
+@model ChatBot.Pages.Student.DashboardModel
+
+@{
+    ViewData["Title"] = "Student Dashboard";
+}
+
+<div class="student-page">
+
+    <div class="student-hero">
+
+        <div>
+            <p class="eyebrow">STUDENT PORTAL</p>
+
+            <h1>Welcome, @Model.FullName</h1>
+
+            <p>
+                View subjects, read lecturer documents,
+                download files, and ask AI about learning materials.
+            </p>
+        </div>
+
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+
+            <a href="/Student/Chat"
+               class="primary-btn"
+               style="display:flex; align-items:center; gap:8px;">
+                <i class="ph ph-chat-teardrop-dots"></i>
+                Ask Chatbot
+            </a>
+
+            <form method="post"
+                  asp-page="/Auth/Logout"
+                  style="margin:0;">
+                @Html.AntiForgeryToken()
+
+                <button type="submit"
+                        class="secondary-btn"
+                        style="background:white; display:flex; align-items:center; gap:8px;"
+                        title="Logout">
+
+                    <i class="ph ph-sign-out"></i>
+                    Logout
+                </button>
+            </form>
+
+        </div>
+
+    </div>
+
+    <h2>My Subjects</h2>
+
+    @if (!Model.StudentDashboard.Subjects.Any())
+    {
+        <div class="empty-box">
+            <h3>No subjects available</h3>
+            <p>Please wait for admin to create subjects.</p>
+        </div>
+    }
+    else
+    {
+        <div class="subject-grid">
+
+            @foreach (var subject in Model.StudentDashboard.Subjects)
+            {
+                <div class="subject-card">
+
+                    <span>@subject.Code</span>
+
+                    <h3>@subject.Name</h3>
+
+                    <p>
+                        View documents uploaded by lecturer.
+                    </p>
+
+                    <a asp-page="/Student/SubjectDetail"
+                       asp-route-id="@subject.Id"
+                       class="card-link">
+                        Open subject
+                    </a>
+
+                </div>
+            }
+
+        </div>
+    }
+
+</div>

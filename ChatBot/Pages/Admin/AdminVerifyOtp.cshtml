@@ -1,0 +1,58 @@
+@page
+@model ChatBot.Pages.Admin.AdminVerifyOtpModel
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Verify OTP for Teacher";
+}
+
+<div class="admin-card" style="max-width:480px;margin:18px auto;">
+    <h2>Xác nhận mã OTP cho tài khoản: <strong>@Model.PendingEmail</strong></h2>
+
+    @if (TempData["OtpSentMessage"] != null)
+    {
+        <div class="alert alert-info">@TempData["OtpSentMessage"]</div>
+    }
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Message"]</div>
+    }
+
+    <form method="post">
+        <input type="hidden" asp-for="Email" value="@Model.PendingEmail" />
+
+        <div class="form-group">
+            <label>Mã OTP</label>
+            <input asp-for="OtpCode" class="form-control" placeholder="Nhập mã OTP" required />
+        </div>
+
+        <div style="margin-top:12px; display:flex; gap:8px;">
+            <button type="submit" class="btn-primary">Xác nhận</button>
+            <button type="button" id="resendBtn" class="btn-secondary" onclick="resendOtp()">Gửi lại mã</button>
+            <a asp-page-handler="Cancel" class="btn-ghost">Hủy</a>
+        </div>
+    </form>
+
+    <script>
+            async function resendOtp() {
+                try {
+                    const email = '@Model.PendingEmail';
+
+                    const resp = await fetch('/Admin/AdminVerifyOtp?handler=ResendOtp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        },
+                        body: JSON.stringify({ email })
+                    });
+
+                    const text = await resp.text();
+                    alert(text || 'OTP đã được gửi lại');
+                } catch (e) {
+                    alert('Lỗi khi gửi lại OTP');
+                }
+            }
+    </script>
+</div>

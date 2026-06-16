@@ -1,0 +1,43 @@
+@page
+@model ChatBot.Pages.Admin.CreateUniversityModel
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Create University";
+}
+
+<div class="admin-header">
+    <h1 class="page-title">Create University</h1>
+
+    <div class="admin-actions">
+        <a asp-page="/Admin/Universities" class="btn-secondary btn-premium">
+            <i class="ph-bold ph-arrow-left"></i>
+            Back to List
+        </a>
+    </div>
+</div>
+
+<div class="admin-card" style="max-width: 600px;">
+    <form method="post" class="premium-form">
+
+        <div class="form-group">
+            <label asp-for="University.Name" class="form-label"></label>
+            <input asp-for="University.Name" class="form-control" placeholder="Enter university name..." />
+            <span asp-validation-for="University.Name" class="text-danger" style="font-size: 0.85rem; margin-top: 4px;"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="University.Code" class="form-label"></label>
+            <input asp-for="University.Code" class="form-control" placeholder="e.g., FPTU" />
+            <span asp-validation-for="University.Code" class="text-danger" style="font-size: 0.85rem; margin-top: 4px;"></span>
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <button type="submit" class="btn-premium btn-primary">
+                <i class="ph-bold ph-check"></i>
+                Create University
+            </button>
+        </div>
+
+    </form>
+</div>
