@@ -41,6 +41,7 @@
         }
 
         connection.on("RefreshData", function (message) {
+            console.log("SignalR message received: ", message);
             showLecturerToast(message);
             refreshSelections();
         });
@@ -65,6 +66,7 @@
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
 
+                // 1. Update all select dropdowns (Subjects and Chapters)
                 document.querySelectorAll('select').forEach(function (oldSel) {
                     const name = oldSel.getAttribute('name');
                     if (!name) return;
@@ -77,6 +79,13 @@
                         }
                     }
                 });
+
+                // 2. Update the documents table card body dynamically
+                const oldDocBody = document.getElementById('documents-card-body');
+                const newDocBody = doc.getElementById('documents-card-body');
+                if (oldDocBody && newDocBody) {
+                    oldDocBody.innerHTML = newDocBody.innerHTML;
+                }
             } catch (err) {
                 console.error("Refresh error:", err);
             }
