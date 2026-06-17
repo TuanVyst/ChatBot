@@ -59,13 +59,83 @@ builder.Services.AddAntiforgery(options =>
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    })
+    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
     {
         options.LoginPath = "/Auth/Login";
         options.AccessDeniedPath = "/Auth/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.Cookie.Name = "ChatBot.Auth";
+        options.ForwardDefaultSelector = ctx =>
+        {
+            var path = ctx.Request.Path.Value ?? "";
+            if (path.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return "AdminScheme";
+            }
+            if (path.StartsWith("/Lecturer", StringComparison.OrdinalIgnoreCase))
+            {
+                return "LectureScheme";
+            }
+            if (path.StartsWith("/Student", StringComparison.OrdinalIgnoreCase))
+            {
+                return "StudentScheme";
+            }
+
+            var referer = ctx.Request.Headers["Referer"].ToString();
+            if (!string.IsNullOrEmpty(referer))
+            {
+                try
+                {
+                    var refererUri = new Uri(referer);
+                    var refererPath = refererUri.AbsolutePath;
+                    if (refererPath.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "AdminScheme";
+                    }
+                    if (refererPath.StartsWith("/Lecturer", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "LectureScheme";
+                    }
+                    if (refererPath.StartsWith("/Student", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "StudentScheme";
+                    }
+                }
+                catch
+                {
+                    // Ignore malformed referer headers
+                }
+            }
+
+            return null;
+        };
+    })
+    .AddCookie("AdminScheme", options =>
+    {
+        options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.Cookie.Name = "ChatBot.Auth.Admin";
+    })
+    .AddCookie("LectureScheme", options =>
+    {
+        options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.Cookie.Name = "ChatBot.Auth.Lecture";
+    })
+    .AddCookie("StudentScheme", options =>
+    {
+        options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.Cookie.Name = "ChatBot.Auth.Student";
     });
 
 builder.Services.AddAuthorization();

@@ -93,11 +93,19 @@ public class LoginModel : PageModel
             new Claim("FullName", fullName ?? string.Empty)
         };
 
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        string scheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        if (role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            scheme = "AdminScheme";
+        else if (role.Equals("Lecture", StringComparison.OrdinalIgnoreCase) || role.Equals("Lecturer", StringComparison.OrdinalIgnoreCase))
+            scheme = "LectureScheme";
+        else if (role.Equals("Student", StringComparison.OrdinalIgnoreCase))
+            scheme = "StudentScheme";
+
+        var identity = new ClaimsIdentity(claims, scheme);
         var principal = new ClaimsPrincipal(identity);
 
         await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
+            scheme,
             principal,
             new AuthenticationProperties
             {

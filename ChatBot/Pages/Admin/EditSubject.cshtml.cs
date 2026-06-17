@@ -1,4 +1,4 @@
-﻿using BusinessObject.Entities;
+using BusinessObject.Entities;
 using BusinessObject.Enums;
 using ChatBot.Hubs;
 using DataAccessLayer.Repositories.Interfaces;
@@ -63,28 +63,41 @@ public class EditSubjectModel : PageModel
         }
 
         var oldSubject = await _subjectService.GetSubjectById(Subject.Id.ToString());
-        await _subjectService.UpdateSubject(Subject);
-
-        if (oldSubject?.LectureAccountId != Subject.LectureAccountId)
+        if (oldSubject == null)
         {
-            if (oldSubject?.LectureAccountId != null)
+            return NotFound();
+        }
+
+        var oldLectureAccountId = oldSubject.LectureAccountId;
+        var oldName = oldSubject.Name;
+
+        oldSubject.Name = Subject.Name;
+        oldSubject.Code = Subject.Code;
+        oldSubject.UniversityId = Subject.UniversityId;
+        oldSubject.LectureAccountId = Subject.LectureAccountId;
+
+        await _subjectService.UpdateSubject(oldSubject);
+
+        if (oldLectureAccountId != oldSubject.LectureAccountId)
+        {
+            if (oldLectureAccountId != null)
+            {
+                await _hubContext.Clients.Group(oldLectureAccountId.ToString())
+                    .SendAsync("RefreshData",
+                        $"Bạn đã bị xóa khỏi môn học \"{oldName}\"");
+            }
+            if (oldSubject.LectureAccountId != null)
             {
                 await _hubContext.Clients.Group(oldSubject.LectureAccountId.ToString())
                     .SendAsync("RefreshData",
-                        $"Bạn đã bị xóa khỏi môn học \"{oldSubject.Name}\"");
-            }
-            if (Subject.LectureAccountId != null)
-            {
-                await _hubContext.Clients.Group(Subject.LectureAccountId.ToString())
-                    .SendAsync("RefreshData",
-                        $"Bạn đã được thêm vào môn học \"{Subject.Name}\" ({Subject.Code})");
+                        $"Bạn đã được thêm vào môn học \"{oldSubject.Name}\" ({oldSubject.Code})");
             }
         }
-        else if (oldSubject?.LectureAccountId != null)
+        else if (oldLectureAccountId != null)
         {
-            await _hubContext.Clients.Group(oldSubject.LectureAccountId.ToString())
+            await _hubContext.Clients.Group(oldLectureAccountId.ToString())
                 .SendAsync("RefreshData",
-                    $"Thông tin môn học \"{Subject.Name}\" đã được cập nhật");
+                    $"Thông tin môn học \"{oldSubject.Name}\" đã được cập nhật");
         }
 
         return RedirectToPage("Subjects");
