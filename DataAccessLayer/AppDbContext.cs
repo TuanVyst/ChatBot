@@ -17,6 +17,7 @@ namespace DataAccessLayer
         public DbSet<Subject> Subjects { get; set; }
         public DbSet<Chapter> Chapters { get; set; }
         public DbSet<StudentSubject> StudentSubjects { get; set; }
+        public DbSet<StudentNotification> StudentNotifications { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Kích hoạt extension pgvector trong PostgreSQL
@@ -25,6 +26,9 @@ namespace DataAccessLayer
             modelBuilder.Entity<DocumentChunk>()
             .Property(e => e.Embedding)
             .HasColumnType("vector(3072)");
+
+            modelBuilder.Entity<StudentNotification>()
+                .HasIndex(n => new { n.AccountId, n.IsRead, n.CreatedAt });
         }
     }
 }

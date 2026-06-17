@@ -253,12 +253,34 @@ public class IndexModel : PageModel
             TempData["StudentSuccess"] = message;
 
             var subject = await _subjectService.GetSubjectById(subjectId);
-            var student = await _context.Accounts.FirstOrDefaultAsync(a => a.Username == email.Trim());
+            var studentIdentifier = email.Trim();
+            var student = await _context.Accounts
+                .FirstOrDefaultAsync(a => a.Username == studentIdentifier ||
+                    _context.UserInformations.Any(u => u.Account_id == a.Account_id && u.Email == studentIdentifier));
+
             if (student != null)
             {
+                var studentNotification = new StudentNotification
+                {
+                    AccountId = student.Account_id,
+                    Type = "enrolled",
+                    Message = $"Bạn đã được thêm vào môn học \"{subject?.Name ?? ""}\"",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _context.StudentNotifications.AddAsync(studentNotification);
+                await _context.SaveChangesAsync();
+
+                var notification = new
+                {
+                    id = studentNotification.Id,
+                    type = "enrolled",
+                    message = studentNotification.Message,
+                    time = studentNotification.CreatedAt
+                };
+
                 await _hubContext.Clients.Group(student.Account_id.ToString())
-                    .SendAsync("RefreshData",
-                        $"Bạn đã được thêm vào môn học \"{subject?.Name ?? ""}\"");
+                    .SendAsync("RefreshData", notification.message, notification);
             }
         }
         else
@@ -294,9 +316,27 @@ public class IndexModel : PageModel
             var newStudents = allStudents.Where(s => !oldStudents.Contains(s.Account_id));
             foreach (var student in newStudents)
             {
+                var studentNotification = new StudentNotification
+                {
+                    AccountId = student.Account_id,
+                    Type = "enrolled",
+                    Message = $"Bạn đã được thêm vào môn học \"{subject?.Name ?? ""}\"",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _context.StudentNotifications.AddAsync(studentNotification);
+                await _context.SaveChangesAsync();
+
+                var notification = new
+                {
+                    id = studentNotification.Id,
+                    type = "enrolled",
+                    message = studentNotification.Message,
+                    time = studentNotification.CreatedAt
+                };
+
                 await _hubContext.Clients.Group(student.Account_id.ToString())
-                    .SendAsync("RefreshData",
-                        $"Bạn đã được thêm vào môn học \"{subject?.Name ?? ""}\"");
+                    .SendAsync("RefreshData", notification.message, notification);
             }
         }
         else
