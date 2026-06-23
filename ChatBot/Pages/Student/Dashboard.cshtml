@@ -112,6 +112,8 @@
             banner.style.display = 'block';
         }
 
+        window.showNotifications = showNotifications;
+
         function loadNotifications() {
             fetch('/Student/Dashboard?handler=Notifications')
                 .then(function (r) { return r.json(); })

@@ -40,8 +40,16 @@
             .withAutomaticReconnect()
             .build();
 
-        connection.on('RefreshData', function (message) {
+        connection.on('RefreshData', function (message, notification) {
             showStudentToast(message);
+            if (notification && typeof window.showNotifications === 'function') {
+                window.showNotifications([notification]);
+            }
+            if (notification && notification.id) {
+                connection.invoke('MarkNotificationRead', notification.id).catch(function (err) {
+                    console.error('MarkNotificationRead error:', err);
+                });
+            }
             if (typeof window.refreshStudentData === 'function') {
                 window.refreshStudentData();
             }

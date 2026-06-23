@@ -1,0 +1,165 @@
+@model ChatBot.Models.DashboardViewModel
+
+@* ─── Create Chapter Modal ─── *@
+<div id="chapterModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>📚 Create New Chapter</h3>
+            <button class="modal-close" onclick="closeModal('chapterModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="post" asp-page-handler="CreateChapter">
+                @Html.AntiForgeryToken()
+                <div class="form-group">
+                    <label class="form-label">Subject</label>
+                    <select name="subjectId" class="form-select" required>
+                        <option value="">Select subject</option>
+                        @foreach (var sub in Model.Subjects)
+                        {
+                            <option value="@sub.Id">@sub.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Chapter Name</label>
+                    <input type="text" name="name" class="form-input" required placeholder="e.g. Chapter 1: Introduction" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description <span style="color:var(--text-light);font-weight:400;">(optional)</span></label>
+                    <input type="text" name="description" class="form-input" placeholder="Brief description of this chapter..." />
+                </div>
+                <button type="submit" class="btn-primary btn-full">Create Chapter</button>
+            </form>
+            @if (TempData["ChapterSuccess"] != null)
+            {
+                <div class="notice success">@TempData["ChapterSuccess"]</div>
+            }
+            @if (TempData["ChapterError"] != null)
+            {
+                <div class="notice error">@TempData["ChapterError"]</div>
+            }
+        </div>
+    </div>
+</div>
+
+@* ─── Add Student Modal ─── *@
+<div id="studentModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>👨‍🎓 Add Student to Subject</h3>
+            <button class="modal-close" onclick="closeModal('studentModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="post" asp-page-handler="AddStudentToSubject">
+                @Html.AntiForgeryToken()
+
+                <div class="form-group">
+                    <label class="form-label">Subject</label>
+                    <select name="subjectId" class="form-select" required>
+                        <option value="">Select subject</option>
+                        @foreach (var sub in Model.Subjects)
+                        {
+                            <option value="@sub.Id" selected="@(sub.Id.ToString() == Model.SelectedSubjectId)">@sub.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Student Email</label>
+                    <input type="email" name="email" class="form-input" required placeholder="student@example.edu" />
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button type="submit" class="btn-primary" style="flex:1;height:48px;">
+                        Add Student
+                    </button>
+
+                    <button type="button" class="btn-secondary" onclick="viewStudentsList()" style="height:48px;white-space:nowrap;">
+                        <i class="ph ph-list"></i> View List
+                    </button>
+
+                    <button type="button" class="btn-secondary" onclick="document.getElementById('excelFile').click()" style="height:48px;white-space:nowrap;">
+                        <i class="ph ph-file-xls"></i> Upload Excel
+                    </button>
+                </div>
+            </form>
+
+            <form id="excelImportForm"
+                  method="post"
+                  asp-page-handler="ImportStudentsExcel"
+                  enctype="multipart/form-data"
+                  style="margin-top:15px;">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" id="excelSubjectId" name="subjectId" />
+
+                <input type="file"
+                       id="excelFile"
+                       name="file"
+                       accept=".xlsx,.xls"
+                       style="display:none;"
+                       onchange="submitExcelForm()" />
+            </form>
+
+            @if (TempData["StudentSuccess"] != null)
+            {
+                <div class="notice success">@TempData["StudentSuccess"]</div>
+            }
+            @if (TempData["StudentError"] != null)
+            {
+                <div class="notice error">@TempData["StudentError"]</div>
+            }
+        </div>
+    </div>
+</div>
+
+@* ─── Students List Modal ─── *@
+<div id="studentsModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>👨‍🎓 Students in Subject</h3>
+            <button class="modal-close" onclick="closeModal('studentsModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="studentsModalBody">
+            <p style="color:var(--text-muted);">Select a subject and click "View List" to see enrolled students.</p>
+        </div>
+    </div>
+</div>
+
+@* ─── Chunks Modal ─── *@
+<div id="chunksModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:720px;">
+        <div class="modal-header">
+            <h3 id="chunksModalTitle">Document Chunks</h3>
+            <button class="modal-close" onclick="closeModal('chunksModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="chunksModalBody">
+        </div>
+    </div>
+</div>
+
+@* ─── Document Modal ─── *@
+<div id="documentModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:90%; width:1000px; height:85vh; display:flex; flex-direction:column;">
+        <div class="modal-header">
+            <h3 id="documentModalTitle">Document Viewer</h3>
+            <button class="modal-close" onclick="closeModal('documentModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="flex:1; padding:0; overflow:auto; position: relative;">
+            <iframe id="documentIframe" src="" style="width:100%; height:100%; border:none;"></iframe>
+            <div id="docxContainer" style="display:none; padding: 20px; background: white; min-height: 100%;"></div>
+        </div>
+    </div>
+</div>
+
+@* ─── Confirm Delete Modal ─── *@
+<div id="confirmDeleteModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:400px;text-align:center;padding:24px;">
+        <h3 style="margin-bottom:12px;">Xác nhận xóa</h3>
+        <p style="color:var(--text-muted);margin-bottom:20px;font-size:14px;">Bạn có chắc chắn muốn xóa sinh viên này khỏi môn học?</p>
+        <div style="display:flex;gap:12px;justify-content:center;">
+            <button type="button" class="btn-secondary" onclick="closeModal('confirmDeleteModal')" style="flex:1;height:38px;">Hủy</button>
+            <button type="button" class="btn-danger" id="confirmDeleteBtn" style="flex:1;height:38px;background-color:var(--danger);color:white;border:none;border-radius:var(--radius-sm);cursor:pointer;">Xóa</button>
+        </div>
+    </div>
+</div>
