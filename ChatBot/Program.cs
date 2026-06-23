@@ -70,8 +70,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages();//////
+builder.Services.AddRazorPages();
 builder.Services.AddSession();
 builder.Services.AddSignalR();
 

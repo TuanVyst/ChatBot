@@ -1,4 +1,4 @@
-﻿using ChatBot.Models;
+using BusinessObject.Entities;
 using DataAccessLayer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +17,13 @@ public class SubjectDetailModel : PageModel
         _context = context;
     }
 
-    public StudentSubjectDetailViewModel SubjectDetail { get; set; } = new();
+    public SubjectDetailData SubjectDetail { get; set; } = new();
+
+    public class SubjectDetailData
+    {
+        public BusinessObject.Entities.Subject? Subject { get; set; }
+        public IReadOnlyList<BusinessObject.Entities.Document> Documents { get; set; } = new List<BusinessObject.Entities.Document>();
+    }
 
     public async Task<IActionResult> OnGetAsync(Guid id)
     {
@@ -45,7 +51,7 @@ public class SubjectDetailModel : PageModel
             .OrderByDescending(d => d.UploadDate)
             .ToListAsync();
 
-        SubjectDetail = new StudentSubjectDetailViewModel
+        SubjectDetail = new SubjectDetailData
         {
             Subject = subject,
             Documents = documents

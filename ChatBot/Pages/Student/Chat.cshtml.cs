@@ -1,5 +1,5 @@
 using BusinessObject.Entities;
-using ChatBot.Models;
+using BusinessObject.Entities;
 using DataAccessLayer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +18,16 @@ public class ChatModel : PageModel
         _context = context;
     }
 
-    public StudentChatViewModel StudentChat { get; set; } = new();
+    public ChatData StudentChat { get; set; } = new();
+
+    public class ChatData
+    {
+        public string FullName { get; set; } = string.Empty;
+        public IReadOnlyList<BusinessObject.Entities.Subject> Subjects { get; set; } = new List<BusinessObject.Entities.Subject>();
+        public IReadOnlyList<BusinessObject.Entities.Document> Documents { get; set; } = new List<BusinessObject.Entities.Document>();
+        public Guid? SelectedSubjectId { get; set; }
+        public int? SelectedDocumentId { get; set; }
+    }
 
     public async Task<IActionResult> OnGetAsync(Guid? subjectId, int? documentId)
     {
@@ -55,7 +64,7 @@ public class ChatModel : PageModel
                 .ToListAsync();
         }
 
-        StudentChat = new StudentChatViewModel
+        StudentChat = new ChatData
         {
             Subjects = subjects,
             Documents = documents,

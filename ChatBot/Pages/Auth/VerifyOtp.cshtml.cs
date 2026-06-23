@@ -1,6 +1,6 @@
 using BusinessObject.Dtos.RequestModel;
 using BusinessObject.Enums;
-using ChatBot.Models;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +20,13 @@ public class VerifyOtpModel : PageModel
     }
 
     [BindProperty]
-    public VerifyOtpViewModel Input { get; set; } = new();
+    public InputModel Input { get; set; } = new();
+
+    public class InputModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string OtpCode { get; set; } = string.Empty;
+    }
 
     public string? Error { get; set; }
 
@@ -46,7 +52,7 @@ public class VerifyOtpModel : PageModel
         if (string.IsNullOrEmpty(pendingEmail))
             return RedirectToPage("/Auth/Login");
 
-        Input = new VerifyOtpViewModel
+        Input = new InputModel
         {
             Email = pendingEmail
         };

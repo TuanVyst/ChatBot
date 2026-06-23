@@ -1,4 +1,4 @@
-using ChatBot.Models;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +18,17 @@ public class LoginModel : PageModel
     }
 
     [BindProperty]
-    public LoginViewModel Input { get; set; } = new();
+    public InputModel Input { get; set; } = new();
+
+    public class InputModel
+    {
+        [Required(ErrorMessage = "Email không được để trống")]
+        [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Mật khẩu không được để trống")]
+        public string Password { get; set; } = string.Empty;
+    }
 
     public string? Error { get; set; }
 

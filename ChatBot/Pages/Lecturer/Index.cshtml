@@ -47,7 +47,7 @@
 </style>
 @* ═══════════ TOP BAR WITH BACK BUTTON ═══════════ *@
 <div class="top-bar">
-    <form asp-controller="Auth" asp-action="Logout" method="post" style="display:inline;">
+    <form asp-page="/Auth/Logout" method="post" style="display:inline;">
         @Html.AntiForgeryToken()
         <button type="submit" class="btn-back" title="Back to Login">
             <i class="ph ph-arrow-left"></i>

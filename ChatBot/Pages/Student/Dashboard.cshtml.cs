@@ -1,4 +1,4 @@
-﻿using ChatBot.Models;
+using BusinessObject.Entities;
 using DataAccessLayer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +18,13 @@ public class DashboardModel : PageModel
         _context = context;
     }
 
-    public StudentDashboardViewModel StudentDashboard { get; set; } = new();
+    public StudentDashboardData StudentDashboard { get; set; } = new();
+
+    public class StudentDashboardData
+    {
+        public IReadOnlyList<BusinessObject.Entities.Subject> Subjects { get; set; } = new List<BusinessObject.Entities.Subject>();
+        public int TotalDocuments { get; set; }
+    }
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -41,7 +47,7 @@ public class DashboardModel : PageModel
             .OrderBy(s => s.Code)
             .ToListAsync();
 
-        StudentDashboard = new StudentDashboardViewModel
+        StudentDashboard = new StudentDashboardData
         {
             Subjects = subjects
         };

@@ -1,4 +1,4 @@
-﻿using BusinessObject.Enums;
+﻿    using BusinessObject.Enums;
 
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;

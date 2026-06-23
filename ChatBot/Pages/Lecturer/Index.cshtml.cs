@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using BusinessObject.Entities;
 using ChatBot.Hubs;
-using ChatBot.Models;
+
 using DataAccessLayer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,7 +23,21 @@ public class IndexModel : PageModel
     private readonly IHubContext<NotificationHub> _hubContext;
     private readonly AppDbContext _context;
 
-    public DashboardViewModel Dashboard { get; set; } = new();
+    public DashboardData Dashboard { get; set; } = new();
+
+    public class DashboardData
+    {
+        public int TotalSubjects { get; set; }
+        public int TotalStudents { get; set; }
+        public int TotalDocuments { get; set; }
+        public int PendingCount { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public IReadOnlyList<BusinessObject.Entities.Subject> Subjects { get; set; } = new List<BusinessObject.Entities.Subject>();
+        public IReadOnlyList<BusinessObject.Entities.Chapter> Chapters { get; set; } = new List<BusinessObject.Entities.Chapter>();
+        public IReadOnlyList<BusinessObject.Entities.Document> Documents { get; set; } = new List<BusinessObject.Entities.Document>();
+        public string? SelectedSubjectId { get; set; }
+        public string? SelectedChapterId { get; set; }
+    }
 
     public IndexModel(
         IDocumentService documentService,
@@ -97,7 +111,7 @@ public class IndexModel : PageModel
             totalStudents += students.Count();
         }
 
-        Dashboard = new DashboardViewModel
+        Dashboard = new DashboardData
         {
             Subjects = subjectList,
             Documents = documents,
@@ -119,14 +133,7 @@ public class IndexModel : PageModel
 
         var students = await _subjectService.GetStudentsBySubjectIdAsync(sid);
 
-        return new PartialViewResult
-        {
-            ViewName = "_StudentsList",
-            ViewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary<IEnumerable<UserInformation>>(MetadataProvider, ModelState)
-            {
-                Model = students
-            }
-        };
+        return Partial("_StudentsList", students);
     }
 
     public async Task<IActionResult> OnGetChaptersBySubjectAsync(Guid subjectId)
@@ -162,15 +169,7 @@ public class IndexModel : PageModel
 
         var chunks = await chunkService.GetDocumentChunksByDocumentIdAsync(id);
 
-        return new PartialViewResult
-        {
-            ViewName = "_ChunksPartial",
-            ViewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary<
-        Tuple<Document, IEnumerable<DocumentChunk>>>(MetadataProvider, ModelState)
-            {
-                Model = new Tuple<Document, IEnumerable<DocumentChunk>>(doc, chunks)
-            }
-        };
+        return Partial("_ChunksPartial", new Tuple<Document, IEnumerable<DocumentChunk>>(doc, chunks));
     }
 
     public async Task<IActionResult> OnGetDownloadAsync(int id)
