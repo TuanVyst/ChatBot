@@ -31,14 +31,19 @@ var uploadFolderPath = builder.Configuration["UploadFolderPath"] ?? "D:\\Upload"
 
 var maxFileSize = long.TryParse(builder.Configuration["MaxFileSize"], out var size) ? size : 3145728; // 3MB default
 
-var openAiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+var geminiApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") 
+    ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 var chunkSize = int.TryParse(builder.Configuration["ChunkSize"], out var cs) ? cs : 512;
 
 builder.Services.AddSingleton<IFileUploadService>(new FileUploadService(uploadFolderPath, maxFileSize));
 builder.Services.AddScoped<ITextExtractionService, TextExtractionService>();
 builder.Services.AddScoped<IChunkingService>(sp => new ChunkingService(chunkSize, 50));
-builder.Services.AddScoped<IEmbeddingService>(sp => new EmbeddingService(openAiKey ?? throw new InvalidOperationException("OPENAI_API_KEY not configured")));
+builder.Services.AddScoped<IEmbeddingService>(sp => new EmbeddingService(geminiApiKey ?? throw new InvalidOperationException("GEMINI_API_KEY or OPENAI_API_KEY not configured")));
+builder.Services.AddScoped<IChatService>(sp => new ChatService(geminiApiKey ?? throw new InvalidOperationException("GEMINI_API_KEY or OPENAI_API_KEY not configured")));
 builder.Services.AddScoped<IIndexingService, IndexingService>();
+builder.Services.AddScoped<IRetrievalService, RetrievalService>();
+builder.Services.AddScoped<IChatHistoryService, ChatHistoryService>();
+builder.Services.AddScoped<IRagService, RagService>();
 
 
 builder.Services.AddScoped<IUniversityRepository, UniversityRepository>();

@@ -18,6 +18,8 @@ namespace DataAccessLayer
         public DbSet<Chapter> Chapters { get; set; }
         public DbSet<StudentSubject> StudentSubjects { get; set; }
         public DbSet<StudentNotification> StudentNotifications { get; set; }
+        public DbSet<ChatHistory> ChatHistories { get; set; }
+        public DbSet<ChatHistorySource> ChatHistorySources { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Kích hoạt extension pgvector trong PostgreSQL
@@ -29,6 +31,16 @@ namespace DataAccessLayer
 
             modelBuilder.Entity<StudentNotification>()
                 .HasIndex(n => new { n.AccountId, n.IsRead, n.CreatedAt });
+
+            modelBuilder.Entity<ChatHistorySource>()
+                .HasOne(chs => chs.ChatHistory)
+                .WithMany(ch => ch.Sources)
+                .HasForeignKey(chs => chs.ChatHistoryId);
+
+            modelBuilder.Entity<ChatHistorySource>()
+                .HasOne(chs => chs.DocumentChunk)
+                .WithMany()
+                .HasForeignKey(chs => chs.DocumentChunkId);
         }
     }
 }

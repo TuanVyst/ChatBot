@@ -171,6 +171,7 @@
         if (docSelect.options[docSelect.selectedIndex].hidden) docSelect.value = '';
 
         filterDocs(document.getElementById('docSearch').value);
+        renderHistoryFromServer();
     });
 
     // ── Document search ──
@@ -191,43 +192,42 @@
         document.getElementById('docCount').textContent = visible;
     }
 
-    // ── Chat history (localStorage) ──
-    var STORAGE_KEY = 'student_chat_history_v1';
-    var CURRENT_KEY = 'student_chat_current_v1';
-
-    function loadHistory() {
+    // ── Chat history (Database integrated) ──
+    async function renderHistoryFromServer() {
+        const subjectId = document.getElementById('subjectSelect').value || '';
         try {
-            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        } catch (e) { return []; }
+            const res = await fetch('/Student/Chat?handler=History&subjectId=' + encodeURIComponent(subjectId));
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    renderHistoryUI(data.history);
+                }
+            }
+        } catch (e) {
+            console.error("Error loading chat history:", e);
+        }
     }
 
-    function saveHistory(arr) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-    }
-
-    function renderHistory() {
+    function renderHistoryUI(history) {
         var list = document.getElementById('chatHistoryList');
         var empty = document.getElementById('chatHistoryEmpty');
-        var history = loadHistory();
         Array.from(list.querySelectorAll('.chat-history-item')).forEach(function (n) { n.remove(); });
 
-        if (history.length === 0) {
+        if (!history || history.length === 0) {
             empty.style.display = 'block';
             return;
         }
         empty.style.display = 'none';
-        history.slice().reverse().forEach(function (item) {
+        history.forEach(function (item) {
             var el = document.createElement('div');
             el.className = 'chat-history-item';
             el.innerHTML =
-                '<div class="chat-history-item-title">' + escapeHtml(item.title || 'New chat') + '</div>' +
+                '<div class="chat-history-item-title">' + escapeHtml(item.question || 'New chat') + '</div>' +
                 '<div class="chat-history-item-meta">' +
                 '<span><i class="ph ph-clock"></i> ' + (item.time || '') + '</span>' +
-                '<button class="chat-history-del" onclick="deleteChat(event, \'' + item.id + '\')" title="Delete"><i class="ph ph-x"></i></button>' +
                 '</div>';
-            el.onclick = function (e) {
-                if (e.target.closest('.chat-history-del')) return;
-                loadChat(item.id);
+            el.onclick = function () {
+                loadChatHistoryItem(item);
             };
             list.appendChild(el);
         });
@@ -240,7 +240,6 @@
     }
 
     function newChat() {
-        localStorage.removeItem(CURRENT_KEY);
         var messages = document.getElementById('chatMessages');
         messages.innerHTML =
             '<div class="chat-message bot">' +
@@ -252,77 +251,66 @@
             '</div>';
     }
 
-    function loadChat(id) {
-        var history = loadHistory();
-        var item = history.find(function (h) { return h.id === id; });
-        if (!item) return;
-        localStorage.setItem(CURRENT_KEY, id);
+    function loadChatHistoryItem(item) {
         var messages = document.getElementById('chatMessages');
         messages.innerHTML = '';
-        (item.messages || []).forEach(function (m) {
-            appendMessage(m.text, m.role, false);
-        });
-        messages.scrollTop = messages.scrollHeight;
-    }
-
-    function deleteChat(e, id) {
-        e.stopPropagation();
-        if (!confirm('Delete this chat?')) return;
-        var history = loadHistory().filter(function (h) { return h.id !== id; });
-        saveHistory(history);
-        if (localStorage.getItem(CURRENT_KEY) === id) newChat();
-        renderHistory();
-    }
-
-    function saveCurrentChat() {
-        var messages = Array.from(document.querySelectorAll('#chatMessages .chat-message')).map(function (m) {
-            return {
-                role: m.classList.contains('user') ? 'user' : 'bot',
-                text: m.querySelector('.chat-bubble-text').innerText.trim()
-            };
-        });
-        if (messages.length <= 1) return;
-
-        var history = loadHistory();
-        var currentId = localStorage.getItem(CURRENT_KEY);
-        var firstUser = messages.find(function (m) { return m.role === 'user'; });
-        var title = firstUser ? firstUser.text.substring(0, 40) : 'New chat';
-        var time = new Date().toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' });
-
-        if (currentId) {
-            var existing = history.find(function (h) { return h.id === currentId; });
-            if (existing) {
-                existing.messages = messages;
-                existing.time = time;
-                saveHistory(history);
-                renderHistory();
-                return;
-            }
-        }
-        var newId = 'c_' + Date.now();
-        localStorage.setItem(CURRENT_KEY, newId);
-        history.push({ id: newId, title: title, time: time, messages: messages });
-        saveHistory(history);
-        renderHistory();
+        appendMessage(item.question, 'user', false);
+        appendBotMessage(item.answer, item.sources);
     }
 
     // ── Send message ──
-    function sendMessage(e) {
+    async function sendMessage(e) {
         e.preventDefault();
         var input = document.getElementById('chatInput');
         var text = input.value.trim();
         if (!text) return false;
+        
         appendMessage(text, 'user', true);
         input.value = '';
         autoResize();
 
         var typing = showTyping();
-        setTimeout(function () {
+
+        try {
+            var subjectId = document.getElementById('subjectSelect').value || null;
+            var documentIdStr = document.getElementById('documentSelect').value;
+            var documentId = documentIdStr ? parseInt(documentIdStr) : null;
+            
+            var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            var headers = {
+                'Content-Type': 'application/json'
+            };
+            if (tokenInput) {
+                headers['RequestVerificationToken'] = tokenInput.value;
+            }
+
+            var response = await fetch('/Student/Chat?handler=Ask', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    question: text,
+                    subjectId: subjectId,
+                    documentId: documentId
+                })
+            });
+
             removeTyping(typing);
-            var reply = generateReply(text);
-            appendMessage(reply, 'bot', true);
-            saveCurrentChat();
-        }, 900 + Math.random() * 700);
+
+            if (response.ok) {
+                var data = await response.json();
+                if (data.success) {
+                    appendBotMessage(data.answer, data.sources);
+                    await renderHistoryFromServer();
+                } else {
+                    appendMessage("Error: " + (data.errorMessage || "Không thể tải câu trả lời."), 'bot', true);
+                }
+            } else {
+                appendMessage("Server returned an error status: " + response.status, 'bot', true);
+            }
+        } catch (err) {
+            removeTyping(typing);
+            appendMessage("Lỗi kết nối đến máy chủ: " + err.message, 'bot', true);
+        }
         return false;
     }
 
@@ -363,26 +351,25 @@
         }
     }
 
-    function generateReply(question) {
-        var q = question.toLowerCase();
-        var doc = document.getElementById('documentSelect');
-        var docName = doc.options[doc.selectedIndex]?.text || '';
-        var subj = document.getElementById('subjectSelect');
-        var subjName = subj.options[subj.selectedIndex]?.text || '';
-
-        if (q.indexOf('summary') !== -1 || q.indexOf('summarize') !== -1) {
-            return 'Here is a summary of the document "' + (docName || 'selected') + '":\n\nThis document covers the main concepts, definitions, and examples relevant to ' + (subjName || 'your subject') + '. Key takeaways are highlighted and broken down into easy-to-understand sections. 📑';
+    function appendBotMessage(text, sources) {
+        var messages = document.getElementById('chatMessages');
+        var el = document.createElement('div');
+        el.className = 'chat-message bot';
+        var avatar = '<div class="chat-avatar"><i class="ph ph-robot"></i></div>';
+        var sourcesHtml = '';
+        if (sources && sources.length > 0) {
+            sourcesHtml = '<div class="chat-sources" style="margin-top: 10px; font-size: 0.85em; opacity: 0.8;"><div class="sources-title" style="font-weight: 600; margin-bottom: 4px; color: var(--text-muted);"><i class="ph ph-link-simple"></i> Nguồn tài liệu:</div>' +
+                sources.map(s => '<span class="source-tag" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.05); padding: 2px 8px; border-radius: 4px; margin-right: 6px; border: 1px solid rgba(0,0,0,0.1);"><i class="ph ph-file-text"></i> ' + escapeHtml(s) + '</span>').join('') +
+                '</div>';
         }
-        if (q.indexOf('explain') !== -1 || q.indexOf('what is') !== -1) {
-            return 'Great question! Based on the materials from ' + (subjName || 'your enrolled subjects') + ', here is a clear explanation:\n\nThe concept is a fundamental building block that connects to several other topics in the course. I have highlighted the most important points and provided a simple example to make it easier to understand. 💡';
-        }
-        if (q.indexOf('example') !== -1) {
-            return 'Here is a practical example:\n\nImagine you are working through a problem related to ' + (subjName || 'your subject') + '. The most important steps are: 1) Identify the core concept, 2) Apply the formula or method, 3) Verify the result. I have included a short demonstration below. ✏️';
-        }
-        if (q.indexOf('hello') !== -1 || q.indexOf('hi ') !== -1 || q === 'hi') {
-            return 'Hi there! 👋 I am here to help you with ' + (subjName || 'your enrolled subjects') + '. Feel free to ask me to summarize documents, explain concepts, or generate examples.';
-        }
-        return 'Thanks for your question! I have searched through the documents in ' + (subjName || 'your enrolled subjects') + (docName ? ' (focusing on "' + docName + '")' : '') + ' to find the most relevant information.\n\nBased on the indexed material, here is what I found:\n\n• The topic relates directly to the chapter content you are studying\n• Key concepts and definitions are clearly outlined in the source material\n• I recommend reviewing the relevant sections to deepen your understanding\n\nWould you like me to elaborate on any specific part? 📚';
+        el.innerHTML =
+            avatar +
+            '<div class="chat-bubble">' +
+            '<div class="chat-bubble-name">AI Assistant</div>' +
+            '<div class="chat-bubble-text">' + escapeHtml(text).replace(/\n/g, '<br/>') + sourcesHtml + '</div>' +
+            '</div>';
+        messages.appendChild(el);
+        messages.scrollTop = messages.scrollHeight;
     }
 
     function useSuggestion(btn) {
@@ -408,7 +395,7 @@
     document.getElementById('chatInput')?.addEventListener('input', autoResize);
     document.getElementById('newChatBtn')?.addEventListener('click', newChat);
     document.addEventListener('DOMContentLoaded', function () {
-        renderHistory();
+        renderHistoryFromServer();
         filterDocs('');
     });
 </script>

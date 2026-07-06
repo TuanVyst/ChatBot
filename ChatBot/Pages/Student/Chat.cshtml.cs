@@ -1,10 +1,10 @@
 using BusinessObject.Entities;
-using BusinessObject.Entities;
 using DataAccessLayer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using ServiceLayer.Interfaces;
 
 namespace ChatBot.Pages.Student;
 
@@ -12,10 +12,14 @@ namespace ChatBot.Pages.Student;
 public class ChatModel : PageModel
 {
     private readonly AppDbContext _context;
+    private readonly IRagService _ragService;
+    private readonly IChatHistoryService _chatHistoryService;
 
-    public ChatModel(AppDbContext context)
+    public ChatModel(AppDbContext context, IRagService ragService, IChatHistoryService chatHistoryService)
     {
         _context = context;
+        _ragService = ragService;
+        _chatHistoryService = chatHistoryService;
     }
 
     public ChatData StudentChat { get; set; } = new();
@@ -94,5 +98,62 @@ public class ChatModel : PageModel
         var stream = System.IO.File.OpenRead(doc.FilePath);
 
         return File(stream, contentType, doc.FileName);
+    }
+
+    public class AskRequest
+    {
+        public string Question { get; set; } = string.Empty;
+        public Guid? SubjectId { get; set; }
+        public int? DocumentId { get; set; }
+    }
+
+    public async Task<IActionResult> OnPostAskAsync([FromBody] AskRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.Question))
+            return BadRequest(new { success = false, errorMessage = "Question is required." });
+
+        var userId = HttpContext.Session.GetString("UserId");
+        if (string.IsNullOrEmpty(userId))
+            return new JsonResult(new { success = false, errorMessage = "User is not logged in." }) { StatusCode = 401 };
+
+        var (success, result, error) = await _ragService.AskAsync(
+            request.Question,
+            request.SubjectId,
+            chapterId: null,
+            documentId: request.DocumentId,
+            userId: userId);
+
+        if (!success)
+            return new JsonResult(new { success = false, errorMessage = error });
+
+        return new JsonResult(new { success = true, answer = result?.Answer, sources = result?.Sources });
+    }
+
+    public async Task<IActionResult> OnGetHistoryAsync(Guid? subjectId)
+    {
+        var userId = HttpContext.Session.GetString("UserId");
+        if (string.IsNullOrEmpty(userId))
+            return new JsonResult(new { success = false, errorMessage = "User is not logged in." }) { StatusCode = 401 };
+
+        var (success, history, error) = await _chatHistoryService.GetHistoryAsync(
+            userId, subjectId, chapterId: null, take: 50);
+
+        if (!success || history == null)
+            return new JsonResult(new { success = false, errorMessage = error });
+
+        var list = history.Select(h => new
+        {
+            id = h.Id,
+            question = h.Question,
+            answer = h.Answer,
+            time = h.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt"),
+            sources = h.Sources
+                .Where(s => s.DocumentChunk?.Document != null)
+                .Select(s => s.DocumentChunk!.Document!.FileName)
+                .Distinct()
+                .ToList()
+        });
+
+        return new JsonResult(new { success = true, history = list });
     }
 }
