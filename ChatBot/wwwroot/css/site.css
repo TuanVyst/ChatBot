@@ -927,6 +927,46 @@ button.ghost {
     font-size: 18px;
 }
 
+.chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.chat-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: 1px solid #e3ded6;
+    background: #fff;
+    color: #191819;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.chat-action-btn:hover {
+    background: #f5f0e8;
+    border-color: #d4cfc7;
+    color: #191819;
+}
+
+.chat-action-btn i {
+    font-size: 18px;
+}
+
+.chat-action-btn.chat-logout-btn:hover {
+    background: #fde2e2;
+    border-color: #f5b5b5;
+    color: #c0392b;
+}
+
 .chat-selectors {
     display: grid;
     grid-template-columns: 1fr 1fr;

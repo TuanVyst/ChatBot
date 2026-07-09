@@ -2,7 +2,7 @@
 @model ChatBot.Pages.Student.ChatModel
 @{
     ViewData["Title"] = "AI Learning Assistant";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = "~/Pages/Shared/_StudentLayout.cshtml";
 }
 
 <div class="chat-app">
@@ -13,7 +13,7 @@
                 <i class="ph ph-clock-counter-clockwise"></i>
                 <span>Chat History</span>
             </div>
-            <button type="button" class="new-chat-btn" id="newChatBtn" title="New chat">
+            <button type="button" class="new-chat-btn" id="newChatBtn" title="Start new conversation">
                 <i class="ph ph-plus"></i>
             </button>
         </div>
@@ -33,13 +33,19 @@
                 <h1 class="chat-title">Hello, @Model.StudentChat.FullName 👋</h1>
                 <p class="chat-subtitle">Ask me anything about your enrolled subjects and lecturer-uploaded documents.</p>
             </div>
-            <form asp-page="/Auth/Logout" method="post" style="display:inline;">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="chat-logout-btn" title="Logout">
-                    <i class="ph ph-sign-out"></i>
-                    <span>Logout</span>
-                </button>
-            </form>
+            <div class="chat-header-actions">
+                <a asp-page="/Student/Dashboard" class="chat-action-btn" title="Back to Dashboard">
+                    <i class="ph ph-house"></i>
+                    <span>Dashboard</span>
+                </a>
+                <form asp-page="/Auth/Logout" method="post" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="chat-action-btn chat-logout-btn" title="Logout">
+                        <i class="ph ph-sign-out"></i>
+                        <span>Logout</span>
+                    </button>
+                </form>
+            </div>
         </div>
 
         <div class="chat-selectors">
@@ -86,8 +92,9 @@
                 <button class="suggestion-chip" onclick="useSuggestion(this)">❓ What is the main topic?</button>
             </div>
             <form class="chat-input-form" id="chatInputForm" onsubmit="return sendMessage(event)">
+                @Html.AntiForgeryToken()
                 <textarea id="chatInput" placeholder="Type your question here..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
-                <button type="submit" class="chat-send-btn" title="Send">
+                <button type="submit" class="chat-send-btn" title="Send message">
                     <i class="ph ph-paper-plane-tilt"></i>
                 </button>
             </form>
@@ -148,7 +155,7 @@
                                 <span><i class="ph ph-list"></i> @(doc.Chapter?.Name ?? "Default")</span>
                             </div>
                         </div>
-                        <a asp-page="/Student/Chat" asp-page-handler="Download" asp-route-id="@doc.Id" target="_blank" class="chat-doc-download" title="View">
+                        <a asp-page="/Student/Chat" asp-page-handler="Download" asp-route-id="@doc.Id" target="_blank" class="chat-doc-download" title="View document">
                             <i class="ph ph-arrow-square-out"></i>
                         </a>
                     </div>
@@ -249,6 +256,7 @@
             '<div class="chat-bubble-text">New conversation started. Ask me anything about your enrolled subjects! 🎓</div>' +
             '</div>' +
             '</div>';
+        renderHistoryFromServer();
     }
 
     function loadChatHistoryItem(item) {
@@ -302,14 +310,14 @@
                     appendBotMessage(data.answer, data.sources);
                     await renderHistoryFromServer();
                 } else {
-                    appendMessage("Error: " + (data.errorMessage || "Không thể tải câu trả lời."), 'bot', true);
+                    showToast(data.errorMessage || "Không thể tải câu trả lời.", 'error');
                 }
             } else {
-                appendMessage("Server returned an error status: " + response.status, 'bot', true);
+                showToast("Server returned an error status: " + response.status, 'error');
             }
         } catch (err) {
             removeTyping(typing);
-            appendMessage("Lỗi kết nối đến máy chủ: " + err.message, 'bot', true);
+            showToast("Lỗi kết nối đến máy chủ: " + err.message, 'error');
         }
         return false;
     }

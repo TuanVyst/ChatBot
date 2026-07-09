@@ -9,12 +9,14 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600&display=swap"
         rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/toast.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
     <main role="main" class="app">
         @RenderBody()
     </main>
+    <script src="~/js/toast.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -64,7 +64,7 @@ else
                                     <i class="ph ph-arrows-clockwise"></i>
                                 </button>
                             </form>
-                            <form method="post" asp-page="/Lecturer/Index" asp-page-handler="DeleteDocument" style="display:inline;" onsubmit="return confirm('Delete this document?')">
+                            <form method="post" asp-page="/Lecturer/Index" asp-page-handler="DeleteDocument" style="display:inline;" onsubmit="return confirmDelete(this, 'Xóa tài liệu này?')">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@doc.Id" />
                                 <button type="submit" class="icon-btn delete" title="Delete">

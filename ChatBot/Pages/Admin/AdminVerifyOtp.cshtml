@@ -49,9 +49,9 @@
                     });
 
                     const text = await resp.text();
-                    alert(text || 'OTP đã được gửi lại');
+                    showToast(text || 'OTP đã được gửi lại', 'success');
                 } catch (e) {
-                    alert('Lỗi khi gửi lại OTP');
+                    showToast('Lỗi khi gửi lại OTP', 'error');
                 }
             }
     </script>

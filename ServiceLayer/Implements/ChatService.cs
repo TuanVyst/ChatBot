@@ -14,7 +14,7 @@ namespace ServiceLayer.Implements
         private readonly HttpClient _httpClient;
 
         
-        private const string ModelName = "gemini-1.5-flash";
+        private const string ModelName = "gemini-2.5-flash";
 
         public ChatService(string apiKey)
         {
