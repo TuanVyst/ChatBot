@@ -240,9 +240,17 @@
         });
     }
 
-    function escapeHtml(s) {
-        return (s || '').replace(/[&<>"']/g, function (c) {
-            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    function escapeHtml(value) {
+        var text = value == null ? '' : String(value);
+
+        return text.replace(/[&<>"']/g, function (c) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[c];
         });
     }
 
@@ -269,56 +277,122 @@
     // ── Send message ──
     async function sendMessage(e) {
         e.preventDefault();
+
         var input = document.getElementById('chatInput');
         var text = input.value.trim();
-        if (!text) return false;
-        
+
+        if (!text) {
+            return false;
+        }
+
         appendMessage(text, 'user', true);
+
         input.value = '';
         autoResize();
 
         var typing = showTyping();
 
+        // Tự hủy request sau 40 giây
+        var controller = new AbortController();
+        var timeoutId = setTimeout(function () {
+            controller.abort();
+        }, 40000);
+
         try {
-            var subjectId = document.getElementById('subjectSelect').value || null;
-            var documentIdStr = document.getElementById('documentSelect').value;
-            var documentId = documentIdStr ? parseInt(documentIdStr) : null;
-            
-            var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            var subjectId =
+                document.getElementById('subjectSelect').value || null;
+
+            var documentIdValue =
+                document.getElementById('documentSelect').value;
+
+            var documentId = documentIdValue
+                ? parseInt(documentIdValue, 10)
+                : null;
+
+            var tokenInput = document.querySelector(
+                'input[name="__RequestVerificationToken"]'
+            );
+
             var headers = {
                 'Content-Type': 'application/json'
             };
+
             if (tokenInput) {
-                headers['RequestVerificationToken'] = tokenInput.value;
+                headers['RequestVerificationToken'] =
+                    tokenInput.value;
             }
 
-            var response = await fetch('/Student/Chat?handler=Ask', {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify({
-                    question: text,
-                    subjectId: subjectId,
-                    documentId: documentId
-                })
-            });
-
-            removeTyping(typing);
-
-            if (response.ok) {
-                var data = await response.json();
-                if (data.success) {
-                    appendBotMessage(data.answer, data.sources);
-                    await renderHistoryFromServer();
-                } else {
-                    showToast(data.errorMessage || "Không thể tải câu trả lời.", 'error');
+            var response = await fetch(
+                '/Student/Chat?handler=Ask',
+                {
+                    method: 'POST',
+                    headers: headers,
+                    signal: controller.signal,
+                    body: JSON.stringify({
+                        question: text,
+                        subjectId: subjectId,
+                        documentId: documentId
+                    })
                 }
-            } else {
-                showToast("Server returned an error status: " + response.status, 'error');
-            }
-        } catch (err) {
+            );
+
+            clearTimeout(timeoutId);
             removeTyping(typing);
-            showToast("Lỗi kết nối đến máy chủ: " + err.message, 'error');
+
+            // Server trả 400, 401, 403, 500...
+            if (!response.ok) {
+                var errorText = await response.text();
+
+                appendMessage(
+                    'Lỗi server ' +
+                    response.status +
+                    ': ' +
+                    (errorText || 'Không thể xử lý yêu cầu.'),
+                    'bot',
+                    true
+                );
+
+                return false;
+            }
+
+            var data = await response.json();
+
+            if (data.success) {
+                appendBotMessage(
+                    data.answer || 'AI không trả về nội dung.',
+                    data.sources || []
+                );
+
+                await renderHistoryFromServer();
+            } else {
+                appendMessage(
+                    'Lỗi: ' +
+                    (data.errorMessage ||
+                        'Không thể tạo câu trả lời.'),
+                    'bot',
+                    true
+                );
+            }
         }
+        catch (err) {
+            clearTimeout(timeoutId);
+            removeTyping(typing);
+
+            if (err.name === 'AbortError') {
+                appendMessage(
+                    'Yêu cầu đã quá thời gian chờ. Gemini hoặc máy chủ phản hồi quá lâu.',
+                    'bot',
+                    true
+                );
+            } else {
+                appendMessage(
+                    'Lỗi kết nối đến máy chủ: ' + err.message,
+                    'bot',
+                    true
+                );
+            }
+        }
+
         return false;
     }
 
@@ -390,7 +464,12 @@
     function handleKeyDown(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            document.getElementById('chatInputForm').dispatchEvent(new Event('submit', { cancelable: true }));
+
+            var form = document.getElementById('chatInputForm');
+
+            if (form) {
+                form.requestSubmit();
+            }
         }
     }
 

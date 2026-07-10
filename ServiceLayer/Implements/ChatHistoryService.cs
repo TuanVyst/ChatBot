@@ -19,8 +19,16 @@ namespace ServiceLayer.Implements
         }
 
         public async Task<(bool success, string? errorMessage)> SaveAsync(
-            string question, string answer, List<DocumentChunk> retrievedChunks,
-            Guid? subjectId, Guid? chapterId, string? userId)
+            string question,
+            string answer,
+            List<DocumentChunk> retrievedChunks,
+            Guid? subjectId,
+            Guid? chapterId,
+            string? userId,
+            int promptTokens,
+            int completionTokens,
+            int totalTokens,
+            string modelName)
         {
             try
             {
@@ -32,10 +40,18 @@ namespace ServiceLayer.Implements
                     ChapterId = chapterId,
                     UserId = userId,
                     CreatedAt = DateTime.UtcNow,
-                    Sources = retrievedChunks.Select(chunk => new ChatHistorySource
-                    {
-                        DocumentChunkId = chunk.Id
-                    }).ToList()
+
+                    PromptTokens = promptTokens,
+                    CompletionTokens = completionTokens,
+                    TotalTokens = totalTokens,
+                    ModelName = modelName,
+
+                    Sources = retrievedChunks
+                        .Select(chunk => new ChatHistorySource
+                        {
+                            DocumentChunkId = chunk.Id
+                        })
+                        .ToList()
                 };
 
                 _context.ChatHistories.Add(chatHistory);
@@ -50,7 +66,10 @@ namespace ServiceLayer.Implements
         }
 
         public async Task<(bool success, List<ChatHistory>? history, string? errorMessage)> GetHistoryAsync(
-            string? userId, Guid? subjectId = null, Guid? chapterId = null, int take = 20)
+            string? userId,
+            Guid? subjectId = null,
+            Guid? chapterId = null,
+            int take = 20)
         {
             try
             {
@@ -60,14 +79,22 @@ namespace ServiceLayer.Implements
                             .ThenInclude(dc => dc!.Document)
                     .AsQueryable();
 
-                if (!string.IsNullOrEmpty(userId))
+                if (!string.IsNullOrWhiteSpace(userId))
+                {
                     query = query.Where(ch => ch.UserId == userId);
+                }
 
                 if (subjectId.HasValue)
-                    query = query.Where(ch => ch.SubjectId == subjectId.Value);
+                {
+                    query = query.Where(ch =>
+                        ch.SubjectId == subjectId.Value);
+                }
 
                 if (chapterId.HasValue)
-                    query = query.Where(ch => ch.ChapterId == chapterId.Value);
+                {
+                    query = query.Where(ch =>
+                        ch.ChapterId == chapterId.Value);
+                }
 
                 var results = await query
                     .OrderByDescending(ch => ch.CreatedAt)
@@ -78,7 +105,10 @@ namespace ServiceLayer.Implements
             }
             catch (Exception ex)
             {
-                return (false, null, $"Get chat history failed: {ex.Message}");
+                return (
+                    false,
+                    null,
+                    $"Get chat history failed: {ex.Message}");
             }
         }
     }

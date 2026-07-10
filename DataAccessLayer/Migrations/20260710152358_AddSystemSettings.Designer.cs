@@ -3,6 +3,7 @@ using System;
 using DataAccessLayer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace DataAccessLayer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260710152358_AddSystemSettings")]
+    partial class AddSystemSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -97,18 +100,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<Guid?>("ChapterId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("CompletionTokens")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ModelName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("PromptTokens")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Question")
                         .IsRequired()
@@ -116,9 +109,6 @@ namespace DataAccessLayer.Migrations
 
                     b.Property<Guid?>("SubjectId")
                         .HasColumnType("uuid");
-
-                    b.Property<int>("TotalTokens")
-                        .HasColumnType("integer");
 
                     b.Property<string>("UserId")
                         .HasColumnType("text");
@@ -356,7 +346,7 @@ namespace DataAccessLayer.Migrations
                             ChunkSize = 512,
                             EmbeddingModel = "text-embedding-3-small",
                             TopK = 5,
-                            UpdatedAt = new DateTime(2026, 7, 10, 16, 53, 0, 683, DateTimeKind.Utc).AddTicks(8110)
+                            UpdatedAt = new DateTime(2026, 7, 10, 15, 23, 57, 641, DateTimeKind.Utc).AddTicks(5604)
                         });
                 });
 

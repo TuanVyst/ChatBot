@@ -61,6 +61,15 @@ namespace ServiceLayer.Implements
             if (subject == null)
                 return (false, "Môn học không tồn tại.", 0);
 
+            var existed = await _documentRepository.ExistsAsync(
+                file.FileName,
+                subject.Id);
+
+            if (existed)
+            {
+                return (false, "Tài liệu này đã tồn tại trong môn học.", 0);
+            }
+
             using var stream = file.OpenReadStream();
 
             var (uploadSuccess, filePath, uploadError) =

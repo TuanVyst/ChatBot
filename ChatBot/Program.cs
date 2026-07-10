@@ -31,13 +31,21 @@ var uploadFolderPath = builder.Configuration["UploadFolderPath"] ?? "D:\\Upload"
 
 var maxFileSize = long.TryParse(builder.Configuration["MaxFileSize"], out var size) ? size : 3145728; // 3MB default
 
-var geminiApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") 
-    ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-var chunkSize = int.TryParse(builder.Configuration["ChunkSize"], out var cs) ? cs : 512;
+var geminiApiKey =
+    Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+
+if (string.IsNullOrWhiteSpace(geminiApiKey))
+{
+    throw new InvalidOperationException(
+        "GEMINI_API_KEY chưa được cấu hình trong file .env");
+}
+
+Console.WriteLine("GEMINI_API_KEY đã được tải.");
+
 
 builder.Services.AddSingleton<IFileUploadService>(new FileUploadService(uploadFolderPath, maxFileSize));
 builder.Services.AddScoped<ITextExtractionService, TextExtractionService>();
-builder.Services.AddScoped<IChunkingService>(sp => new ChunkingService(chunkSize, 50));
+builder.Services.AddScoped<IChunkingService, ChunkingService>();
 builder.Services.AddScoped<IEmbeddingService>(sp => new EmbeddingService(geminiApiKey ?? throw new InvalidOperationException("GEMINI_API_KEY or OPENAI_API_KEY not configured")));
 builder.Services.AddScoped<IChatService>(sp => new ChatService(geminiApiKey ?? throw new InvalidOperationException("GEMINI_API_KEY or OPENAI_API_KEY not configured")));
 builder.Services.AddScoped<IIndexingService, IndexingService>();
@@ -52,6 +60,7 @@ builder.Services.AddScoped<IChapterRepository, ChapterRepository>();
 builder.Services.AddScoped<IUniversityService, UniversityService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IChapterService, ChapterService>();
+builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 
 
 
@@ -165,15 +174,16 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    if (app.Environment.IsDevelopment())
+    app.UseSwagger();
+
+    app.UseSwaggerUI(c =>
     {
-        app.UseSwagger();
-        app.UseSwaggerUI(c =>
-        {
-            c.SwaggerEndpoint("/swagger/v1/swagger.json", "RAG Chatbot API v1");
-            c.RoutePrefix = "swagger";
-        });
-    }
+        c.SwaggerEndpoint(
+            "/swagger/v1/swagger.json",
+            "RAG Chatbot API v1");
+
+        c.RoutePrefix = "swagger";
+    });
 }
 
 app.UseHttpsRedirection();
@@ -190,48 +200,65 @@ app.MapRazorPages();
 app.MapFallbackToPage("/Auth/Login");
 app.MapHub<ChatBot.Hubs.NotificationHub>("/notificationHub");
 
-SeedDatabase(app);
+//SeedDatabase(app);
 
 app.Run();
 
 void SeedDatabase(IHost app)
 {
-    using (var scope = app.Services.CreateScope())
+    using var scope = app.Services.CreateScope();
+
+    var services = scope.ServiceProvider;
+
+    try
     {
-        var services = scope.ServiceProvider;
-        try
+        var context = services.GetRequiredService<AppDbContext>();
+        var accountRepository = services.GetRequiredService<IAccountRepository>();
+
+        const string adminEmail = "chickenhuy2005@gmail.com";
+        const string adminUsername = "admin";
+
+        var existingAdminByEmail = context.UserInformations
+            .Include(u => u.Account)
+            .FirstOrDefault(u => u.Email.ToLower() == adminEmail.ToLower());
+
+        var existingAdminByUsername = context.Accounts
+            .FirstOrDefault(a => a.Username.ToLower() == adminUsername.ToLower());
+
+        // Nếu email hoặc username đã tồn tại thì không tạo thêm.
+        if (existingAdminByEmail != null || existingAdminByUsername != null)
         {
-            var context = services.GetRequiredService<AppDbContext>();
-            var accountRepository = services.GetRequiredService<IAccountRepository>();
-
-            // Check if admin user exists
-            var adminUser = context.UserInformations.FirstOrDefault(u => u.Email == "chickenhuy2005@gmail.com");
-            if (adminUser == null)
-            {
-                // Create admin account
-                var adminAccount = new Account
-                {
-                    Username = "admin",
-                    Password = global::BCrypt.Net.BCrypt.HashPassword("123456"),
-                    Role = BusinessObject.Enums.RoleEnum.Admin,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                var adminInfo = new UserInformation
-                {
-                    Account_id = adminAccount.Account_id,
-                    Email = "chickenhuy2005@gmail.com",
-                    Name = "Admin"
-                };
-
-                accountRepository.CreateAccountWithUserInfoAsync(adminAccount, adminInfo).Wait();
-            }
+            return;
         }
-        catch (Exception ex)
+
+        var adminAccount = new Account
         {
-            var logger = services.GetRequiredService<ILogger<Program>>();
-            logger.LogError(ex, "An error occurred while seeding the database.");
-        }
+            Account_id = Guid.NewGuid(),
+            Username = adminUsername,
+            Password = global::BCrypt.Net.BCrypt.HashPassword("123456"),
+            Role = BusinessObject.Enums.RoleEnum.Admin,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            LastLogin = DateTime.UtcNow
+        };
+
+        var adminInfo = new UserInformation
+        {
+            User_id = Guid.NewGuid(),
+            Account_id = adminAccount.Account_id,
+            Email = adminEmail,
+            Name = "Admin"
+        };
+
+        accountRepository
+            .CreateAccountWithUserInfoAsync(adminAccount, adminInfo)
+            .GetAwaiter()
+            .GetResult();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
     }
 }
+

@@ -68,23 +68,46 @@ namespace ServiceLayer.Implements
                 """;
 
             // Bước 4: Gọi Gemini sinh câu trả lời
-            var (chatSuccess, answer, chatError) = await _chatService.GenerateAnswerAsync(prompt);
+            var (
+               chatSuccess,
+               answer,
+               promptTokens,
+               completionTokens,
+               totalTokens,
+               modelName,
+               chatError
+            ) = await _chatService.GenerateAnswerAsync(prompt);
             if (!chatSuccess || answer == null)
                 return (false, null, $"Chat generation failed: {chatError}");
 
             var result = new RagResult
             {
                 Answer = answer,
+
                 Sources = chunks
                     .Where(c => c.Document != null)
                     .Select(c => c.Document!.FileName)
                     .Distinct()
-                    .ToList()
+                    .ToList(),
+
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                TotalTokens = totalTokens,
+                ModelName = modelName
             };
 
             // Bước 5: Lưu lịch sử hỏi đáp
             var (saveSuccess, saveError) = await _chatHistoryService.SaveAsync(
-                question, answer, chunks, subjectId, chapterId, userId);
+                question,
+                answer,
+                chunks,
+                subjectId,
+                chapterId,
+                userId,
+                promptTokens,
+                completionTokens,
+                totalTokens,
+                modelName);
 
             if (!saveSuccess)
             {

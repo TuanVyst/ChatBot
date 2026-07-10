@@ -17,6 +17,7 @@ namespace ServiceLayer.Implements
         private readonly IEmbeddingService _embeddingService;
         private readonly IFileUploadService _fileUploadService;
         private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
+        private readonly ISystemSettingService _settingService;
 
         public IndexingService(
             AppDbContext context,
@@ -26,7 +27,8 @@ namespace ServiceLayer.Implements
             IChunkingService chunkingService,
             IEmbeddingService embeddingService,
             IFileUploadService fileUploadService,
-            Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
+            IMemoryCache cache,
+            ISystemSettingService settingService)
         {
             _context = context;
             _documentRepository = documentRepository;
@@ -36,6 +38,7 @@ namespace ServiceLayer.Implements
             _embeddingService = embeddingService;
             _fileUploadService = fileUploadService;
             _cache = cache;
+            _settingService = settingService;
         }
 
         public async Task<(bool success, string? errorMessage)> IndexDocumentAsync(Document document)
@@ -64,7 +67,12 @@ namespace ServiceLayer.Implements
                         return (false, extractError);
                     }
 
-                    var chunks = _chunkingService.ChunkText(extractedText ?? "");
+                    var setting = await _settingService.GetSettingAsync();
+
+                    var chunks = _chunkingService.ChunkText(
+                        extractedText ?? "",
+                        setting.ChunkSize,
+                        setting.ChunkOverlap);
                     if (chunks.Count == 0)
                     {
                         await transaction.RollbackAsync();

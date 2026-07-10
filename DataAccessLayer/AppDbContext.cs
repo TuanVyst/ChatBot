@@ -20,6 +20,7 @@ namespace DataAccessLayer
         public DbSet<StudentNotification> StudentNotifications { get; set; }
         public DbSet<ChatHistory> ChatHistories { get; set; }
         public DbSet<ChatHistorySource> ChatHistorySources { get; set; }
+        public DbSet<SystemSetting> SystemSettings { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Kích hoạt extension pgvector trong PostgreSQL
@@ -41,6 +42,17 @@ namespace DataAccessLayer
                 .HasOne(chs => chs.DocumentChunk)
                 .WithMany()
                 .HasForeignKey(chs => chs.DocumentChunkId);
+
+            modelBuilder.Entity<SystemSetting>().HasData(
+                new SystemSetting
+                {       
+                    Id = 1,
+                    ChunkSize = 512,
+                    ChunkOverlap = 50,
+                    TopK = 5,
+                    EmbeddingModel = "text-embedding-3-small",
+                    UpdatedAt = DateTime.UtcNow
+                });
         }
     }
 }
