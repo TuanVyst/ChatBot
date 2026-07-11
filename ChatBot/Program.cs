@@ -8,9 +8,39 @@ using ServiceLayer.Interfaces;
 using DataAccessLayer.Repositories;
 using BusinessObject.Entities;
 using BCrypt.Net;
+using DotNetEnv;
+using System.IO;
 
+var currentDir = Directory.GetCurrentDirectory();
+string? loadedEnvPath = null;
 
-DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
+while (!string.IsNullOrWhiteSpace(currentDir))
+{
+    var envPath = Path.Combine(currentDir, ".env");
+
+    if (File.Exists(envPath))
+    {
+        Env.Load(
+            envPath,
+            new LoadOptions(
+                setEnvVars: true,
+                clobberExistingVars: true,
+                onlyExactPath: true));
+
+        loadedEnvPath = envPath;
+        break;
+    }
+
+    currentDir = Directory.GetParent(currentDir)?.FullName;
+}
+
+if (loadedEnvPath == null)
+{
+    throw new FileNotFoundException(
+        "Không tìm thấy file .env trong project hoặc thư mục cha.");
+}
+
+Console.WriteLine($"[OK] Đã nạp .env tại: {loadedEnvPath}");
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,15 +62,25 @@ var uploadFolderPath = builder.Configuration["UploadFolderPath"] ?? "D:\\Upload"
 var maxFileSize = long.TryParse(builder.Configuration["MaxFileSize"], out var size) ? size : 3145728; // 3MB default
 
 var geminiApiKey =
-    Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+    builder.Configuration["Gemini:ApiKey"];
 
 if (string.IsNullOrWhiteSpace(geminiApiKey))
 {
-    throw new InvalidOperationException(
-        "GEMINI_API_KEY chưa được cấu hình trong file .env");
+    throw new InvalidOperationException("Gemini API Key chưa cấu hình.");
 }
 
-Console.WriteLine("GEMINI_API_KEY đã được tải.");
+Console.WriteLine($"Gemini key: {geminiApiKey.Substring(0, 6)}...");
+
+geminiApiKey = geminiApiKey.Trim();
+
+var prefixLength = Math.Min(6, geminiApiKey.Length);
+var suffixLength = Math.Min(4, geminiApiKey.Length);
+
+Console.WriteLine(
+    $"Gemini key loaded: " +
+    $"{geminiApiKey[..prefixLength]}..." +
+    $"{geminiApiKey[^suffixLength..]}, " +
+    $"length={geminiApiKey.Length}");
 
 
 builder.Services.AddSingleton<IFileUploadService>(new FileUploadService(uploadFolderPath, maxFileSize));
@@ -201,7 +241,6 @@ app.MapFallbackToPage("/Auth/Login");
 app.MapHub<ChatBot.Hubs.NotificationHub>("/notificationHub");
 
 //SeedDatabase(app);
-
 app.Run();
 
 void SeedDatabase(IHost app)

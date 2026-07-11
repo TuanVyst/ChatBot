@@ -44,26 +44,29 @@
             </a>
 
             <a asp-page="/Admin/Users"
-               class="nav-item @(currentPage.Contains("Users") || currentPage.Contains("CreateTeacher") || currentPage.Contains("AdminVerifyOtp") ? "active" : "")">
+               class="nav-item @(currentPage.Contains("Users") ? "active" : "")">
                 <i class="ph ph-users"></i>
                 Users
             </a>
 
-            <a asp-page="/Admin/Users"
-               class="nav-item @(currentPage.Contains("Users") || currentPage.Contains("CreateTeacher") || currentPage.Contains("AdminVerifyOtp") ? "active" : "")">
-                <i class="ph ph-users"></i>
-                Users
-            </a>
-
-            
-            <a asp-page="/Admin/SystemSettings" 
+            <a asp-page="/Admin/SystemSettings"
                class="nav-item @(currentPage.Contains("SystemSettings") ? "active" : "")">
                 <i class="ph ph-gear"></i>
                 System Settings
             </a>
 
+            <a asp-page="/Admin/Statistics"
+               class="nav-item @(currentPage.Contains("Statistics") ? "active" : "")">
+                <i class="ph ph-chart-bar"></i>
+                Statistics
+            </a>
+
             <form asp-page="/Auth/Logout" method="post" style="margin:0;">
-                <button type="submit" class="nav-item" style="background:transparent;border:none;width:100%;text-align:left;padding:1rem 1.25rem;cursor:pointer;">
+                @Html.AntiForgeryToken()
+
+                <button type="submit"
+                        class="nav-item"
+                        style="background:transparent;border:none;width:100%;text-align:left;">
                     <i class="ph ph-sign-out"></i>
                     Đăng xuất
                 </button>

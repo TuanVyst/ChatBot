@@ -1,0 +1,131 @@
+﻿@page
+@model ChatBot.Pages.Admin.StatisticsModel
+
+@{
+    ViewData["Title"] = "Statistics";
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+}
+
+<div class="admin-page">
+    <div style="margin-bottom:28px;">
+        <p style="color:#d89424;font-weight:700;margin-bottom:5px;">
+            REPORTING
+        </p>
+
+        <h1 style="margin:0;">
+            System Statistics
+        </h1>
+
+        <p style="color:#718096;">
+            Token usage and system activity for the current month.
+        </p>
+    </div>
+
+    <div class="statistics-grid">
+        <div class="statistics-card">
+            <span>Total Users</span>
+            <strong>@Model.TotalUsers</strong>
+        </div>
+
+        <div class="statistics-card">
+            <span>Total Subjects</span>
+            <strong>@Model.TotalSubjects</strong>
+        </div>
+
+        <div class="statistics-card">
+            <span>Total Documents</span>
+            <strong>@Model.TotalDocuments</strong>
+        </div>
+
+        <div class="statistics-card">
+            <span>Total Chunks</span>
+            <strong>@Model.TotalChunks</strong>
+        </div>
+
+        <div class="statistics-card">
+            <span>Total Chats</span>
+            <strong>@Model.TotalChats</strong>
+        </div>
+
+        <div class="statistics-card">
+            <span>Tokens This Month</span>
+            <strong>@Model.TotalTokensThisMonth.ToString("N0")</strong>
+        </div>
+    </div>
+
+    <div class="statistics-section">
+        <h2>Token Usage by Student</h2>
+
+        @if (!Model.UserTokenUsage.Any())
+        {
+            <div class="empty-statistics">
+                No token usage recorded this month.
+            </div>
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="statistics-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Email</th>
+                            <th>Total Chats</th>
+                            <th>Total Tokens</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var item in Model.UserTokenUsage)
+                        {
+                            <tr>
+                                <td>@item.UserName</td>
+                                <td>@item.Email</td>
+                                <td>@item.TotalChats</td>
+                                <td>@item.TotalTokens.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="statistics-section">
+        <h2>Token Usage by Subject</h2>
+
+        @if (!Model.SubjectTokenUsage.Any())
+        {
+            <div class="empty-statistics">
+                No subject usage recorded this month.
+            </div>
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="statistics-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Subject</th>
+                            <th>Total Chats</th>
+                            <th>Total Tokens</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var item in Model.SubjectTokenUsage)
+                        {
+                            <tr>
+                                <td>@item.SubjectCode</td>
+                                <td>@item.SubjectName</td>
+                                <td>@item.TotalChats</td>
+                                <td>@item.TotalTokens.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

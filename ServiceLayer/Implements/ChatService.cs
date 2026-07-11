@@ -12,7 +12,7 @@ namespace ServiceLayer.Implements
         private readonly string _apiKey;
         private readonly HttpClient _httpClient;
 
-        private const string ModelName = "gemini-2.5-flash";
+        private const string ModelName = "gemini-3.5-flash";
 
         public ChatService(string apiKey)
         {
@@ -27,8 +27,13 @@ namespace ServiceLayer.Implements
 
             _httpClient = new HttpClient
             {
-                Timeout = TimeSpan.FromSeconds(30)
+                Timeout = TimeSpan.FromSeconds(60)
             };
+
+            Console.WriteLine(
+    $"ChatService key: " +
+    $"{_apiKey[..Math.Min(6, _apiKey.Length)]}..." +
+    $"{_apiKey[^Math.Min(4, _apiKey.Length)..]}");
         }
 
         public async Task<(
@@ -81,7 +86,7 @@ namespace ServiceLayer.Implements
 
                 var requestUrl =
                     $"https://generativelanguage.googleapis.com/v1beta/models/" +
-                    $"{ModelName}:generateContent?key={_apiKey}";
+                    $"{ModelName}:generateContent";
 
                 using var request = new HttpRequestMessage(
                     HttpMethod.Post,
@@ -89,6 +94,8 @@ namespace ServiceLayer.Implements
                 {
                     Content = content
                 };
+
+                request.Headers.Add("x-goog-api-key", _apiKey);
 
                 Console.WriteLine("Đang gửi request đến Gemini...");
 
