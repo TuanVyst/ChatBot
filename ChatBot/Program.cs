@@ -62,7 +62,7 @@ var uploadFolderPath = builder.Configuration["UploadFolderPath"] ?? "D:\\Upload"
 var maxFileSize = long.TryParse(builder.Configuration["MaxFileSize"], out var size) ? size : 3145728; // 3MB default
 
 var geminiApiKey =
-    builder.Configuration["Gemini:ApiKey"];
+    builder.Configuration["Gemini:ApiKey"] ?? builder.Configuration["GEMINI_API_KEY"];
 
 if (string.IsNullOrWhiteSpace(geminiApiKey))
 {
