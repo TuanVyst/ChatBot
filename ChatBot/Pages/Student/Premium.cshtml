@@ -1,0 +1,318 @@
+@page "/Student/Premium"
+@model ChatBot.Pages.Student.PremiumModel
+@{
+    ViewData["Title"] = "Premium Subscription";
+    Layout = "~/Pages/Shared/_StudentLayout.cshtml";
+}
+
+<style>
+    .premium-container {
+        padding: 40px;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    .premium-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 32px;
+    }
+    .premium-header i {
+        font-size: 32px;
+        color: #F59E0B;
+    }
+    .premium-header h1 {
+        margin: 0;
+        font-size: 24px;
+        color: var(--text-main);
+    }
+    .section-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 32px;
+    }
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: var(--text-main);
+    }
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    .status-active { background: rgba(16,185,129,0.1); color: #10B981; }
+    .status-expired { background: rgba(239,68,68,0.1); color: #EF4444; }
+    .status-none { background: rgba(107,114,128,0.1); color: #6B7280; }
+    
+    .plan-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+    }
+    .plan-card {
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        text-align: center;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+    }
+    .plan-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .plan-name { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .plan-price { font-size: 24px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+    .plan-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; flex-grow: 1; }
+    
+    .table-container {
+        overflow-x: auto;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 14px;
+    }
+    th {
+        font-weight: 600;
+        color: var(--text-muted);
+        background: #F8FAFC;
+    }
+</style>
+
+<div class="premium-container">
+    <div class="premium-header" style="justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <i class="ph ph-crown"></i>
+            <h1>Premium Dashboard</h1>
+        </div>
+        <a href="/Student/Dashboard" class="primary-btn" style="display: flex; align-items: center; gap: 8px; text-decoration: none; background: white; color: var(--text-main); border: 1px solid var(--border-color);">
+            <i class="ph ph-house"></i>
+            Back to Dashboard
+        </a>
+    </div>
+
+    @* 1. Active Subscription *@
+    <div class="section-card">
+        <div class="section-title">Current Status</div>
+        @if (Model.ActiveSubscription != null)
+        {
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <div>
+                    <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 4px;">Plan</div>
+                    <div style="font-weight: 600; font-size: 16px;">@(Model.ActiveSubscription.Plan?.Name ?? "Premium")</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 4px;">Status</div>
+                    <div class="status-badge status-active">Active</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 4px;">Expires On</div>
+                    <div style="font-weight: 500;">@Model.ActiveSubscription.EndDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 4px;">Remaining Quota Today</div>
+                    <div style="font-weight: 600; color: #D97706;"><i class="ph ph-lightning"></i> @Model.RemainingQuestions</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <div>
+                    <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 4px;">Status</div>
+                    <div class="status-badge status-none">Free Plan</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 4px;">Remaining Quota Today</div>
+                    <div style="font-weight: 600; color: #D97706;"><i class="ph ph-lightning"></i> @Model.RemainingQuestions</div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* 2. Upgrade Plans *@
+    <div class="section-card">
+        <div class="section-title">Upgrade to Premium</div>
+        <p style="color: var(--text-muted); margin-bottom: 24px;">Unlock more AI questions and boost your learning speed.</p>
+        
+        <div id="plansContainer" class="plan-grid">
+            @foreach (var plan in Model.AvailablePlans)
+            {
+                <div class="plan-card">
+                    <div class="plan-name">@plan.Name</div>
+                    <div class="plan-price">@plan.Price.ToString("N0")đ</div>
+                    <div class="plan-desc">@plan.Description</div>
+                    <button class="primary-btn" onclick="selectPlan(@plan.Id)">Select Plan</button>
+                </div>
+            }
+        </div>
+
+        <div id="paymentContainer" style="display: none; text-align: center; border: 2px dashed var(--border-color); border-radius: 12px; padding: 40px;">
+            <h3 style="margin-bottom: 12px; font-size: 20px;">Scan to Pay</h3>
+            <div id="qrcode" style="display: flex; justify-content: center; margin-bottom: 16px;"></div>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Or <a id="checkoutLink" href="#" target="_blank" style="color: var(--primary);">click here</a> to go to checkout page.</p>
+            <div id="paymentStatus" style="padding: 12px 24px; border-radius: 8px; background: rgba(37,99,235,0.1); color: #2563EB; font-weight: 500; display: inline-block; margin-bottom: 24px;">
+                <i class="ph ph-spinner ph-spin"></i> Waiting for payment...
+            </div>
+            <br/>
+            <button onclick="backToPlans()" class="secondary-btn">Cancel</button>
+        </div>
+    </div>
+
+    @* 3. Payment History *@
+    <div class="section-card">
+        <div class="section-title">Payment History</div>
+        @if (Model.PaymentTransactions != null && Model.PaymentTransactions.Any())
+        {
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Order Code</th>
+                            <th>Plan</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tx in Model.PaymentTransactions.OrderByDescending(t => t.CreatedAt))
+                        {
+                            <tr>
+                                <td>@tx.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>#@tx.OrderCode</td>
+                                <td>@(tx.Plan?.Name ?? $"Plan ID: {tx.PlanId}")</td>
+                                <td>@tx.Amount.ToString("N0")đ</td>
+                                <td>
+                                    @if (tx.Status == BusinessObject.Enums.PaymentStatus.Paid)
+                                    {
+                                        <span class="status-badge status-active">Paid</span>
+                                    }
+                                    else if (tx.Status == BusinessObject.Enums.PaymentStatus.Pending)
+                                    {
+                                        <span class="status-badge" style="background: rgba(245,158,11,0.1); color: #D97706;">Pending</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-expired">@tx.Status.ToString()</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p style="color: var(--text-muted); font-size: 14px;">You have no payment history.</p>
+        }
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    let paymentPollInterval = null;
+    let currentOrderCode = null;
+
+    function backToPlans() {
+        document.getElementById('paymentContainer').style.display = 'none';
+        document.getElementById('plansContainer').style.display = 'grid';
+        if (paymentPollInterval) {
+            clearInterval(paymentPollInterval);
+            paymentPollInterval = null;
+        }
+    }
+
+    async function selectPlan(planId) {
+        document.getElementById('plansContainer').style.display = 'none';
+        document.getElementById('paymentContainer').style.display = 'block';
+        document.getElementById('qrcode').innerHTML = '';
+        
+        const statusEl = document.getElementById('paymentStatus');
+        statusEl.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Generating QR...';
+        statusEl.style.background = 'rgba(37,99,235,0.1)';
+        statusEl.style.color = '#2563EB';
+
+        var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        var headers = { 'Content-Type': 'application/json' };
+        if (tokenInput) headers['RequestVerificationToken'] = tokenInput.value;
+
+        try {
+            const res = await fetch('/Student/Premium?handler=CreateSubscriptionPayment', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ planId: planId })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                new QRCode(document.getElementById("qrcode"), {
+                    text: data.qrCode || data.checkoutUrl,
+                    width: 200,
+                    height: 200
+                });
+                document.getElementById('checkoutLink').href = data.checkoutUrl;
+                
+                statusEl.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Waiting for payment...';
+                currentOrderCode = data.orderCode;
+                
+                if (paymentPollInterval) clearInterval(paymentPollInterval);
+                paymentPollInterval = setInterval(checkPaymentStatus, 3000);
+            } else {
+                statusEl.innerHTML = '<i class="ph ph-warning"></i> Error: ' + data.errorMessage;
+                statusEl.style.color = '#EF4444';
+                statusEl.style.background = 'rgba(239,68,68,0.1)';
+            }
+        } catch (e) {
+            statusEl.innerHTML = '<i class="ph ph-warning"></i> Connection error.';
+            statusEl.style.color = '#EF4444';
+            statusEl.style.background = 'rgba(239,68,68,0.1)';
+        }
+    }
+
+    async function checkPaymentStatus() {
+        if (!currentOrderCode) return;
+        try {
+            const res = await fetch('/Student/Premium?handler=CheckPaymentStatus&orderCode=' + currentOrderCode);
+            const data = await res.json();
+            if (data.success) {
+                clearInterval(paymentPollInterval);
+                paymentPollInterval = null;
+                const statusEl = document.getElementById('paymentStatus');
+                statusEl.innerHTML = '<i class="ph ph-check-circle"></i> Payment Successful!';
+                statusEl.style.color = '#10B981';
+                statusEl.style.background = 'rgba(16,185,129,0.1)';
+                
+                if (typeof showStudentToast === 'function') {
+                    showStudentToast("Thanh toán thành công! Bạn đã được cộng thêm lượt hỏi.");
+                } else {
+                    alert("Thanh toán thành công! Bạn đã được cộng thêm lượt hỏi.");
+                }
+
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+</script>
