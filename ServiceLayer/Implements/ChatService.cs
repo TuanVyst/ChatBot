@@ -46,6 +46,7 @@ namespace ServiceLayer.Implements
             string? errorMessage)>
         GenerateAnswerAsync(string prompt)
         {
+            string activeModel = "gemini-3.5-flash";
             try
             {
                 if (string.IsNullOrWhiteSpace(prompt))
@@ -56,7 +57,7 @@ namespace ServiceLayer.Implements
                         0,
                         0,
                         0,
-                        ModelName,
+                        activeModel,
                         "Prompt cannot be empty");
                 }
 
@@ -79,16 +80,18 @@ namespace ServiceLayer.Implements
 
                 var json = JsonSerializer.Serialize(requestBody);
 
-                var requestUrl =
-                    $"https://generativelanguage.googleapis.com/v1beta/models/" +
-                    $"{ModelName}:generateContent";
-
-                int maxRetries = 3;
+                var models = new[] { "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.0-flash" };
+                int maxRetries = models.Length;
                 HttpResponseMessage? response = null;
                 string responseContent = string.Empty;
 
                 for (int i = 0; i < maxRetries; i++)
                 {
+                    activeModel = models[i];
+                    var requestUrl =
+                        $"https://generativelanguage.googleapis.com/v1beta/models/" +
+                        $"{activeModel}:generateContent";
+
                     using var content = new StringContent(
                         json,
                         Encoding.UTF8,
@@ -103,24 +106,42 @@ namespace ServiceLayer.Implements
 
                     request.Headers.Add("x-goog-api-key", _apiKey);
 
-                    Console.WriteLine($"Đang gửi request đến Gemini... (Lần {i + 1})");
+                    Console.WriteLine($"Đang gửi request đến Gemini... (Mô hình: {activeModel}, Lần {i + 1}/{maxRetries})");
 
-                    response = await _httpClient.SendAsync(request);
-                    responseContent = await response.Content.ReadAsStringAsync();
+                    try
+                    {
+                        response?.Dispose();
+                        response = null;
 
-                    Console.WriteLine($"Gemini response: {(int)response.StatusCode} {response.StatusCode}");
+                        using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10));
+                        response = await _httpClient.SendAsync(request, cts.Token);
+                        responseContent = await response.Content.ReadAsStringAsync();
 
-                    if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable || 
-                        response.StatusCode == System.Net.HttpStatusCode.TooManyRequests || 
-                        response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                        Console.WriteLine($"Gemini response: {(int)response.StatusCode} {response.StatusCode}");
+
+                        if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable || 
+                            response.StatusCode == System.Net.HttpStatusCode.TooManyRequests || 
+                            response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                        {
+                            if (i < maxRetries - 1)
+                            {
+                                var delay = (int)Math.Pow(2, i) * 1000; // 1s, 2s
+                                Console.WriteLine($"API ({activeModel}) quá tải hoặc lỗi. Đang chuyển sang mô hình dự phòng sau {delay}ms...");
+                                await Task.Delay(delay);
+                                continue;
+                            }
+                        }
+                    }
+                    catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException)
                     {
                         if (i < maxRetries - 1)
                         {
-                            var delay = (int)Math.Pow(2, i) * 1000; // 1s, 2s
-                            Console.WriteLine($"API quá tải. Thử lại sau {delay}ms...");
+                            var delay = (int)Math.Pow(2, i) * 1000;
+                            Console.WriteLine($"Lỗi mạng/timeout khi gọi {activeModel}: {ex.Message}. Thử mô hình dự phòng sau {delay}ms...");
                             await Task.Delay(delay);
                             continue;
                         }
+                        throw;
                     }
                     
                     break; // Success or non-retriable error
@@ -130,14 +151,19 @@ namespace ServiceLayer.Implements
 
                 if (response == null || !response.IsSuccessStatusCode)
                 {
+                    string userFriendlyError = "Dịch vụ AI (Gemini) hiện đang bận hoặc quá tải. Vui lòng thử lại sau ít phút.";
+                    if (response != null && (int)response.StatusCode == 400)
+                    {
+                        userFriendlyError = "Yêu cầu không hợp lệ hoặc dữ liệu gửi lên bị lỗi.";
+                    }
                     return (
                         false,
                         null,
                         0,
                         0,
                         0,
-                        ModelName,
-                        $"Gemini API error: {response.StatusCode} - {responseContent}");
+                        activeModel,
+                        $"{userFriendlyError} (Chi tiết: {response?.StatusCode} - {responseContent})");
                 }
 
                 using var document =
@@ -193,7 +219,7 @@ namespace ServiceLayer.Implements
                         0,
                         0,
                         0,
-                        ModelName,
+                        activeModel,
                         "No answer in API response");
                 }
 
@@ -248,7 +274,7 @@ namespace ServiceLayer.Implements
                     promptTokens,
                     completionTokens,
                     totalTokens,
-                    ModelName,
+                    activeModel,
                     null);
             }
             catch (TaskCanceledException)
@@ -259,7 +285,7 @@ namespace ServiceLayer.Implements
                     0,
                     0,
                     0,
-                    ModelName,
+                    activeModel,
                     "Gemini phản hồi quá lâu. Request đã bị hủy sau 30 giây.");
             }
             catch (HttpRequestException ex)
@@ -270,7 +296,7 @@ namespace ServiceLayer.Implements
                     0,
                     0,
                     0,
-                    ModelName,
+                    activeModel,
                     $"Không thể kết nối Gemini API: {ex.Message}");
             }
             catch (Exception ex)
@@ -281,7 +307,7 @@ namespace ServiceLayer.Implements
                     0,
                     0,
                     0,
-                    ModelName,
+                    activeModel,
                     $"Chat generation failed: {ex.Message}");
             }
         }

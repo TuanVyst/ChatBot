@@ -43,6 +43,7 @@ namespace ServiceLayer.Implements
             string? errorMessage)>
         GetEmbeddingAsync(string text)
         {
+            string activeModel = "gemini-embedding-2";
             try
             {
                 if (string.IsNullOrWhiteSpace(text))
@@ -50,30 +51,33 @@ namespace ServiceLayer.Implements
                     return (false, null, "Text cannot be empty");
                 }
 
-                var requestBody = new
-                {
-                    model = $"models/{ModelName}",
-                    content = new
-                    {
-                        parts = new[]
-                        {
-                            new { text }
-                        }
-                    }
-                };
-
-                var json = JsonSerializer.Serialize(requestBody);
-
-                var requestUrl =
-                    $"https://generativelanguage.googleapis.com/v1beta/models/" +
-                    $"{ModelName}:embedContent";
-
-                int maxRetries = 3;
+                var models = new[] { "gemini-embedding-2", "gemini-embedding-2-preview" };
+                int maxRetries = models.Length;
                 HttpResponseMessage? response = null;
                 string responseContent = string.Empty;
 
                 for (int i = 0; i < maxRetries; i++)
                 {
+                    activeModel = models[i];
+                    var requestUrl =
+                        $"https://generativelanguage.googleapis.com/v1beta/models/" +
+                        $"{activeModel}:embedContent";
+
+                    var requestBody = new
+                    {
+                        model = $"models/{activeModel}",
+                        content = new
+                        {
+                            parts = new[]
+                            {
+                                new { text }
+                            }
+                        },
+                        outputDimensionality = 3072
+                    };
+
+                    var json = JsonSerializer.Serialize(requestBody);
+
                     using var content = new StringContent(
                         json,
                         Encoding.UTF8,
@@ -88,26 +92,44 @@ namespace ServiceLayer.Implements
 
                     request.Headers.Add("x-goog-api-key", _apiKey);
 
-                    Console.WriteLine($"Đang gọi Gemini Embedding API... (Lần {i + 1})");
+                    Console.WriteLine($"Đang gọi Gemini Embedding API... (Mô hình: {activeModel}, Lần {i + 1}/{maxRetries})");
 
-                    response = await _httpClient.SendAsync(request);
-                    responseContent = await response.Content.ReadAsStringAsync();
+                    try
+                    {
+                        response?.Dispose();
+                        response = null;
 
-                    Console.WriteLine(
-                        $"Embedding response: {(int)response.StatusCode} " +
-                        response.StatusCode);
+                        using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10));
+                        response = await _httpClient.SendAsync(request, cts.Token);
+                        responseContent = await response.Content.ReadAsStringAsync();
 
-                    if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable || 
-                        response.StatusCode == System.Net.HttpStatusCode.TooManyRequests || 
-                        response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                        Console.WriteLine(
+                            $"Embedding response: {(int)response.StatusCode} " +
+                            response.StatusCode);
+
+                        if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable || 
+                            response.StatusCode == System.Net.HttpStatusCode.TooManyRequests || 
+                            response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                        {
+                            if (i < maxRetries - 1)
+                            {
+                                var delay = (int)Math.Pow(2, i) * 1000;
+                                Console.WriteLine($"API ({activeModel}) quá tải hoặc lỗi. Đang chuyển sang mô hình dự phòng sau {delay}ms...");
+                                await Task.Delay(delay);
+                                continue;
+                            }
+                        }
+                    }
+                    catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException)
                     {
                         if (i < maxRetries - 1)
                         {
                             var delay = (int)Math.Pow(2, i) * 1000;
-                            Console.WriteLine($"API quá tải. Thử lại sau {delay}ms...");
+                            Console.WriteLine($"Lỗi mạng/timeout khi gọi {activeModel}: {ex.Message}. Thử mô hình dự phòng sau {delay}ms...");
                             await Task.Delay(delay);
                             continue;
                         }
+                        throw;
                     }
 
                     break;
@@ -117,11 +139,11 @@ namespace ServiceLayer.Implements
                 {
                     Console.WriteLine(responseContent);
 
+                    string userFriendlyError = "Dịch vụ AI Embedding hiện đang bận hoặc quá tải. Vui lòng thử lại sau ít phút.";
                     return (
                         false,
                         null,
-                        $"Gemini API error: {response?.StatusCode} - " +
-                        responseContent);
+                        $"{userFriendlyError} (Chi tiết: {response?.StatusCode} - {responseContent})");
                 }
 
                 using var document =
