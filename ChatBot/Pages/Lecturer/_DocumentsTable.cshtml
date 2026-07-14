@@ -34,10 +34,10 @@ else
                     <td>
                         <span class="status-badge @doc.IndexStatus.ToLower()" id="status-badge-@doc.Id">
                             @if (doc.IndexStatus.Equals("Completed", StringComparison.OrdinalIgnoreCase)) { <text>Indexed</text> }
-                            else if (doc.IndexStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase)) { <text>Processing</text> }
+                            else if (doc.IndexStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase) || doc.IndexStatus.Equals("Processing", StringComparison.OrdinalIgnoreCase)) { <text>Processing</text> }
                             else { <text>Failed</text> }
                         </span>
-                        @if (doc.IndexStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+                        @if (doc.IndexStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase) || doc.IndexStatus.Equals("Processing", StringComparison.OrdinalIgnoreCase))
                         {
                             <div class="doc-progress-container" id="progress-container-@doc.Id" style="margin-top: 8px; width: 100%; height: 6px; background: #e2e8f0; border-radius: 4px; overflow: hidden;" data-doc-id="@doc.Id">
                                 <div class="doc-progress-bar" id="progress-bar-@doc.Id" style="height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease;"></div>
