@@ -33,7 +33,15 @@
                 <h1 class="chat-title">Hello, @Model.StudentChat.FullName 👋</h1>
                 <p class="chat-subtitle">Ask me anything about your enrolled subjects and lecturer-uploaded documents.</p>
             </div>
-            <div class="chat-header-actions">
+            <div class="chat-header-actions" style="display: flex; align-items: center; gap: 8px;">
+                <div style="background: rgba(245,158,11,0.1); color: #D97706; padding: 6px 12px; border-radius: 20px; font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;" title="Remaining questions for today">
+                    <i class="ph ph-lightning"></i>
+                    <span id="quotaDisplay">@Model.StudentChat.RemainingQuestions</span>
+                </div>
+                <button type="button" class="chat-action-btn upgrade-btn" onclick="openSubscriptionModal()" title="Upgrade to Premium" style="background-color: var(--primary); color: white; border-color: var(--primary);">
+                    <i class="ph ph-crown"></i>
+                    <span>Upgrade</span>
+                </button>
                 <a asp-page="/Student/Dashboard" class="chat-action-btn" title="Back to Dashboard">
                     <i class="ph ph-house"></i>
                     <span>Dashboard</span>
@@ -164,6 +172,34 @@
         </div>
     </aside>
 </div>
+
+@* ═══════════ SUBSCRIPTION MODAL ═══════════ *@
+<div id="subscriptionModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="modal-content" style="background: white; padding: 24px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-main);"><i class="ph ph-crown" style="color: #F59E0B;"></i> Premium Upgrade</h2>
+            <button onclick="closeSubscriptionModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);"><i class="ph ph-x"></i></button>
+        </div>
+        
+        <div id="plansContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <!-- Plans will be loaded here -->
+            <p>Loading plans...</p>
+        </div>
+
+        <div id="paymentContainer" style="display: none; text-align: center; border-top: 1px solid var(--border-color); padding-top: 24px;">
+            <h3 style="margin-bottom: 12px;">Scan to Pay</h3>
+            <div id="qrcode" style="display: flex; justify-content: center; margin-bottom: 16px;"></div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">Or <a id="checkoutLink" href="#" target="_blank" style="color: var(--primary);">click here</a> to go to checkout page.</p>
+            <div id="paymentStatus" style="padding: 12px; border-radius: 8px; background: rgba(37,99,235,0.1); color: #2563EB; font-weight: 500;">
+                <i class="ph ph-spinner ph-spin"></i> Waiting for payment...
+            </div>
+            <button onclick="backToPlans()" class="secondary-btn" style="margin-top: 16px; padding: 8px 16px;">Back to Plans</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
 
 @* ═══════════ JAVASCRIPT ═══════════ *@
 <script>
@@ -364,6 +400,14 @@
                 );
 
                 await renderHistoryFromServer();
+                
+                var quotaSpan = document.getElementById('quotaDisplay');
+                if (quotaSpan) {
+                    var current = parseInt(quotaSpan.textContent, 10);
+                    if (!isNaN(current) && current > 0) {
+                        quotaSpan.textContent = current - 1;
+                    }
+                }
             } else {
                 appendMessage(
                     'Lỗi: ' +
@@ -481,8 +525,137 @@
 
     document.getElementById('chatInput')?.addEventListener('input', autoResize);
     document.getElementById('newChatBtn')?.addEventListener('click', newChat);
+    
+    // ── Subscription Modal Logic ──
+    let paymentPollInterval = null;
+    let currentOrderCode = null;
+
+    function openSubscriptionModal() {
+        document.getElementById('subscriptionModal').style.display = 'flex';
+        loadPlans();
+    }
+
+    function closeSubscriptionModal() {
+        document.getElementById('subscriptionModal').style.display = 'none';
+        if (paymentPollInterval) {
+            clearInterval(paymentPollInterval);
+            paymentPollInterval = null;
+        }
+    }
+
+    function backToPlans() {
+        document.getElementById('paymentContainer').style.display = 'none';
+        document.getElementById('plansContainer').style.display = 'grid';
+        if (paymentPollInterval) {
+            clearInterval(paymentPollInterval);
+            paymentPollInterval = null;
+        }
+    }
+
+    async function loadPlans() {
+        const container = document.getElementById('plansContainer');
+        container.innerHTML = '<p>Loading plans...</p>';
+        try {
+            const res = await fetch('/Student/Chat?handler=SubscriptionPlans');
+            const data = await res.json();
+            if (data.success) {
+                container.innerHTML = '';
+                data.plans.forEach(plan => {
+                    const el = document.createElement('div');
+                    el.style.cssText = 'border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; align-items: center; text-align: center;';
+                    el.innerHTML = `
+                        <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">${plan.name}</h3>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-bottom: 8px;">${plan.price.toLocaleString()}đ</div>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px; flex-grow: 1;">${plan.description}</p>
+                        <button onclick="selectPlan(${plan.id})" class="primary-btn" style="width: 100%; padding: 8px;">Select Plan</button>
+                    `;
+                    container.appendChild(el);
+                });
+            }
+        } catch (e) {
+            container.innerHTML = '<p>Failed to load plans.</p>';
+        }
+    }
+
+    async function selectPlan(planId) {
+        document.getElementById('plansContainer').style.display = 'none';
+        document.getElementById('paymentContainer').style.display = 'block';
+        document.getElementById('qrcode').innerHTML = '';
+        const statusEl = document.getElementById('paymentStatus');
+        statusEl.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Generating QR...';
+        statusEl.style.background = 'rgba(37,99,235,0.1)';
+        statusEl.style.color = '#2563EB';
+
+        var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        var headers = { 'Content-Type': 'application/json' };
+        if (tokenInput) headers['RequestVerificationToken'] = tokenInput.value;
+
+        try {
+            const res = await fetch('/Student/Chat?handler=CreateSubscriptionPayment', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ planId: planId })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                // Render QR code
+                new QRCode(document.getElementById("qrcode"), {
+                    text: data.qrCode || data.checkoutUrl,
+                    width: 200,
+                    height: 200
+                });
+                document.getElementById('checkoutLink').href = data.checkoutUrl;
+                
+                statusEl.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Waiting for payment...';
+                currentOrderCode = data.orderCode;
+                
+                // Start polling
+                if (paymentPollInterval) clearInterval(paymentPollInterval);
+                paymentPollInterval = setInterval(checkPaymentStatus, 3000);
+            } else {
+                statusEl.innerHTML = '<i class="ph ph-warning"></i> Error: ' + data.errorMessage;
+                statusEl.style.color = '#EF4444';
+                statusEl.style.background = 'rgba(239,68,68,0.1)';
+            }
+        } catch (e) {
+            statusEl.innerHTML = '<i class="ph ph-warning"></i> Connection error.';
+        }
+    }
+
+    async function checkPaymentStatus() {
+        if (!currentOrderCode) return;
+        try {
+            const res = await fetch('/Student/Chat?handler=CheckPaymentStatus&orderCode=' + currentOrderCode);
+            const data = await res.json();
+            if (data.success) {
+                clearInterval(paymentPollInterval);
+                paymentPollInterval = null;
+                const statusEl = document.getElementById('paymentStatus');
+                statusEl.innerHTML = '<i class="ph ph-check-circle"></i> Payment Successful!';
+                statusEl.style.color = '#10B981';
+                statusEl.style.background = 'rgba(16,185,129,0.1)';
+                
+                setTimeout(() => {
+                    closeSubscriptionModal();
+                    alert("Thanh toán thành công! Bạn đã được cộng thêm lượt hỏi.");
+                    window.location.reload();
+                }, 2000);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         renderHistoryFromServer();
         filterDocs('');
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('upgrade') === 'true') {
+            openSubscriptionModal();
+            // clean url
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
     });
 </script>

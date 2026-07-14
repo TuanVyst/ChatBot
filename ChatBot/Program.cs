@@ -9,6 +9,7 @@ using DataAccessLayer.Repositories;
 using BusinessObject.Entities;
 using BCrypt.Net;
 using DotNetEnv;
+using PayOS;
 using System.IO;
 
 var currentDir = Directory.GetCurrentDirectory();
@@ -105,6 +106,27 @@ builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+
+// PayOS Configuration
+var payosClientId = Environment.GetEnvironmentVariable("PAYOS_CLIENT_ID") ?? "";
+var payosApiKey = Environment.GetEnvironmentVariable("PAYOS_API_KEY") ?? "";
+var payosChecksumKey = Environment.GetEnvironmentVariable("PAYOS_CHECKSUM_KEY") ?? "";
+
+if (!string.IsNullOrWhiteSpace(payosClientId) && payosClientId != "your_client_id_here")
+{
+    var payOSClient = new PayOSClient(payosClientId, payosApiKey, payosChecksumKey);
+    builder.Services.AddSingleton(payOSClient);
+    Console.WriteLine($"[OK] PayOS đã cấu hình: ClientID={payosClientId[..Math.Min(6, payosClientId.Length)]}...");
+}
+else
+{
+    Console.WriteLine("[WARN] PayOS chưa cấu hình. Vui lòng thêm PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY vào .env");
+    // Register a null-safe placeholder so DI doesn't fail
+    builder.Services.AddSingleton(new PayOSClient("placeholder", "placeholder", "placeholder"));
+}
+
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddAntiforgery(options =>
 {

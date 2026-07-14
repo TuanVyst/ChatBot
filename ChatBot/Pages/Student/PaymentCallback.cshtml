@@ -1,0 +1,27 @@
+@page "/Student/PaymentCallback"
+@model ChatBot.Pages.Student.PaymentCallbackModel
+@{
+    ViewData["Title"] = "Payment Status";
+    Layout = "~/Pages/Shared/_StudentLayout.cshtml";
+}
+
+<div class="student-page">
+    <div class="student-hero" style="text-align: center;">
+        @if (Model.IsSuccess)
+        {
+            <i class="ph ph-check-circle" style="font-size: 64px; color: #10B981;"></i>
+            <h1 style="margin-top: 16px;">Thanh toán thành công!</h1>
+            <p>Cảm ơn bạn đã đăng ký gói Premium. Bạn đã được cộng thêm lượt hỏi AI.</p>
+        }
+        else
+        {
+            <i class="ph ph-x-circle" style="font-size: 64px; color: #EF4444;"></i>
+            <h1 style="margin-top: 16px;">Thanh toán thất bại</h1>
+            <p>@Model.ErrorMessage</p>
+        }
+
+        <div style="margin-top: 32px;">
+            <a href="/Student/Chat" class="primary-btn">Quay lại Chat</a>
+        </div>
+    </div>
+</div>

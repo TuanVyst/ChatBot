@@ -1,4 +1,5 @@
 using BusinessObject.Entities;
+using BusinessObject.Enums;
 using Microsoft.EntityFrameworkCore;
 using Pgvector.EntityFrameworkCore;
 namespace DataAccessLayer
@@ -21,6 +22,9 @@ namespace DataAccessLayer
         public DbSet<ChatHistory> ChatHistories { get; set; }
         public DbSet<ChatHistorySource> ChatHistorySources { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
+        public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+        public DbSet<Subscription> Subscriptions { get; set; }
+        public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Kích hoạt extension pgvector trong PostgreSQL
@@ -52,6 +56,44 @@ namespace DataAccessLayer
                     TopK = 5,
                     EmbeddingModel = "text-embedding-3-small",
                     UpdatedAt = DateTime.UtcNow
+                });
+
+            // Subscription: unique index on OrderCode
+            modelBuilder.Entity<PaymentTransaction>()
+                .HasIndex(p => p.OrderCode)
+                .IsUnique();
+
+            // Seed subscription plans
+            modelBuilder.Entity<SubscriptionPlan>().HasData(
+                new SubscriptionPlan
+                {
+                    Id = 1,
+                    Name = "Gói Tuần",
+                    Price = 19000,
+                    DurationDays = 7,
+                    DailyQuestionLimit = 10,
+                    Description = "Hỏi 10 câu/ngày trong 7 ngày",
+                    IsActive = true
+                },
+                new SubscriptionPlan
+                {
+                    Id = 2,
+                    Name = "Gói Tháng",
+                    Price = 49000,
+                    DurationDays = 30,
+                    DailyQuestionLimit = 10,
+                    Description = "Hỏi 10 câu/ngày trong 30 ngày",
+                    IsActive = true
+                },
+                new SubscriptionPlan
+                {
+                    Id = 3,
+                    Name = "Gói Năm",
+                    Price = 490000,
+                    DurationDays = 365,
+                    DailyQuestionLimit = 10,
+                    Description = "Hỏi 10 câu/ngày trong 365 ngày",
+                    IsActive = true
                 });
         }
     }
