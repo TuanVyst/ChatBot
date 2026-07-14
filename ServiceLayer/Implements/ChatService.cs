@@ -1,4 +1,4 @@
-﻿using ServiceLayer.Interfaces;
+using ServiceLayer.Interfaces;
 using System;
 using System.Net.Http;
 using System.Text;
@@ -79,38 +79,56 @@ namespace ServiceLayer.Implements
 
                 var json = JsonSerializer.Serialize(requestBody);
 
-                using var content = new StringContent(
-                    json,
-                    Encoding.UTF8,
-                    "application/json");
-
                 var requestUrl =
                     $"https://generativelanguage.googleapis.com/v1beta/models/" +
                     $"{ModelName}:generateContent";
 
-                using var request = new HttpRequestMessage(
-                    HttpMethod.Post,
-                    requestUrl)
+                int maxRetries = 3;
+                HttpResponseMessage? response = null;
+                string responseContent = string.Empty;
+
+                for (int i = 0; i < maxRetries; i++)
                 {
-                    Content = content
-                };
+                    using var content = new StringContent(
+                        json,
+                        Encoding.UTF8,
+                        "application/json");
 
-                request.Headers.Add("x-goog-api-key", _apiKey);
+                    using var request = new HttpRequestMessage(
+                        HttpMethod.Post,
+                        requestUrl)
+                    {
+                        Content = content
+                    };
 
-                Console.WriteLine("Đang gửi request đến Gemini...");
+                    request.Headers.Add("x-goog-api-key", _apiKey);
 
-                using var response =
-                    await _httpClient.SendAsync(request);
+                    Console.WriteLine($"Đang gửi request đến Gemini... (Lần {i + 1})");
 
-                Console.WriteLine(
-                    $"Gemini response: {(int)response.StatusCode} {response.StatusCode}");
+                    response = await _httpClient.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
 
-                var responseContent =
-                    await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Gemini response: {(int)response.StatusCode} {response.StatusCode}");
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable || 
+                        response.StatusCode == System.Net.HttpStatusCode.TooManyRequests || 
+                        response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                    {
+                        if (i < maxRetries - 1)
+                        {
+                            var delay = (int)Math.Pow(2, i) * 1000; // 1s, 2s
+                            Console.WriteLine($"API quá tải. Thử lại sau {delay}ms...");
+                            await Task.Delay(delay);
+                            continue;
+                        }
+                    }
+                    
+                    break; // Success or non-retriable error
+                }
 
                 Console.WriteLine(responseContent);
 
-                if (!response.IsSuccessStatusCode)
+                if (response == null || !response.IsSuccessStatusCode)
                 {
                     return (
                         false,

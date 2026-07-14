@@ -1,4 +1,4 @@
-﻿using ServiceLayer.Interfaces;
+using ServiceLayer.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -64,44 +64,63 @@ namespace ServiceLayer.Implements
 
                 var json = JsonSerializer.Serialize(requestBody);
 
-                using var content = new StringContent(
-                    json,
-                    Encoding.UTF8,
-                    "application/json");
-
                 var requestUrl =
                     $"https://generativelanguage.googleapis.com/v1beta/models/" +
                     $"{ModelName}:embedContent";
 
-                using var request = new HttpRequestMessage(
-                    HttpMethod.Post,
-                    requestUrl)
+                int maxRetries = 3;
+                HttpResponseMessage? response = null;
+                string responseContent = string.Empty;
+
+                for (int i = 0; i < maxRetries; i++)
                 {
-                    Content = content
-                };
+                    using var content = new StringContent(
+                        json,
+                        Encoding.UTF8,
+                        "application/json");
 
-                request.Headers.Add("x-goog-api-key", _apiKey);
+                    using var request = new HttpRequestMessage(
+                        HttpMethod.Post,
+                        requestUrl)
+                    {
+                        Content = content
+                    };
 
-                Console.WriteLine("Đang gọi Gemini Embedding API...");
+                    request.Headers.Add("x-goog-api-key", _apiKey);
 
-                using var response =
-                    await _httpClient.SendAsync(request);
+                    Console.WriteLine($"Đang gọi Gemini Embedding API... (Lần {i + 1})");
 
-                var responseContent =
-                    await response.Content.ReadAsStringAsync();
+                    response = await _httpClient.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
 
-                Console.WriteLine(
-                    $"Embedding response: {(int)response.StatusCode} " +
-                    response.StatusCode);
+                    Console.WriteLine(
+                        $"Embedding response: {(int)response.StatusCode} " +
+                        response.StatusCode);
 
-                if (!response.IsSuccessStatusCode)
+                    if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable || 
+                        response.StatusCode == System.Net.HttpStatusCode.TooManyRequests || 
+                        response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                    {
+                        if (i < maxRetries - 1)
+                        {
+                            var delay = (int)Math.Pow(2, i) * 1000;
+                            Console.WriteLine($"API quá tải. Thử lại sau {delay}ms...");
+                            await Task.Delay(delay);
+                            continue;
+                        }
+                    }
+
+                    break;
+                }
+
+                if (response == null || !response.IsSuccessStatusCode)
                 {
                     Console.WriteLine(responseContent);
 
                     return (
                         false,
                         null,
-                        $"Gemini API error: {response.StatusCode} - " +
+                        $"Gemini API error: {response?.StatusCode} - " +
                         responseContent);
                 }
 
