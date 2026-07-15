@@ -1,0 +1,56 @@
+﻿@page "/Auth/VerifyOtp"
+@model ChatBot.Pages.Auth.VerifyOtpModel
+
+<h2>Nhập mã xác thực</h2>
+
+<p>
+    Chúng tôi đã gửi một mã 6 số tới email:
+    <b>@Model.Input.Email</b>
+</p>
+
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="alert alert-danger">@Model.Error</div>
+}
+
+<form method="post">
+    @Html.AntiForgeryToken()
+
+    <input type="hidden" asp-for="Input.Email" />
+
+    <div class="form-group">
+        <label>Mã OTP</label>
+        <input asp-for="Input.OtpCode"
+               class="form-control"
+               placeholder="Nhập 6 số..."
+               required />
+    </div>
+
+    <button type="submit"
+            class="btn btn-primary"
+            style="margin-top:12px;">
+        Xác nhận
+    </button>
+</form>
+
+<form method="post"
+      asp-page-handler="ResendOtp"
+      style="margin-top:12px;">
+    @Html.AntiForgeryToken()
+
+    <input type="hidden"
+           name="email"
+           value="@Model.Input.Email" />
+
+    <button type="submit"
+            class="btn btn-secondary">
+        Gửi lại mã
+    </button>
+</form>
+
+@if (TempData["OtpSentMessage"] != null)
+{
+    <div class="alert alert-info" style="margin-top:12px">
+        @TempData["OtpSentMessage"]
+    </div>
+}

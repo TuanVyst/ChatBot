@@ -1,0 +1,507 @@
+@page "/Student/Chat"
+@model ChatBot.Pages.Student.ChatModel
+@{
+    ViewData["Title"] = "AI Learning Assistant";
+    Layout = "~/Pages/Shared/_StudentLayout.cshtml";
+}
+
+<div class="chat-app">
+    @* ═══════════ LEFT: CHAT HISTORY ═══════════ *@
+    <aside class="chat-sidebar chat-history">
+        <div class="chat-sidebar-header">
+            <div class="chat-sidebar-title">
+                <i class="ph ph-clock-counter-clockwise"></i>
+                <span>Chat History</span>
+            </div>
+            <button type="button" class="new-chat-btn" id="newChatBtn" title="Start new conversation">
+                <i class="ph ph-plus"></i>
+            </button>
+        </div>
+        <div class="chat-history-list" id="chatHistoryList">
+            <div class="chat-history-empty" id="chatHistoryEmpty">
+                <i class="ph ph-chat-circle-dots"></i>
+                <p>No chat history yet.<br />Start a new conversation!</p>
+            </div>
+        </div>
+    </aside>
+
+    @* ═══════════ CENTER: CHAT INTERFACE ═══════════ *@
+    <main class="chat-main">
+        <div class="chat-main-header">
+            <div>
+                <p class="chat-eyebrow">AI LEARNING ASSISTANT</p>
+                <h1 class="chat-title">Hello, @Model.StudentChat.FullName 👋</h1>
+                <p class="chat-subtitle">Ask me anything about your enrolled subjects and lecturer-uploaded documents.</p>
+            </div>
+            <div class="chat-header-actions" style="display: flex; align-items: center; gap: 8px;">
+                <div style="background: rgba(245,158,11,0.1); color: #D97706; padding: 6px 12px; border-radius: 20px; font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;" title="Remaining questions for today">
+                    <i class="ph ph-lightning"></i>
+                    <span id="quotaDisplay">@Model.StudentChat.RemainingQuestions</span>
+                </div>
+                <a href="/Student/Premium" class="chat-action-btn upgrade-btn" title="Upgrade to Premium" style="background-color: var(--primary); color: white; border-color: var(--primary); text-decoration: none;">
+                    <i class="ph ph-crown"></i>
+                    <span>Upgrade</span>
+                </a>
+                <a asp-page="/Student/Dashboard" class="chat-action-btn" title="Back to Dashboard">
+                    <i class="ph ph-house"></i>
+                    <span>Dashboard</span>
+                </a>
+                <form asp-page="/Auth/Logout" method="post" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="chat-action-btn chat-logout-btn" title="Logout">
+                        <i class="ph ph-sign-out"></i>
+                        <span>Logout</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="chat-selectors">
+            <div class="chat-selector">
+                <label><i class="ph ph-book-open"></i> Subject</label>
+                <select id="subjectSelect" class="chat-select">
+                    <option value="">All Subjects</option>
+                    @foreach (var sub in Model.StudentChat.Subjects)
+                    {
+                        <option value="@sub.Id" selected="@(Model.StudentChat.SelectedSubjectId == sub.Id)">@sub.Code — @sub.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="chat-selector">
+                <label><i class="ph ph-file-text"></i> Document</label>
+                <select id="documentSelect" class="chat-select">
+                    <option value="">All Documents</option>
+                    @foreach (var doc in Model.StudentChat.Documents)
+                    {
+                        <option value="@doc.Id" data-subject="@doc.SubjectId" selected="@(Model.StudentChat.SelectedDocumentId == doc.Id)">
+                            @doc.FileName
+                        </option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-message bot">
+                <div class="chat-avatar"><i class="ph ph-robot"></i></div>
+                <div class="chat-bubble">
+                    <div class="chat-bubble-name">AI Assistant</div>
+                    <div class="chat-bubble-text">
+                        Hello! I'm your AI learning assistant. I can help you understand materials from your enrolled subjects. Ask me a question to get started! 🎓
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-wrap">
+            <div class="chat-suggestions" id="chatSuggestions">
+                <button class="suggestion-chip" onclick="useSuggestion(this)">📚 Summarize the latest document</button>
+                <button class="suggestion-chip" onclick="useSuggestion(this)">🧠 Explain the key concepts</button>
+                <button class="suggestion-chip" onclick="useSuggestion(this)">❓ What is the main topic?</button>
+            </div>
+            <form class="chat-input-form" id="chatInputForm" onsubmit="return sendMessage(event)">
+                @Html.AntiForgeryToken()
+                <textarea id="chatInput" placeholder="Type your question here..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
+                <button type="submit" class="chat-send-btn" title="Send message">
+                    <i class="ph ph-paper-plane-tilt"></i>
+                </button>
+            </form>
+        </div>
+    </main>
+
+    @* ═══════════ RIGHT: DOCUMENTS ═══════════ *@
+    <aside class="chat-sidebar chat-docs">
+        <div class="chat-sidebar-header">
+            <div class="chat-sidebar-title">
+                <i class="ph ph-folder-open"></i>
+                <span>Course Materials</span>
+            </div>
+            <span class="chat-doc-count" id="docCount">@Model.StudentChat.Documents.Count()</span>
+        </div>
+        <div class="chat-doc-filter">
+            <input type="text" id="docSearch" placeholder="Search documents..." oninput="filterDocs(this.value)" />
+            <i class="ph ph-magnifying-glass"></i>
+        </div>
+        <div class="chat-docs-list" id="chatDocsList">
+            @if (!Model.StudentChat.Documents.Any())
+            {
+                <div class="chat-docs-empty">
+                    <i class="ph ph-folder-open"></i>
+                    <p>No documents available.<br />Documents uploaded by your lecturer will appear here.</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var doc in Model.StudentChat.Documents)
+                {
+                    <div class="chat-doc-card" data-subject="@doc.SubjectId" data-filename="@doc.FileName.ToLower()">
+                        <div class="chat-doc-icon">
+                            @{
+                                var ext = System.IO.Path.GetExtension(doc.FileName)?.ToLower() ?? "";
+                            }
+                            @if (ext == ".pdf")
+                            {
+                                <i class="ph ph-file-pdf" style="color:#EF4444;"></i>
+                            }
+                            else if (ext == ".docx" || ext == ".doc")
+                            {
+                                <i class="ph ph-file-doc" style="color:#2563EB;"></i>
+                            }
+                            else if (ext == ".txt")
+                            {
+                                <i class="ph ph-file-text" style="color:#14B8A6;"></i>
+                            }
+                            else
+                            {
+                                <i class="ph ph-file" style="color:#475569;"></i>
+                            }
+                        </div>
+                        <div class="chat-doc-info">
+                            <div class="chat-doc-name" title="@doc.FileName">@doc.FileName</div>
+                            <div class="chat-doc-meta">
+                                <span><i class="ph ph-book-open"></i> @(doc.Subject?.Code ?? "—")</span>
+                                <span><i class="ph ph-list"></i> @(doc.Chapter?.Name ?? "Default")</span>
+                            </div>
+                        </div>
+                        <a asp-page="/Student/Chat" asp-page-handler="Download" asp-route-id="@doc.Id" target="_blank" class="chat-doc-download" title="View document">
+                            <i class="ph ph-arrow-square-out"></i>
+                        </a>
+                    </div>
+                }
+            }
+        </div>
+    </aside>
+</div>
+
+
+
+@* ═══════════ JAVASCRIPT ═══════════ *@
+<script>
+    // ── Document filter by subject ──
+    document.getElementById('subjectSelect')?.addEventListener('change', function () {
+        var subjectId = this.value;
+        var docSelect = document.getElementById('documentSelect');
+        Array.from(docSelect.options).forEach(function (opt) {
+            if (!opt.value) { opt.hidden = false; return; }
+            opt.hidden = (subjectId && opt.dataset.subject !== subjectId);
+        });
+        if (docSelect.options[docSelect.selectedIndex].hidden) docSelect.value = '';
+
+        filterDocs(document.getElementById('docSearch').value);
+        renderHistoryFromServer();
+    });
+
+    // ── Document search ──
+    function filterDocs(q) {
+        q = (q || '').toLowerCase();
+        var subjectId = document.getElementById('subjectSelect').value;
+        var visible = 0;
+        document.querySelectorAll('.chat-doc-card').forEach(function (card) {
+            var matchSubj = !subjectId || card.dataset.subject === subjectId;
+            var matchName = !q || card.dataset.filename.indexOf(q) !== -1;
+            if (matchSubj && matchName) {
+                card.style.display = '';
+                visible++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        document.getElementById('docCount').textContent = visible;
+    }
+
+    // ── Chat history (Database integrated) ──
+    async function renderHistoryFromServer() {
+        const subjectId = document.getElementById('subjectSelect').value || '';
+        try {
+            const res = await fetch('/Student/Chat?handler=History&subjectId=' + encodeURIComponent(subjectId));
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    renderHistoryUI(data.history);
+                }
+            }
+        } catch (e) {
+            console.error("Error loading chat history:", e);
+        }
+    }
+
+    function renderHistoryUI(history) {
+        var list = document.getElementById('chatHistoryList');
+        var empty = document.getElementById('chatHistoryEmpty');
+        Array.from(list.querySelectorAll('.chat-history-item')).forEach(function (n) { n.remove(); });
+
+        if (!history || history.length === 0) {
+            empty.style.display = 'block';
+            return;
+        }
+        empty.style.display = 'none';
+        history.forEach(function (item) {
+            var el = document.createElement('div');
+            el.className = 'chat-history-item';
+            el.innerHTML =
+                '<div class="chat-history-item-title">' + escapeHtml(item.question || 'New chat') + '</div>' +
+                '<div class="chat-history-item-meta">' +
+                '<span><i class="ph ph-clock"></i> ' + (item.time || '') + '</span>' +
+                '</div>';
+            el.onclick = function () {
+                loadChatHistoryItem(item);
+            };
+            list.appendChild(el);
+        });
+    }
+
+    function escapeHtml(value) {
+        var text = value == null ? '' : String(value);
+
+        return text.replace(/[&<>"']/g, function (c) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[c];
+        });
+    }
+
+    function newChat() {
+        var messages = document.getElementById('chatMessages');
+        messages.innerHTML =
+            '<div class="chat-message bot">' +
+            '<div class="chat-avatar"><i class="ph ph-robot"></i></div>' +
+            '<div class="chat-bubble">' +
+            '<div class="chat-bubble-name">AI Assistant</div>' +
+            '<div class="chat-bubble-text">New conversation started. Ask me anything about your enrolled subjects! 🎓</div>' +
+            '</div>' +
+            '</div>';
+        renderHistoryFromServer();
+    }
+
+    function loadChatHistoryItem(item) {
+        var messages = document.getElementById('chatMessages');
+        messages.innerHTML = '';
+        appendMessage(item.question, 'user', false);
+        appendBotMessage(item.answer, item.sources);
+    }
+
+    // ── Send message ──
+    async function sendMessage(e) {
+        e.preventDefault();
+
+        var input = document.getElementById('chatInput');
+        var text = input.value.trim();
+
+        if (!text) {
+            return false;
+        }
+
+        appendMessage(text, 'user', true);
+
+        input.value = '';
+        autoResize();
+
+        var typing = showTyping();
+
+        // Tự hủy request sau 40 giây
+        var controller = new AbortController();
+        var timeoutId = setTimeout(function () {
+            controller.abort();
+        }, 40000);
+
+        try {
+            var subjectId =
+                document.getElementById('subjectSelect').value || null;
+
+            var documentIdValue =
+                document.getElementById('documentSelect').value;
+
+            var documentId = documentIdValue
+                ? parseInt(documentIdValue, 10)
+                : null;
+
+            var tokenInput = document.querySelector(
+                'input[name="__RequestVerificationToken"]'
+            );
+
+            var headers = {
+                'Content-Type': 'application/json'
+            };
+
+            if (tokenInput) {
+                headers['RequestVerificationToken'] =
+                    tokenInput.value;
+            }
+
+            var response = await fetch(
+                '/Student/Chat?handler=Ask',
+                {
+                    method: 'POST',
+                    headers: headers,
+                    signal: controller.signal,
+                    body: JSON.stringify({
+                        question: text,
+                        subjectId: subjectId,
+                        documentId: documentId
+                    })
+                }
+            );
+
+            clearTimeout(timeoutId);
+            removeTyping(typing);
+
+            // Server trả 400, 401, 403, 500...
+            if (!response.ok) {
+                var errorText = await response.text();
+
+                appendMessage(
+                    'Lỗi server ' +
+                    response.status +
+                    ': ' +
+                    (errorText || 'Không thể xử lý yêu cầu.'),
+                    'bot',
+                    true
+                );
+
+                return false;
+            }
+
+            var data = await response.json();
+
+            if (data.success) {
+                appendBotMessage(
+                    data.answer || 'AI không trả về nội dung.',
+                    data.sources || []
+                );
+
+                await renderHistoryFromServer();
+                
+                var quotaSpan = document.getElementById('quotaDisplay');
+                if (quotaSpan) {
+                    var current = parseInt(quotaSpan.textContent, 10);
+                    if (!isNaN(current) && current > 0) {
+                        quotaSpan.textContent = current - 1;
+                    }
+                }
+            } else {
+                appendMessage(
+                    'Lỗi: ' +
+                    (data.errorMessage ||
+                        'Không thể tạo câu trả lời.'),
+                    'bot',
+                    true
+                );
+            }
+        }
+        catch (err) {
+            clearTimeout(timeoutId);
+            removeTyping(typing);
+
+            if (err.name === 'AbortError') {
+                appendMessage(
+                    'Yêu cầu đã quá thời gian chờ. Gemini hoặc máy chủ phản hồi quá lâu.',
+                    'bot',
+                    true
+                );
+            } else {
+                appendMessage(
+                    'Lỗi kết nối đến máy chủ: ' + err.message,
+                    'bot',
+                    true
+                );
+            }
+        }
+
+        return false;
+    }
+
+    function showTyping() {
+        var messages = document.getElementById('chatMessages');
+        var el = document.createElement('div');
+        el.className = 'chat-message bot typing';
+        el.innerHTML =
+            '<div class="chat-avatar"><i class="ph ph-robot"></i></div>' +
+            '<div class="chat-bubble">' +
+            '<div class="chat-bubble-name">AI Assistant</div>' +
+            '<div class="chat-bubble-text"><div class="typing-dots"><span></span><span></span><span></span></div></div>' +
+            '</div>';
+        messages.appendChild(el);
+        messages.scrollTop = messages.scrollHeight;
+        return el;
+    }
+
+    function removeTyping(el) { if (el) el.remove(); }
+
+    function appendMessage(text, role, scroll) {
+        var messages = document.getElementById('chatMessages');
+        var el = document.createElement('div');
+        el.className = 'chat-message ' + role;
+        var avatar = role === 'user'
+            ? '<div class="chat-avatar user-avatar"><i class="ph ph-user"></i></div>'
+            : '<div class="chat-avatar"><i class="ph ph-robot"></i></div>';
+        var name = role === 'user' ? '@Model.StudentChat.FullName' : 'AI Assistant';
+        el.innerHTML =
+            avatar +
+            '<div class="chat-bubble">' +
+            '<div class="chat-bubble-name">' + escapeHtml(name) + '</div>' +
+            '<div class="chat-bubble-text">' + escapeHtml(text).replace(/\n/g, '<br/>') + '</div>' +
+            '</div>';
+        messages.appendChild(el);
+        if (scroll) {
+            messages.scrollTop = messages.scrollHeight;
+        }
+    }
+
+    function appendBotMessage(text, sources) {
+        var messages = document.getElementById('chatMessages');
+        var el = document.createElement('div');
+        el.className = 'chat-message bot';
+        var avatar = '<div class="chat-avatar"><i class="ph ph-robot"></i></div>';
+        var sourcesHtml = '';
+        if (sources && sources.length > 0) {
+            sourcesHtml = '<div class="chat-sources" style="margin-top: 10px; font-size: 0.85em; opacity: 0.8;"><div class="sources-title" style="font-weight: 600; margin-bottom: 4px; color: var(--text-muted);"><i class="ph ph-link-simple"></i> Nguồn tài liệu:</div>' +
+                sources.map(s => '<span class="source-tag" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.05); padding: 2px 8px; border-radius: 4px; margin-right: 6px; border: 1px solid rgba(0,0,0,0.1);"><i class="ph ph-file-text"></i> ' + escapeHtml(s) + '</span>').join('') +
+                '</div>';
+        }
+        el.innerHTML =
+            avatar +
+            '<div class="chat-bubble">' +
+            '<div class="chat-bubble-name">AI Assistant</div>' +
+            '<div class="chat-bubble-text">' + escapeHtml(text).replace(/\n/g, '<br/>') + sourcesHtml + '</div>' +
+            '</div>';
+        messages.appendChild(el);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    function useSuggestion(btn) {
+        var text = btn.textContent.replace(/^[^\w]+/, '').trim();
+        document.getElementById('chatInput').value = text;
+        document.getElementById('chatInput').focus();
+        autoResize();
+    }
+
+    function handleKeyDown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+
+            var form = document.getElementById('chatInputForm');
+
+            if (form) {
+                form.requestSubmit();
+            }
+        }
+    }
+
+    function autoResize() {
+        var ta = document.getElementById('chatInput');
+        ta.style.height = 'auto';
+        ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
+    }
+
+    document.getElementById('chatInput')?.addEventListener('input', autoResize);
+    document.getElementById('newChatBtn')?.addEventListener('click', newChat);
+    
+    document.addEventListener('DOMContentLoaded', function () {
+        renderHistoryFromServer();
+        filterDocs('');
+    });
+</script>

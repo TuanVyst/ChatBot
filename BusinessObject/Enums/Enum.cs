@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,5 +11,20 @@ namespace BusinessObject.Enums
         Student,
         Lecture,
         Admin
+    }
+
+    public enum SubscriptionStatus
+    {
+        Active,
+        Expired,
+        Cancelled
+    }
+
+    public enum PaymentStatus
+    {
+        Pending,
+        Paid,
+        Cancelled,
+        Failed
     }
 }

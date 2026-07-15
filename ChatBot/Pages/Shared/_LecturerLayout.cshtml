@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — Lecturer Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/regular/style.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/bold/style.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/fill/style.css" />
+    <link rel="stylesheet" href="~/css/lecturer.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/toast.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/signalr-toast.css" asp-append-version="true" />
+</head>
+<body>
+    <div id="signalr-toast" class="signalr-toast" style="display:none;">
+        <i class="ph ph-bell ringing"></i>
+        <span id="signalr-toast-message"></span>
+    </div>
+
+    <main class="lecturer-main">
+        @RenderBody()
+    </main>
+
+    <script src="~/js/toast.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/notificationHub")
+            .withAutomaticReconnect()
+            .build();
+
+        function showLecturerToast(message) {
+            const toast = document.getElementById('signalr-toast');
+            const toastMsg = document.getElementById('signalr-toast-message');
+            if (toast && toastMsg) {
+                toastMsg.textContent = message;
+                toast.style.display = 'flex';
+                setTimeout(function () { toast.style.display = 'none'; }, 4000);
+            }
+        }
+
+        connection.on("RefreshData", function (message) {
+            console.log("SignalR message received: ", message);
+            showLecturerToast(message);
+            refreshSelections();
+        });
+
+        connection.start()
+            .then(function () {
+                const userId = '@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "")';
+                if (userId) {
+                    connection.invoke("JoinGroup", userId).catch(function (err) {
+                        console.error("JoinGroup error: ", err);
+                    });
+                }
+            })
+            .catch(function (err) {
+                console.error("SignalR connection error: ", err);
+            });
+
+        async function refreshSelections() {
+            try {
+                const response = await fetch(window.location.href);
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                // 1. Update all select dropdowns (Subjects and Chapters)
+                document.querySelectorAll('select').forEach(function (oldSel) {
+                    const name = oldSel.getAttribute('name');
+                    if (!name) return;
+                    const newSel = doc.querySelector('select[name="' + name + '"]');
+                    if (newSel) {
+                        var val = oldSel.value;
+                        oldSel.innerHTML = newSel.innerHTML;
+                        if (oldSel.querySelector('option[value="' + val + '"]')) {
+                            oldSel.value = val;
+                        }
+                    }
+                });
+
+                // 2. Update the documents table card body dynamically
+                const oldDocBody = document.getElementById('documents-card-body');
+                const newDocBody = doc.getElementById('documents-card-body');
+                if (oldDocBody && newDocBody) {
+                    oldDocBody.innerHTML = newDocBody.innerHTML;
+                }
+            } catch (err) {
+                console.error("Refresh error:", err);
+            }
+        }
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Pgvector;
+using Pgvector; // Chắc chắn dùng cho PostgreSQL
+
 namespace BusinessObject.Entities
 {
     public class DocumentChunk
@@ -11,18 +12,16 @@ namespace BusinessObject.Entities
         [Required]
         public int DocumentId { get; set; }
 
-      
-    
         [Required(ErrorMessage = "Nội dung đoạn trích không được để trống.")]
-        public string Content { get; set; } // Đoạn chữ thô (Text) sau khi băm nhỏ
+        public string Content { get; set; }
 
         [Required]
-        public Vector Embedding { get; set; } // Mảng float[] được ép kiểu sang chuỗi JSON để lưu vào SQL Server
+        [Column(TypeName = "vector(3072)")] // ÉP BUỘC EF CORE HIỂU ĐÂY LÀ VECTOR 3072 CHIỀU
+        public Vector Embedding { get; set; }
 
-        public int ChunkOrder { get; set; } // Số thứ tự của đoạn chunk (Đoạn 1, Đoạn 2, Đoạn 3...)
+        public int ChunkOrder { get; set; }
 
         [ForeignKey("DocumentId")]
-        public virtual Document? Document { get; set; } // Khóa ngoại liên kết ngược lại file gốc
-
+        public virtual Document? Document { get; set; }
     }
 }

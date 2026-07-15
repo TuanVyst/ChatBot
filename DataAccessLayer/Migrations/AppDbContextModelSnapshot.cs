@@ -82,6 +82,75 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("Chapters");
                 });
 
+            modelBuilder.Entity("BusinessObject.Entities.ChatHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Answer")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ChapterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CompletionTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModelName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PromptTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TotalTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ChatHistories");
+                });
+
+            modelBuilder.Entity("BusinessObject.Entities.ChatHistorySource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChatHistoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DocumentChunkId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatHistoryId");
+
+                    b.HasIndex("DocumentChunkId");
+
+                    b.ToTable("ChatHistorySources");
+                });
+
             modelBuilder.Entity("BusinessObject.Entities.Document", b =>
                 {
                     b.Property<int>("Id")
@@ -157,6 +226,96 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("DocumentChunks");
                 });
 
+            modelBuilder.Entity("BusinessObject.Entities.PaymentTransaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Amount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CheckoutUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("OrderCode")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayOSTransactionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("QrCode")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("OrderCode")
+                        .IsUnique();
+
+                    b.HasIndex("PlanId");
+
+                    b.ToTable("PaymentTransactions");
+                });
+
+            modelBuilder.Entity("BusinessObject.Entities.StudentNotification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId", "IsRead", "CreatedAt");
+
+                    b.ToTable("StudentNotifications");
+                });
+
             modelBuilder.Entity("BusinessObject.Entities.StudentSubject", b =>
                 {
                     b.Property<int>("Id")
@@ -212,6 +371,147 @@ namespace DataAccessLayer.Migrations
                     b.HasIndex("UniversityId");
 
                     b.ToTable("Subjects");
+                });
+
+            modelBuilder.Entity("BusinessObject.Entities.Subscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("PlanId");
+
+                    b.ToTable("Subscriptions");
+                });
+
+            modelBuilder.Entity("BusinessObject.Entities.SubscriptionPlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DailyQuestionLimit")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("DurationDays")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Price")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SubscriptionPlans");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DailyQuestionLimit = 10,
+                            Description = "Hỏi 10 câu/ngày trong 7 ngày",
+                            DurationDays = 7,
+                            IsActive = true,
+                            Name = "Gói Tuần",
+                            Price = 19000
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DailyQuestionLimit = 10,
+                            Description = "Hỏi 10 câu/ngày trong 30 ngày",
+                            DurationDays = 30,
+                            IsActive = true,
+                            Name = "Gói Tháng",
+                            Price = 49000
+                        },
+                        new
+                        {
+                            Id = 3,
+                            DailyQuestionLimit = 10,
+                            Description = "Hỏi 10 câu/ngày trong 365 ngày",
+                            DurationDays = 365,
+                            IsActive = true,
+                            Name = "Gói Năm",
+                            Price = 490000
+                        });
+                });
+
+            modelBuilder.Entity("BusinessObject.Entities.SystemSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChunkOverlap")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ChunkSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EmbeddingModel")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TopK")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SystemSettings");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            ChunkOverlap = 50,
+                            ChunkSize = 512,
+                            EmbeddingModel = "text-embedding-3-small",
+                            TopK = 5,
+                            UpdatedAt = new DateTime(2026, 7, 14, 16, 22, 4, 91, DateTimeKind.Utc).AddTicks(6198)
+                        });
                 });
 
             modelBuilder.Entity("BusinessObject.Entities.University", b =>
@@ -282,6 +582,25 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Subject");
                 });
 
+            modelBuilder.Entity("BusinessObject.Entities.ChatHistorySource", b =>
+                {
+                    b.HasOne("BusinessObject.Entities.ChatHistory", "ChatHistory")
+                        .WithMany("Sources")
+                        .HasForeignKey("ChatHistoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BusinessObject.Entities.DocumentChunk", "DocumentChunk")
+                        .WithMany()
+                        .HasForeignKey("DocumentChunkId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChatHistory");
+
+                    b.Navigation("DocumentChunk");
+                });
+
             modelBuilder.Entity("BusinessObject.Entities.Document", b =>
                 {
                     b.HasOne("BusinessObject.Entities.Chapter", "Chapter")
@@ -312,6 +631,36 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Document");
                 });
 
+            modelBuilder.Entity("BusinessObject.Entities.PaymentTransaction", b =>
+                {
+                    b.HasOne("BusinessObject.Entities.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BusinessObject.Entities.SubscriptionPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Plan");
+                });
+
+            modelBuilder.Entity("BusinessObject.Entities.StudentNotification", b =>
+                {
+                    b.HasOne("BusinessObject.Entities.Account", "Student")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Student");
+                });
+
             modelBuilder.Entity("BusinessObject.Entities.StudentSubject", b =>
                 {
                     b.HasOne("BusinessObject.Entities.Account", "Student")
@@ -334,7 +683,7 @@ namespace DataAccessLayer.Migrations
             modelBuilder.Entity("BusinessObject.Entities.Subject", b =>
                 {
                     b.HasOne("BusinessObject.Entities.Account", "Teacher")
-                        .WithMany()
+                        .WithMany("Subjects")
                         .HasForeignKey("LectureAccountId");
 
                     b.HasOne("BusinessObject.Entities.University", "University")
@@ -348,6 +697,25 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("University");
                 });
 
+            modelBuilder.Entity("BusinessObject.Entities.Subscription", b =>
+                {
+                    b.HasOne("BusinessObject.Entities.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BusinessObject.Entities.SubscriptionPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Plan");
+                });
+
             modelBuilder.Entity("BusinessObject.Entities.UserInformation", b =>
                 {
                     b.HasOne("BusinessObject.Entities.Account", "Account")
@@ -359,9 +727,19 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Account");
                 });
 
+            modelBuilder.Entity("BusinessObject.Entities.Account", b =>
+                {
+                    b.Navigation("Subjects");
+                });
+
             modelBuilder.Entity("BusinessObject.Entities.Chapter", b =>
                 {
                     b.Navigation("Documents");
+                });
+
+            modelBuilder.Entity("BusinessObject.Entities.ChatHistory", b =>
+                {
+                    b.Navigation("Sources");
                 });
 
             modelBuilder.Entity("BusinessObject.Entities.Document", b =>

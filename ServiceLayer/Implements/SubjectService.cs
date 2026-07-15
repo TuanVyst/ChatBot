@@ -6,6 +6,8 @@ using ServiceLayer.Interfaces;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using OfficeOpenXml;
+using Microsoft.AspNetCore.Http;
 
 namespace ServiceLayer.Implements
 {
@@ -109,6 +111,117 @@ namespace ServiceLayer.Implements
             _context.StudentSubjects.Remove(ss);
             await _context.SaveChangesAsync();
             return (true, "Sinh viên đã bị xóa khỏi môn học.");
+        }
+
+        public async Task<(bool Success, string Message)> ImportStudentsFromExcelAsync(
+            Guid subjectId,
+            IFormFile file,
+            Guid teacherId)
+        {
+            if (file == null || file.Length == 0)
+                return (false, "Vui lòng chọn file Excel.");
+
+            var subject = await _context.Subjects
+                .FirstOrDefaultAsync(s => s.Id == subjectId && s.LectureAccountId == teacherId);
+
+            if (subject == null)
+                return (false, "Bạn không có quyền import sinh viên vào môn học này.");
+
+            var extension = Path.GetExtension(file.FileName).ToLower();
+
+            if (extension != ".xlsx" && extension != ".xls")
+                return (false, "Chỉ hỗ trợ file Excel .xlsx hoặc .xls.");
+
+            int addedCount = 0;
+            int skippedCount = 0;
+
+            ExcelPackage.License.SetNonCommercialOrganization("FPT University");
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var package = new ExcelPackage(stream);
+
+            var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+
+            if (worksheet == null || worksheet.Dimension == null)
+                return (false, "File Excel không có dữ liệu.");
+
+            int rowCount = worksheet.Dimension.Rows;
+
+            for (int row = 2; row <= rowCount; row++)
+            {
+                var val1 = worksheet.Cells[row, 1].Text.Trim();
+                var val3 = worksheet.Cells[row, 3].Text.Trim();
+
+                string email = "";
+                if (val3.Contains("@"))
+                {
+                    email = val3;
+                }
+                else if (val1.Contains("@"))
+                {
+                    email = val1;
+                }
+                else
+                {
+                    var val2 = worksheet.Cells[row, 2].Text.Trim();
+                    if (val2.Contains("@"))
+                    {
+                        email = val2;
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(email))
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                var userInfo = await _context.UserInformations
+                    .Include(u => u.Account)
+                    .FirstOrDefaultAsync(u => u.Email == email);
+
+                if (userInfo == null || userInfo.Account == null)
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                var studentAccount = userInfo.Account;
+
+                if (studentAccount.Role != BusinessObject.Enums.RoleEnum.Student)
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                var existed = await _context.StudentSubjects
+                    .AnyAsync(ss => ss.AccountId == studentAccount.Account_id &&
+                                    ss.SubjectId == subjectId);
+
+                if (existed)
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                var studentSubject = new StudentSubject
+                {
+                    AccountId = studentAccount.Account_id,
+                    SubjectId = subjectId,
+                    EnrolledAt = DateTime.UtcNow
+                };
+
+                await _context.StudentSubjects.AddAsync(studentSubject);
+                addedCount++;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return (true,
+                $"Import thành công. Đã thêm vào môn học: {addedCount} sinh viên, bỏ qua: {skippedCount} (email không tồn tại hoặc đã tham gia môn học).");
         }
     }
 }

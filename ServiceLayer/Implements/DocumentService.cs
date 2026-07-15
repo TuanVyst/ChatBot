@@ -61,6 +61,15 @@ namespace ServiceLayer.Implements
             if (subject == null)
                 return (false, "Môn học không tồn tại.", 0);
 
+            var existed = await _documentRepository.ExistsAsync(
+                file.FileName,
+                subject.Id);
+
+            if (existed)
+            {
+                return (false, "Tài liệu này đã tồn tại trong môn học.", 0);
+            }
+
             using var stream = file.OpenReadStream();
 
             var (uploadSuccess, filePath, uploadError) =
@@ -71,6 +80,11 @@ namespace ServiceLayer.Implements
 
             var fileSize = _fileUploadService.GetFileSize(filePath);
             var chapter = await _chapterRepository.GetByIdAsync(chapterId);
+            if (chapter == null)
+            {
+                _fileUploadService.DeleteFile(filePath);
+                return (false, "Chương không tồn tại hoặc không hợp lệ.", 0);
+            }
 
 
             var document = new Document

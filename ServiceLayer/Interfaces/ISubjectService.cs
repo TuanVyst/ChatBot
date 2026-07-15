@@ -1,7 +1,8 @@
-using BusinessObject.Entities;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using BusinessObject.Entities;
+using Microsoft.AspNetCore.Http;
 
 namespace ServiceLayer.Interfaces
 {
@@ -17,5 +18,6 @@ namespace ServiceLayer.Interfaces
         Task<(bool Success, string Message)> AddStudentToSubjectAsync(string emailOrUsername, System.Guid subjectId);
         Task<IEnumerable<UserInformation>> GetStudentsBySubjectIdAsync(System.Guid subjectId);
         Task<(bool Success, string Message)> RemoveStudentFromSubjectAsync(System.Guid accountId, System.Guid subjectId);
+        Task<(bool Success, string Message)> ImportStudentsFromExcelAsync(Guid subjectId,IFormFile file,Guid teacherId);
     }
 }

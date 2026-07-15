@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using BusinessObject.Entities;
@@ -10,6 +11,7 @@ namespace DataAccessLayer.Repositories.Interfaces
         Task<Document?> GetByIdAsync(int id);
         Task<Document?> GetByIdWithChunksAsync(int id);
         Task<List<Document>> GetCompletedDocumentsAsync(string? subjectId = null, string? chapterId = null);
+        Task<bool> ExistsAsync(string fileName, Guid subjectId);
         Task UpdateAsync(Document document);
         Task DeleteAsync(Document document);
         Task SaveChangesAsync();

@@ -1,0 +1,567 @@
+@page "/Lecturer"
+@model ChatBot.Pages.Lecturer.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "~/Pages/Shared/_LecturerLayout.cshtml";
+}
+<style>
+    .page-notice {
+        position: fixed !important;
+        top: 24px !important;
+        right: 24px !important;
+        z-index: 9999 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
+        min-width: 320px;
+        max-width: 450px;
+        animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        margin-bottom: 0 !important;
+        background-color: #ffffff !important;
+    }
+
+    .page-notice.success {
+        border-left: 5px solid #16A34A !important;
+        border-top: 1px solid #e3ded6 !important;
+        border-right: 1px solid #e3ded6 !important;
+        border-bottom: 1px solid #e3ded6 !important;
+        color: #16A34A !important;
+    }
+
+    .page-notice.error {
+        border-left: 5px solid #DC2626 !important;
+        border-top: 1px solid #e3ded6 !important;
+        border-right: 1px solid #e3ded6 !important;
+        border-bottom: 1px solid #e3ded6 !important;
+        color: #DC2626 !important;
+    }
+
+    @@keyframes slideInRight {
+        from {
+            transform: translateX(120%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
+@* ═══════════ TOP BAR WITH BACK BUTTON ═══════════ *@
+<div class="top-bar">
+    <form asp-page="/Auth/Logout" method="post" style="display:inline;">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn-back" title="Back to Login">
+            <i class="ph ph-arrow-left"></i>
+            <span>Back to Login</span>
+        </button>
+    </form>
+    <div class="top-bar-info">
+        <i class="ph ph-user-circle" style="color:var(--primary);font-size:20px;"></i>
+        <span>Welcome, <strong>@Model.Dashboard.FullName</strong></span>
+    </div>
+</div>
+
+<div id="page-notice" class="page-notice" style="display:none;">
+    <i class="ph ph-check-circle" id="notice-icon"></i>
+    <span id="notice-text"></span>
+</div>
+
+@* ═══════════ DASHBOARD GRID ═══════════ *@
+<div class="dashboard-grid">
+    @* ─── LEFT COLUMN ─── *@
+    <div class="left-col">
+        @* Mini Action Cards *@
+        <div class="mini-actions">
+            <div class="mini-action-card" onclick="openModal('chapterModal')">
+                <div class="mini-action-icon">📚</div>
+                <div class="mini-action-title">Create Chapter</div>
+            </div>
+            <div class="mini-action-card" onclick="openModal('studentModal')">
+                <div class="mini-action-icon">👨‍🎓</div>
+                <div class="mini-action-title">Add Student</div>
+            </div>
+        </div>
+
+        @* Recent Documents *@
+        <div class="card">
+            <div class="card-header">
+                <h2>Recent Documents</h2>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <form method="get" style="display:flex;gap:8px;">
+                        <select name="subjectName" class="form-select" style="height:36px;font-size:13px;padding:0 30px 0 10px;min-width:140px;" onchange="this.form.submit()">
+                            <option value="">All Subjects</option>
+                            @foreach (var sub in Model.Dashboard.Subjects)
+                            {
+                                <option value="@sub.Id.ToString()" selected="@(sub.Id.ToString() == Model.Dashboard.SelectedSubjectId)">@sub.Name</option>
+                            }
+                        </select>
+                        <select name="chapterId" class="form-select" style="height:36px;font-size:13px;padding:0 30px 0 10px;min-width:140px;" onchange="this.form.submit()">
+                            <option value="">All Chapters</option>
+                            @foreach (var ch in Model.Dashboard.Chapters)
+                            {
+                                <option value="@ch.Id.ToString()" selected="@(ch.Id.ToString() == Model.Dashboard.SelectedChapterId)">@ch.Name</option>
+                            }
+                        </select>
+                        <button type="button" class="icon-btn" onclick="location.reload()" title="Refresh">
+                            <i class="ph ph-arrows-clockwise"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body" id="documents-card-body" style="padding:0;">
+                <partial name="_DocumentsTable" model="Model.Dashboard" />
+            </div>
+        </div>
+    </div>
+
+    @* ─── RIGHT COLUMN ─── *@
+    <div class="right-col">
+        <div class="card upload-card">
+            <div class="card-header">
+                <h3><i class="ph ph-upload" style="color:var(--primary);margin-right:8px;"></i>Upload Document</h3>
+            </div>
+            <div class="card-body">
+                <form id="uploadForm" method="post" asp-page-handler="Upload" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div class="form-group">
+                        <label class="form-label">Subject</label>
+                        <select name="subjectName" class="form-select" required>
+                            <option value="">Select subject</option>
+                            @foreach (var sub in Model.Dashboard.Subjects)
+                            {
+                                <option value="@sub.Id.ToString()" selected="@(sub.Id.ToString() == Model.Dashboard.SelectedSubjectId)">@sub.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Chapter</label>
+                        <select name="chapterId" class="form-select" required>
+                            <option value="">Select chapter</option>
+                            @foreach (var ch in Model.Dashboard.Chapters)
+                            {
+                                <option value="@ch.Id.ToString()">@ch.Name</option>
+                            }
+                        </select>
+                    </div>
+                    @* Drag & Drop Zone *@
+                    <div class="upload-zone" id="uploadZone">
+                        <i class="ph ph-cloud-arrow-up upload-zone-icon"></i>
+                        <div class="upload-zone-title">Drop files here</div>
+                        <div class="upload-zone-sub">or</div>
+                        <button type="button" class="upload-browse-btn" onclick="document.getElementById('fileInput').click()">
+                            <i class="ph ph-folder-open"></i> Browse Files
+                        </button>
+                        <input type="file" name="file" id="fileInput" required style="display:none;" accept=".pdf,.docx,.txt" onchange="onFileSelected(this)" />
+                        <div class="format-badges">
+                            <span class="format-badge">PDF</span>
+                            <span class="format-badge">DOCX</span>
+                            <span class="format-badge">TXT</span>
+                        </div>
+                    </div>
+                    @* Selected file indicator *@
+                    <div id="fileInfo" style="display:none;margin-top:12px;padding:12px 16px;background:var(--bg);border-radius:var(--radius-sm);font-size:14px;color:var(--text-muted);">
+                        <i class="ph ph-file" style="margin-right:8px;color:var(--primary);"></i>
+                        <span id="fileName"></span>
+                        <span style="float:right;font-size:12px;" id="fileSize"></span>
+                    </div>
+                    @* Progress bar *@
+                    <div class="upload-progress" id="uploadProgress">
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span id="progressLabel">Uploading...</span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                    </div>
+                    @* Success animation *@
+                    <div class="upload-success" id="uploadSuccess">
+                        <div class="upload-success-icon">
+                            <i class="ph ph-check"></i>
+                        </div>
+                        <div>
+                            <div class="upload-success-text">Upload successful!</div>
+                            <div style="font-size:13px;color:var(--text-muted);">Tài liệu của bạn đã được tải lên và đưa vào hàng đợi xử lý AI.</div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary btn-full" style="margin-top:16px;height:48px;" id="uploadSubmitBtn">
+                        <i class="ph ph-arrow-circle-up"></i> Upload & Index
+                    </button>
+                </form>
+                @if (TempData["UploadSuccess"] != null)
+                {
+                    <script>document.addEventListener('DOMContentLoaded', function () { showUploadSuccess('@TempData["UploadSuccess"]'); });</script>
+                }
+                @if (TempData["UploadError"] != null)
+                {
+                    <div class="notice error">@TempData["UploadError"]</div>
+                }
+            </div>
+        </div>
+        @if (TempData["ListSuccess"] != null)
+        {
+            <div class="notice success" style="margin-bottom:12px;">@TempData["ListSuccess"]</div>
+        }
+        @if (TempData["ListError"] != null)
+        {
+            <div class="notice error" style="margin-bottom:12px;">@TempData["ListError"]</div>
+        }
+    </div>
+</div>
+
+@* ═══════════ MODALS ═══════════ *@
+<partial name="_LecturerModals" model="Model.Dashboard" />
+
+@* ═══════════ JAVASCRIPT ═══════════ *@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
+<script>
+    // ─── Modal Controls ───
+    function openModal(id) {
+    document.getElementById(id).classList.add('active');
+    document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+    document.body.style.overflow = '';
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(function (el) {
+    el.addEventListener('click', function (e) {
+    if (e.target === this) {
+    this.classList.remove('active');
+    document.body.style.overflow = '';
+    }
+    });
+    });
+
+    // ─── Drag & Drop Upload ───
+    var uploadZone = document.getElementById('uploadZone');
+    var fileInput = document.getElementById('fileInput');
+
+    if (uploadZone) {
+    uploadZone.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    this.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', function (e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) {
+    fileInput.files = e.dataTransfer.files;
+    onFileSelected(fileInput);
+    }
+    });
+    }
+
+    function onFileSelected(input) {
+    var fileInfo = document.getElementById('fileInfo');
+    var fileName = document.getElementById('fileName');
+    var fileSize = document.getElementById('fileSize');
+    if (input.files && input.files[0]) {
+    var file = input.files[0];
+    fileName.textContent = file.name;
+    fileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+    fileInfo.style.display = 'block';
+    }
+    }
+
+    // ─── Upload Progress Simulation ───
+    document.getElementById('uploadForm')?.addEventListener('submit', function (e) {
+    var progress = document.getElementById('uploadProgress');
+    var fill = document.getElementById('progressFill');
+    var percent = document.getElementById('progressPercent');
+    var label = document.getElementById('progressLabel');
+    var submitBtn = document.getElementById('uploadSubmitBtn');
+
+    if (!fileInput.files || !fileInput.files[0]) {
+    e.preventDefault();
+    return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Uploading...';
+    progress.classList.add('active');
+
+    var p = 0;
+    var interval = setInterval(function () {
+    p += Math.random() * 15 + 5;
+    if (p > 95) p = 95;
+    fill.style.width = p + '%';
+    percent.textContent = Math.round(p) + '%';
+    if (p >= 95) {
+    clearInterval(interval);
+    label.textContent = 'Indexing...';
+    }
+    }, 400);
+    });
+
+    let pageNoticeTimeout = null;
+    function decodeHtml(html) {
+        var txt = document.createElement("textarea");
+        txt.innerHTML = html;
+        return txt.value;
+    }
+
+    function showPageNotice(msg, type) {
+        var el = document.getElementById('page-notice');
+        var icon = document.getElementById('notice-icon');
+        var text = document.getElementById('notice-text');
+        if (!el) return;
+        el.className = 'page-notice ' + (type || 'success');
+        if (text && msg) text.textContent = decodeHtml(msg);
+        if (icon) icon.className = 'ph ' + (type === 'error' ? 'ph-x-circle' : 'ph-check-circle');
+        el.style.display = 'flex';
+        
+        if (pageNoticeTimeout) {
+            clearTimeout(pageNoticeTimeout);
+        }
+        pageNoticeTimeout = setTimeout(function () { el.style.display = 'none'; }, 5000);
+    }
+
+    function showUploadSuccess(msg) {
+        var el = document.getElementById('uploadSuccess');
+        if (el) {
+            el.classList.add('active');
+            var text = el.querySelector('.upload-success-text');
+            if (text && msg) text.textContent = decodeHtml(msg);
+            setTimeout(function () { el.classList.remove('active'); }, 5000);
+        }
+    }
+
+    // ─── View Students List ───
+    function viewStudentsList() {
+    var subjectSelect = document.querySelector('#studentModal select[name="subjectId"]');
+    if (!subjectSelect || !subjectSelect.value) {
+    showPageNotice('Please select a subject first.', 'error');
+    return;
+    }
+    fetch('/Lecturer?handler=StudentsInSubject&subjectId=' + encodeURIComponent(subjectSelect.value))
+    .then(function (r) { return r.text(); })
+    .then(function (html) {
+    document.getElementById('studentsModalBody').innerHTML = html;
+    closeModal('studentModal');
+    openModal('studentsModal');
+    });
+    }
+
+    let studentIdToDelete = null;
+    function removeStudent(accountId) {
+        studentIdToDelete = accountId;
+        openModal('confirmDeleteModal');
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        if (!studentIdToDelete) return;
+        closeModal('confirmDeleteModal');
+        executeRemoveStudent(studentIdToDelete);
+        studentIdToDelete = null;
+    });
+
+    function executeRemoveStudent(accountId) {
+        const subjectSelect = document.querySelector('#studentModal select[name="subjectId"]');
+
+        if (!subjectSelect || !subjectSelect.value) {
+            showPageNotice('Không tìm thấy môn học đang chọn.', 'error');
+            return;
+        }
+
+        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+
+        const formData = new FormData();
+        formData.append('accountId', accountId);
+        formData.append('subjectId', subjectSelect.value);
+
+        fetch('/Lecturer?handler=RemoveStudent', {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': tokenInput ? tokenInput.value : ''
+            },
+            body: formData
+        })
+            .then(r => r.json())
+            .then(j => {
+                showPageNotice(j.message, j.success ? 'success' : 'error');
+
+                if (j.success) {
+                    viewStudentsList();
+                }
+            })
+            .catch(e => {
+                console.error(e);
+                showPageNotice('Có lỗi khi xóa sinh viên.', 'error');
+            });
+    }
+
+    // ─── View Chunks ───
+    function viewChunks(docId, fileName) {
+    document.getElementById('chunksModalTitle').innerText = 'Chunks: ' + fileName;
+    document.getElementById('chunksModalBody').innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px;">Loading...</p>';
+    openModal('chunksModal');
+    fetch('/Lecturer?handler=Chunks&id=' + docId)
+    .then(function (r) { return r.text(); })
+    .then(function (html) {
+    document.getElementById('chunksModalBody').innerHTML = html;
+    });
+    }
+
+    // ─── View Original Document ───
+    function viewOriginalDocument(docId, fileName) {
+    document.getElementById('documentModalTitle').innerText = 'Document: ' + fileName;
+    const iframe = document.getElementById('documentIframe');
+    const docxContainer = document.getElementById('docxContainer');
+
+    if (fileName.toLowerCase().endsWith('.docx')) {
+    iframe.style.display = 'none';
+    docxContainer.style.display = 'block';
+    docxContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-muted);"><i class="ph ph-spinner ph-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br/>Loading document...</div>';
+
+    fetch('/Lecturer?handler=ViewOriginal&id=' + docId)
+    .then(r => r.arrayBuffer())
+    .then(buffer => {
+    mammoth.convertToHtml({ arrayBuffer: buffer })
+    .then(result => {
+    docxContainer.innerHTML = '<div class="docx-content" style="max-width: 800px; margin: 0 auto; color: black;">' + result.value + '</div>';
+    })
+    .catch(err => {
+    console.error(err);
+    docxContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: red;">Failed to render document.</div>';
+    });
+    })
+    .catch(err => {
+    console.error(err);
+    docxContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: red;">Failed to load document.</div>';
+    });
+    } else {
+    docxContainer.style.display = 'none';
+    iframe.style.display = 'block';
+    iframe.src = '/Lecturer?handler=ViewOriginal&id=' + docId;
+    }
+
+    openModal('documentModal');
+    }
+
+    // ─── Poll Document Progress ───
+    function pollDocumentProgress() {
+    const containers = document.querySelectorAll('.doc-progress-container');
+    if (containers.length === 0) return;
+
+    containers.forEach(container => {
+    const docId = container.getAttribute('data-doc-id');
+    fetch('/Lecturer?handler=Progress&id=' + docId)
+    .then(r => r.json())
+    .then(data => {
+    const progress = data.progress || 0;
+    const bar = document.getElementById('progress-bar-' + docId);
+    const text = document.getElementById('progress-text-' + docId);
+    const badge = document.getElementById('status-badge-' + docId);
+
+    if (bar) bar.style.width = progress + '%';
+    if (text) text.innerText = progress + '%';
+
+    if (progress >= 100) {
+    if (badge) {
+    badge.className = 'status-badge completed';
+    badge.innerText = 'Indexed';
+    }
+    if (container) container.style.display = 'none';
+    if (text) text.style.display = 'none';
+    }
+    })
+    .catch(e => console.error(e));
+    });
+    }
+
+    // Poll every 2 seconds
+    setInterval(pollDocumentProgress, 2000);
+    pollDocumentProgress();
+
+    // ─── Auto-open modal on TempData ───
+    document.addEventListener('DOMContentLoaded', function () {
+    @if (TempData["ChapterSuccess"] != null || TempData["ChapterError"] != null)
+    {
+        <text>openModal('chapterModal'); </text>
+    }
+    @if (TempData["StudentSuccess"] != null)
+    {
+        <text>
+        showPageNotice('@TempData["StudentSuccess"]', 'success');
+        var studentSubjectSelect = document.querySelector('#studentModal select[name="subjectId"]');
+        if (studentSubjectSelect) {
+            studentSubjectSelect.value = '@Model.Dashboard.SelectedSubjectId';
+        }
+        viewStudentsList();
+        </text>
+    }
+    @if (TempData["StudentError"] != null)
+    {
+        <text>
+        showPageNotice('@TempData["StudentError"]', 'error');
+        openModal('studentModal');
+        </text>
+    }
+
+    // ─── Dynamic Chapter Loading ───
+    document.querySelectorAll('form').forEach(form => {
+    const subjectSelect = form.querySelector('select[name="subjectName"]');
+    const chapterSelect = form.querySelector('select[name="chapterId"]');
+
+    if (subjectSelect && chapterSelect && !subjectSelect.hasAttribute('onchange')) {
+    subjectSelect.addEventListener('change', function () {
+    const subjectId = this.value;
+    chapterSelect.innerHTML = '<option value="">Loading...</option>';
+
+    if (!subjectId) {
+    chapterSelect.innerHTML = '<option value="">Select chapter</option>';
+    return;
+    }
+
+    fetch('/Lecturer?handler=ChaptersBySubject&subjectId=' + encodeURIComponent(subjectId))
+    .then(r => r.json())
+    .then(chapters => {
+    chapterSelect.innerHTML = '<option value="">Select chapter</option>';
+    chapters.forEach(ch => {
+    const opt = document.createElement('option');
+    opt.value = ch.id;
+    opt.textContent = ch.name;
+    chapterSelect.appendChild(opt);
+    });
+    })
+    .catch(e => {
+    console.error(e);
+    chapterSelect.innerHTML = '<option value="">Error loading chapters</option>';
+    });
+    });
+
+    // Trigger once if subject is already selected but chapters are missing
+    if (subjectSelect.value && chapterSelect.options.length <= 1) {
+    subjectSelect.dispatchEvent(new Event('change'));
+    }
+    }
+    });
+
+    });
+
+    function submitExcelForm() {
+    const subjectSelect =
+    document.querySelector('#studentModal select[name="subjectId"]');
+
+    if (!subjectSelect || !subjectSelect.value) {
+    showPageNotice('Please select a subject first.', 'error');
+    return;
+    }
+
+    document.getElementById('excelSubjectId').value = subjectSelect.value;
+
+    document.getElementById('excelImportForm').submit();
+    }
+
+</script>
+
+            
+

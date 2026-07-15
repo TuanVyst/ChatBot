@@ -1,0 +1,48 @@
+﻿@page
+@model ChatBot.Pages.Admin.SystemSettingsModel
+
+@{
+    ViewData["Title"] = "System Settings";
+}
+
+<div class="admin-header">
+    <h1 class="page-title">System Settings</h1>
+</div>
+
+<div class="admin-card" style="max-width:600px;">
+    @if (TempData["Message"] != null)
+    {
+        <div class="notice success">@TempData["Message"]</div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="notice danger">@TempData["Error"]</div>
+    }
+
+    <form method="post" class="premium-form">
+        <div class="form-group">
+            <label class="form-label">Chunk Size</label>
+            <input asp-for="ChunkSize" class="form-control" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Chunk Overlap</label>
+            <input asp-for="ChunkOverlap" class="form-control" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Top K</label>
+            <input asp-for="TopK" class="form-control" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Embedding Model</label>
+            <input asp-for="EmbeddingModel" class="form-control" />
+        </div>
+
+        <button type="submit" class="btn-premium btn-primary">
+            Save Settings
+        </button>
+    </form>
+</div>

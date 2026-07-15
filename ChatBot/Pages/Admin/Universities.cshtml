@@ -1,0 +1,102 @@
+@page
+@model ChatBot.Pages.Admin.UniversitiesModel
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Manage Universities";
+}
+
+<div class="admin-header">
+    <h1 class="page-title">Universities</h1>
+
+    <div class="admin-actions">
+        <a asp-page="/Admin/CreateUniversity"
+           class="btn-premium btn-primary">
+            <i class="ph-bold ph-plus"></i>
+            Add University
+        </a>
+    </div>
+</div>
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-info">
+        @TempData["Message"]
+    </div>
+}
+
+<div class="admin-card">
+
+    <table class="premium-table">
+
+        <thead>
+            <tr>
+                <th>University Name</th>
+                <th>Code</th>
+                <th style="width:150px;text-align:right;">
+                    Actions
+                </th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            @foreach (var item in Model.Universities)
+            {
+                <tr>
+
+                    <td>
+                        <div style="font-weight:500;color:var(--text-main);">
+                            @item.Name
+                        </div>
+                    </td>
+
+                    <td>
+                        <span style="background:rgba(0,0,0,0.05);
+                            padding:4px 8px;
+                            border-radius:6px;
+                            font-family:monospace;
+                            font-size:0.85rem;">
+                            @item.Code
+                        </span>
+                    </td>
+
+                    <td>
+                        <div class="table-actions"
+                             style="justify-content:flex-end;">
+
+                            <a asp-page="/Admin/EditUniversity"
+                               asp-route-id="@item.Id"
+                               class="btn-edit"
+                               title="Edit">
+                                <i class="ph-bold ph-pencil-simple"></i>
+                            </a>
+
+                            <form method="post"
+                                  asp-page-handler="Delete"
+                                  asp-route-id="@item.Id"
+                                  style="margin:0;"
+                                  onsubmit="return confirmDelete(this, 'Bạn có chắc muốn xóa trường đại học này?');">
+
+                                <button type="submit"
+                                        class="btn-danger"
+                                        title="Delete"
+                                        style="border:none;cursor:pointer;">
+
+                                    <i class="ph-bold ph-trash"></i>
+
+                                </button>
+
+                            </form>
+
+                        </div>
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+
+</div>

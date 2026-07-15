@@ -28,6 +28,8 @@ namespace ServiceLayer.Implements
 
         public async Task<(bool Success, string Message)> VerifyOtpAndCreateAccountAsync(VerifyOtpRequest request, string roleName)
         {
+          
+
             // Validate OTP same as VerifyOtpAndLoginAsync
             var isExist = _cache.TryGetValue($"OTP_{request.Email}", out string savedOtp);
 
@@ -86,6 +88,17 @@ namespace ServiceLayer.Implements
             await _emailService.SendEmailAsync(request.Email, subject, body);
 
             return (true, "Tạo tài khoản thành công và gửi email thông báo.");
+        }
+
+        public async Task<bool> ValidateAccountAsync(string email)
+        {
+            var account = await _accountRepository.GetUserInfoByEmailAsync(email);
+            if (account == null)
+            {
+                return true;
+            }
+          
+            return false;
         }
 
         public async Task<(bool Success, string Message, UserDto? User, bool RequireOtp)> LoginAsync(string email, string password)

@@ -60,6 +60,13 @@ namespace DataAccessLayer.Repositories.Implements
             return await query.ToListAsync();
         }
 
+        public async Task<bool> ExistsAsync(string fileName, Guid subjectId)
+        {
+            return await _context.Documents.AnyAsync(d =>
+                d.SubjectId == subjectId &&
+                d.FileName.ToLower() == fileName.ToLower());
+        }
+
         public Task UpdateAsync(Document document)
         {
             _context.Documents.Update(document);
