@@ -1,0 +1,433 @@
+@page
+@model ChatBot.Pages.Admin.StatisticsModel
+
+@{
+    ViewData["Title"] = "System Statistics";
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+}
+
+<div class="admin-page">
+    <div style="margin-bottom:28px;">
+        <p style="color:#d89424;font-weight:700;margin-bottom:5px;">
+            REPORTING
+        </p>
+
+        <h1 style="margin:0;">
+            System Statistics
+        </h1>
+
+        <p style="color:#718096;">
+            Thống kê tình hình hoạt động, tài chính và sử dụng tài nguyên AI của hệ thống.
+        </p>
+    </div>
+
+    <!-- Tab Navigation Pills -->
+    <div class="statistics-tabs">
+        <button class="tab-btn active" onclick="switchTab(event, 'tab-overview')">
+            <i class="ph ph-squares-four"></i> Tổng quan
+        </button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-finance')">
+            <i class="ph ph-currency-circle-dollar"></i> Tài chính & Gói dịch vụ
+        </button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-usage')">
+            <i class="ph ph-cpu"></i> Hoạt động AI & Sử dụng
+        </button>
+    </div>
+
+    <!-- ==============================================
+         TAB 1: OVERVIEW 
+         ============================================== -->
+    <div id="tab-overview" class="tab-content active">
+        <div class="statistics-grid">
+            <div class="statistics-card">
+                <span>Tổng người dùng</span>
+                <strong>@Model.TotalUsers.ToString("N0")</strong>
+            </div>
+
+            <div class="statistics-card">
+                <span>Tổng môn học</span>
+                <strong>@Model.TotalSubjects.ToString("N0")</strong>
+            </div>
+
+            <div class="statistics-card">
+                <span>Tổng tài liệu</span>
+                <strong>@Model.TotalDocuments.ToString("N0")</strong>
+            </div>
+
+            <div class="statistics-card">
+                <span>Số Chunk dữ liệu (RAG)</span>
+                <strong>@Model.TotalChunks.ToString("N0")</strong>
+            </div>
+
+            <div class="statistics-card">
+                <span>Tổng số hội thoại (Chat)</span>
+                <strong>@Model.TotalChats.ToString("N0")</strong>
+            </div>
+
+            <div class="statistics-card">
+                <span>Token tiêu hao tháng này</span>
+                <strong>@Model.TotalTokensThisMonth.ToString("N0")</strong>
+            </div>
+        </div>
+
+        <div class="charts-grid single-col">
+            <div class="chart-card">
+                <h3><i class="ph ph-trend-up" style="color: var(--accent);"></i> Tốc độ tăng trưởng tài khoản mới (30 ngày qua)</h3>
+                <div class="chart-container">
+                    <canvas id="userGrowthChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==============================================
+         TAB 2: FINANCE & SUBSCRIPTIONS
+         ============================================== -->
+    <div id="tab-finance" class="tab-content">
+        <div class="statistics-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+            <div class="statistics-card">
+                <span>Doanh thu tháng này</span>
+                <strong style="color: var(--success);">@Model.TotalRevenueThisMonth.ToString("N0") đ</strong>
+            </div>
+
+            <div class="statistics-card">
+                <span>Doanh thu trọn đời</span>
+                <strong style="color: var(--accent);">@Model.TotalRevenueAllTime.ToString("N0") đ</strong>
+            </div>
+
+            <div class="statistics-card">
+                <span>Gói dịch vụ đang kích hoạt</span>
+                <strong>@Model.ActiveSubscriptionsCount.ToString("N0")</strong>
+            </div>
+
+            <div class="statistics-card">
+                <span>Tỉ lệ thanh toán thành công</span>
+                <strong style="color: #dd6b20;">@Model.PaymentConversionRate.ToString("F2")%</strong>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3><i class="ph ph-chart-pie" style="color: var(--primary);"></i> Cơ cấu doanh thu theo gói dịch vụ</h3>
+                <div class="chart-container">
+                    <canvas id="subPlanChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card" style="display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.55);">
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+                    <i class="ph ph-shield-check" style="font-size: 3.5rem; color: var(--success); margin-bottom: 12px;"></i>
+                    <h4 style="margin: 0 0 8px 0; color: var(--text-main);">Tích hợp Cổng thanh toán</h4>
+                    <p style="margin: 0; font-size: 0.9rem;">Hệ thống đang hoạt động an toàn qua đối tác PayOS.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==============================================
+         TAB 3: AI ACTIVITY & USAGE 
+         ============================================== -->
+    <div id="tab-usage" class="tab-content">
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3><i class="ph ph-chat-centered-text" style="color: var(--success);"></i> Lượt hỏi & Token tiêu hao hàng ngày (30 ngày qua)</h3>
+                <div class="chart-container">
+                    <canvas id="dailyChatsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3><i class="ph ph-books" style="color: var(--accent);"></i> Top 5 môn học được tương tác nhiều nhất</h3>
+                <div class="chart-container">
+                    <canvas id="topSubjectsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="statistics-section">
+            <h2>Tiêu hao Token theo Học sinh (Tháng này)</h2>
+
+            @if (!Model.UserTokenUsage.Any())
+            {
+                <div class="empty-statistics">
+                    Chưa có hoạt động tiêu hao token của học sinh nào được ghi nhận trong tháng này.
+                </div>
+            }
+            else
+            {
+                <div class="table-wrapper">
+                    <table class="statistics-table">
+                        <thead>
+                            <tr>
+                                <th>Học sinh</th>
+                                <th>Email</th>
+                                <th>Tổng lượt Chat</th>
+                                <th>Tổng Tokens</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in Model.UserTokenUsage)
+                            {
+                                <tr>
+                                    <td><strong>@item.UserName</strong></td>
+                                    <td>@item.Email</td>
+                                    <td>@item.TotalChats</td>
+                                    <td>@item.TotalTokens.ToString("N0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <div class="statistics-section">
+            <h2>Tiêu hao Token theo Môn học (Tháng này)</h2>
+
+            @if (!Model.SubjectTokenUsage.Any())
+            {
+                <div class="empty-statistics">
+                    Chưa có môn học nào phát sinh lượt hỏi trong tháng này.
+                </div>
+            }
+            else
+            {
+                <div class="table-wrapper">
+                    <table class="statistics-table">
+                        <thead>
+                            <tr>
+                                <th>Mã môn</th>
+                                <th>Tên môn học</th>
+                                <th>Tổng lượt Chat</th>
+                                <th>Tổng Tokens</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in Model.SubjectTokenUsage)
+                            {
+                                <tr>
+                                    <td><span class="badge badge-active" style="background: rgba(90, 103, 216, 0.1); color: var(--accent);">@item.SubjectCode</span></td>
+                                    <td><strong>@item.SubjectName</strong></td>
+                                    <td>@item.TotalChats</td>
+                                    <td>@item.TotalTokens.ToString("N0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Data parsed from C# properties
+        const dailyChatsAndTokens = @Html.Raw(Model.DailyChatsAndTokensJson);
+        const subPlanDistribution = @Html.Raw(Model.SubscriptionPlanDistributionJson);
+        const topSubjects = @Html.Raw(Model.TopSubjectsJson);
+        const userGrowth = @Html.Raw(Model.UserGrowthJson);
+
+        const charts = {};
+
+        function switchTab(evt, tabId) {
+            // Hide all tab contents
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+
+            // Remove active status from all tab buttons
+            const tabButtons = document.getElementsByClassName("tab-btn");
+            for (let i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove("active");
+            }
+
+            // Show current tab & set button active
+            document.getElementById(tabId).classList.add("active");
+            evt.currentTarget.classList.add("active");
+
+            // Chart.js bug fix: resize charts that were hidden under display: none
+            setTimeout(() => {
+                Object.values(charts).forEach(chart => {
+                    chart.resize();
+                    chart.update();
+                });
+            }, 50);
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // 1. User Growth Chart
+            const userGrowthCtx = document.getElementById('userGrowthChart').getContext('2d');
+            charts.userGrowth = new Chart(userGrowthCtx, {
+                type: 'line',
+                data: {
+                    labels: userGrowth.map(d => {
+                        const dateObj = new Date(d.Date);
+                        return dateObj.toLocaleDateString('vi-VN', { day: 'numeric', month: 'short' });
+                    }),
+                    datasets: [{
+                        label: 'Đăng ký mới',
+                        data: userGrowth.map(d => d.Count),
+                        borderColor: '#5a67d8',
+                        backgroundColor: 'rgba(90, 103, 216, 0.08)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#5a67d8',
+                        pointHoverRadius: 7,
+                        pointRadius: userGrowth.length > 15 ? 2 : 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    }
+                }
+            });
+
+            // 2. Subscription Plan Distribution (Donut Chart)
+            const subPlanCtx = document.getElementById('subPlanChart').getContext('2d');
+            const planColors = ['#f2c94c', '#5a67d8', '#48bb78', '#f56565', '#4299e1'];
+
+            charts.subPlan = new Chart(subPlanCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: subPlanDistribution.map(d => d.PlanName),
+                    datasets: [{
+                        data: subPlanDistribution.map(d => d.Revenue),
+                        backgroundColor: planColors.slice(0, subPlanDistribution.length),
+                        borderWidth: 2,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 15,
+                                font: { family: "'Outfit', sans-serif" }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    const count = subPlanDistribution[context.dataIndex].Count;
+                                    return ` Doanh thu: ${value.toLocaleString('vi-VN')} đ (${count} lượt mua)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+
+            // 3. Daily Chats & Tokens Chart
+            const dailyChatsCtx = document.getElementById('dailyChatsChart').getContext('2d');
+            charts.dailyChats = new Chart(dailyChatsCtx, {
+                type: 'line',
+                data: {
+                    labels: dailyChatsAndTokens.map(d => {
+                        const dateObj = new Date(d.Date);
+                        return dateObj.toLocaleDateString('vi-VN', { day: 'numeric', month: 'short' });
+                    }),
+                    datasets: [
+                        {
+                            label: 'Lượt Chat',
+                            data: dailyChatsAndTokens.map(d => d.ChatCount),
+                            borderColor: '#48bb78',
+                            backgroundColor: 'rgba(72, 187, 120, 0.05)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: false,
+                            yAxisID: 'yChats',
+                            pointRadius: dailyChatsAndTokens.length > 15 ? 2 : 4
+                        },
+                        {
+                            label: 'Token tiêu thụ',
+                            data: dailyChatsAndTokens.map(d => d.TokenCount),
+                            borderColor: '#f2c94c',
+                            backgroundColor: 'rgba(242, 201, 76, 0.05)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: false,
+                            yAxisID: 'yTokens',
+                            pointRadius: dailyChatsAndTokens.length > 15 ? 2 : 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { font: { family: "'Outfit', sans-serif" } }
+                        }
+                    },
+                    scales: {
+                        yChats: {
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: 'Số câu hỏi', font: { family: "'Outfit', sans-serif", weight: 'bold' } },
+                            ticks: { precision: 0 },
+                            grid: { drawOnChartArea: true }
+                        },
+                        yTokens: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Tokens', font: { family: "'Outfit', sans-serif", weight: 'bold' } },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+
+            // 4. Top 5 Subjects
+            const topSubjectsCtx = document.getElementById('topSubjectsChart').getContext('2d');
+            charts.topSubjects = new Chart(topSubjectsCtx, {
+                type: 'bar',
+                data: {
+                    labels: topSubjects.map(d => `${d.SubjectCode} - ${d.SubjectName}`),
+                    datasets: [{
+                        label: 'Lượt hỏi',
+                        data: topSubjects.map(d => d.ChatCount),
+                        backgroundColor: 'rgba(90, 103, 216, 0.75)',
+                        borderColor: '#5a67d8',
+                        borderWidth: 1,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}
