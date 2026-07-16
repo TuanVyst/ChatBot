@@ -17,10 +17,15 @@
         </form>
     </div>
 
-    <div class="subject-header">
-        <p class="eyebrow">@Model.SubjectDetail.Subject?.Code</p>
-        <h1>@Model.SubjectDetail.Subject?.Name</h1>
-        <p>Documents uploaded by lecturer for this subject.</p>
+    <div class="subject-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <p class="eyebrow" style="margin-bottom: 4px;">@Model.SubjectDetail.Subject?.Code</p>
+            <h1 style="margin: 0 0 8px 0; font-size: 2.2rem; font-weight: 800;">@Model.SubjectDetail.Subject?.Name</h1>
+            <p style="color: var(--text-muted); margin: 0;">Documents uploaded by lecturer for this subject.</p>
+        </div>
+        <a asp-page="/Student/Chat" asp-route-subjectId="@Model.SubjectDetail.Subject?.Id" class="primary-btn" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 12px 24px; font-size: 15px; border-radius: 12px;">
+            <i class="ph ph-sparkle" style="font-size: 1.25rem;"></i> Hỏi AI về môn này (Ask AI)
+        </a>
     </div>
 
     <h2>Documents</h2>

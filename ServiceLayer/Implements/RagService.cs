@@ -73,6 +73,10 @@ namespace ServiceLayer.Implements
                 liên quan, hãy nói rõ "Tôi không tìm thấy thông tin này trong tài liệu" — 
                 không được tự bịa ra câu trả lời.
 
+                Bắt buộc ở cuối câu trả lời của bạn, phải có một dòng duy nhất theo định dạng chính xác sau để chỉ định nguồn tài liệu:
+                [SOURCES]: tên_file_1, tên_file_2
+                Trong đó, tên_file_1, tên_file_2 là danh sách tên các file nguồn (ví dụ: tailieu.pdf) mà bạn thực sự sử dụng thông tin từ đó để tạo câu trả lời. Nếu câu trả lời không sử dụng nguồn nào hoặc bạn tự trả lời, hãy ghi: [SOURCES]: None.
+
                 Ngữ cảnh:
                 {contextBuilder}
 
@@ -92,27 +96,87 @@ namespace ServiceLayer.Implements
             if (!chatSuccess || answer == null)
                 return (false, null, $"Chat generation failed: {chatError}");
 
-            var result = new RagResult
-            {
-                Answer = answer,
+            // Phân tích và làm sạch câu trả lời, tách biệt phần SOURCES thô
+            string cleanAnswer = answer;
+            var sources = new List<string>();
+            var marker = "[SOURCES]:";
+            int markerIndex = answer.LastIndexOf(marker);
 
-                Sources = chunks
+            if (markerIndex == -1)
+            {
+                marker = "SOURCES:";
+                markerIndex = answer.LastIndexOf(marker);
+            }
+
+            if (markerIndex != -1)
+            {
+                var sourcesLine = answer.Substring(markerIndex);
+                cleanAnswer = answer.Substring(0, markerIndex).Trim();
+
+                var filesPart = sourcesLine.Replace(marker, "").Replace("**", "").Trim();
+                if (!string.Equals(filesPart, "None", StringComparison.OrdinalIgnoreCase))
+                {
+                    var fileNames = filesPart.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                             .Select(f => f.Trim().Trim('[', ']', '`', '"', '*'))
+                                             .ToList();
+
+                    var retrievedFiles = chunks
+                        .Where(c => c.Document != null)
+                        .Select(c => c.Document!.FileName)
+                        .Distinct()
+                        .ToList();
+
+                    foreach (var file in fileNames)
+                    {
+                        var matchedFile = retrievedFiles.FirstOrDefault(rf =>
+                            string.Equals(rf, file, StringComparison.OrdinalIgnoreCase) ||
+                            rf.Contains(file, StringComparison.OrdinalIgnoreCase) ||
+                            file.Contains(rf, StringComparison.OrdinalIgnoreCase));
+
+                        if (matchedFile != null && !sources.Contains(matchedFile))
+                        {
+                            sources.Add(matchedFile);
+                        }
+                    }
+                }
+            }
+
+            // Fallback nếu không parse được nguồn nào
+            if (sources.Count == 0 && chunks.Any())
+            {
+                sources = chunks
                     .Where(c => c.Document != null)
                     .Select(c => c.Document!.FileName)
                     .Distinct()
-                    .ToList(),
+                    .ToList();
+            }
 
+            // Lọc danh sách chunks thực sự được sử dụng để lưu trữ lịch sử chính xác
+            var filteredChunks = chunks
+                .Where(c => c.Document != null && sources.Contains(c.Document.FileName))
+                .ToList();
+
+            if (filteredChunks.Count == 0)
+            {
+                filteredChunks = chunks;
+            }
+
+            var result = new RagResult
+            {
+                Answer = cleanAnswer,
+                Sources = sources,
+                RetrievedChunks = filteredChunks,
                 PromptTokens = promptTokens,
                 CompletionTokens = completionTokens,
                 TotalTokens = totalTokens,
                 ModelName = modelName
             };
 
-            // Bước 5: Lưu lịch sử hỏi đáp
+            // Bước 5: Lưu lịch sử hỏi đáp với câu trả lời sạch và chunks đã lọc
             var (saveSuccess, saveError) = await _chatHistoryService.SaveAsync(
                 question,
-                answer,
-                chunks,
+                cleanAnswer,
+                filteredChunks,
                 subjectId,
                 chapterId,
                 userId,
@@ -123,7 +187,6 @@ namespace ServiceLayer.Implements
 
             if (!saveSuccess)
             {
-                // Ghi nhận lỗi nhưng không chặn kết quả trả về cho user
                 System.Diagnostics.Debug.WriteLine($"Failed to save chat history: {saveError}");
             }
 

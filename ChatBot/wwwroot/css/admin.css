@@ -400,8 +400,6 @@ body.admin-body {
     font-size: 0.95rem;
     line-height: 1.5;
 }
-<<<<<<< Updated upstream
-=======
 
 .statistics-grid {
     display: grid;
@@ -597,4 +595,3 @@ body.admin-body {
         grid-template-columns: 1fr;
     }
 }
->>>>>>> Stashed changes

@@ -132,7 +132,23 @@ public class ChatModel : PageModel
         if (!success)
             return new JsonResult(new { success = false, errorMessage = error });
 
-        return new JsonResult(new { success = true, answer = result?.Answer, sources = result?.Sources });
+        return new JsonResult(new
+        {
+            success = true,
+            answer = result?.Answer,
+            sources = result?.Sources,
+            chunkSources = result?.RetrievedChunks
+                .GroupBy(c => c.Id)
+                .Select(g => g.First())
+                .Select(c => new
+                {
+                    documentId = c.DocumentId,
+                    fileName = c.Document?.FileName ?? "",
+                    chunkId = c.Id,
+                    chunkOrder = c.ChunkOrder,
+                    content = c.Content
+                }).ToList()
+        });
     }
 
     public async Task<IActionResult> OnGetHistoryAsync(Guid? subjectId)
@@ -157,9 +173,47 @@ public class ChatModel : PageModel
                 .Where(s => s.DocumentChunk?.Document != null)
                 .Select(s => s.DocumentChunk!.Document!.FileName)
                 .Distinct()
+                .ToList(),
+            chunkSources = h.Sources
+                .Where(s => s.DocumentChunk?.Document != null)
+                .GroupBy(s => s.DocumentChunkId)
+                .Select(g => g.First())
+                .Select(s => new
+                {
+                    documentId = s.DocumentChunk!.DocumentId,
+                    fileName = s.DocumentChunk.Document!.FileName,
+                    chunkId = s.DocumentChunkId,
+                    chunkOrder = s.DocumentChunk.ChunkOrder,
+                    content = s.DocumentChunk.Content
+                })
                 .ToList()
         });
 
         return new JsonResult(new { success = true, history = list });
+    }
+
+    public async Task<IActionResult> OnGetChunksAsync(int id)
+    {
+        var doc = await _context.Documents
+            .Include(d => d.Subject)
+            .FirstOrDefaultAsync(d => d.Id == id);
+
+        if (doc == null) return NotFound();
+
+        var chunkService = HttpContext.RequestServices.GetService(typeof(IDocumentChunkService)) as IDocumentChunkService;
+        if (chunkService == null)
+            return StatusCode(500, "Chunk service not available");
+
+        var chunks = await chunkService.GetDocumentChunksByDocumentIdAsync(id);
+
+        return new PartialViewResult
+        {
+            ViewName = "~/Pages/Lecturer/_ChunksPartial.cshtml",
+            ViewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary<
+                Tuple<Document, IEnumerable<DocumentChunk>>>(MetadataProvider, ModelState)
+            {
+                Model = new Tuple<Document, IEnumerable<DocumentChunk>>(doc, chunks)
+            }
+        };
     }
 }

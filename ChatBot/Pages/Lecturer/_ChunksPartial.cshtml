@@ -20,7 +20,7 @@
     <div style="display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;padding-right:4px;">
         @foreach (var c in chunks)
         {
-            <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;">
+            <div id="chunk-@c.Id" data-chunk-order="@c.ChunkOrder" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px; transition: all 0.3s;">
                 <div style="font-weight:600;font-size:12px;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
                     Chunk @c.ChunkOrder
                 </div>

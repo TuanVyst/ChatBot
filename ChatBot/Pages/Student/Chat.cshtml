@@ -173,7 +173,18 @@
     </aside>
 </div>
 
-
+<!-- Chunks Modal -->
+<div id="chunksModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:720px; width:90%;">
+        <div class="modal-header">
+            <h3 id="chunksModalTitle">Document Chunks</h3>
+            <button class="modal-close" onclick="closeModal('chunksModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="chunksModalBody">
+            <p style="color:var(--text-muted);text-align:center;padding:40px;">Loading...</p>
+        </div>
+    </div>
+</div>
 
 @* ═══════════ JAVASCRIPT ═══════════ *@
 <script>
@@ -264,6 +275,16 @@
         });
     }
 
+    function formatMarkdownText(text) {
+        var escaped = escapeHtml(text);
+        // Bold: **text** -> <strong>text</strong>
+        escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // Inline code: `text` -> <code>text</code>
+        escaped = escaped.replace(/`(.*?)`/g, '<code>$1</code>');
+        // Newlines
+        return escaped.replace(/\n/g, '<br/>');
+    }
+
     function newChat() {
         var messages = document.getElementById('chatMessages');
         messages.innerHTML =
@@ -281,7 +302,7 @@
         var messages = document.getElementById('chatMessages');
         messages.innerHTML = '';
         appendMessage(item.question, 'user', false);
-        appendBotMessage(item.answer, item.sources);
+        appendBotMessage(item.answer, item.sources, item.chunkSources);
     }
 
     // ── Send message ──
@@ -370,7 +391,8 @@
             if (data.success) {
                 appendBotMessage(
                     data.answer || 'AI không trả về nội dung.',
-                    data.sources || []
+                    data.sources || [],
+                    data.chunkSources || []
                 );
 
                 await renderHistoryFromServer();
@@ -443,7 +465,7 @@
             avatar +
             '<div class="chat-bubble">' +
             '<div class="chat-bubble-name">' + escapeHtml(name) + '</div>' +
-            '<div class="chat-bubble-text">' + escapeHtml(text).replace(/\n/g, '<br/>') + '</div>' +
+            '<div class="chat-bubble-text">' + formatMarkdownText(text) + '</div>' +
             '</div>';
         messages.appendChild(el);
         if (scroll) {
@@ -451,13 +473,32 @@
         }
     }
 
-    function appendBotMessage(text, sources) {
+    function appendBotMessage(text, sources, chunkSources) {
         var messages = document.getElementById('chatMessages');
         var el = document.createElement('div');
         el.className = 'chat-message bot';
         var avatar = '<div class="chat-avatar"><i class="ph ph-robot"></i></div>';
         var sourcesHtml = '';
-        if (sources && sources.length > 0) {
+        if (chunkSources && chunkSources.length > 0) {
+            var uniqueChunks = [];
+            var seen = {};
+            for (var i = 0; i < chunkSources.length; i++) {
+                var cs = chunkSources[i];
+                if (!seen[cs.chunkId]) {
+                    seen[cs.chunkId] = true;
+                    uniqueChunks.push(cs);
+                }
+            }
+
+            sourcesHtml = '<div class="chat-sources" style="margin-top: 10px; font-size: 0.85em; opacity: 0.95;">' +
+                '<div class="sources-title" style="font-weight: 600; margin-bottom: 6px; color: var(--text-muted);"><i class="ph ph-link-simple"></i> Trích xuất từ tài liệu (Bấm để xem):</div>' +
+                uniqueChunks.map(cs => 
+                    '<button class="source-tag" onclick="openDocumentChunk(' + cs.documentId + ', ' + cs.chunkId + ', ' + cs.chunkOrder + ')" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(216, 148, 36, 0.08); color: #d89424; padding: 4px 8px; border-radius: 6px; margin-right: 8px; margin-bottom: 6px; border: 1px solid rgba(216, 148, 36, 0.2); cursor: pointer; font-size: 0.9em; font-family: inherit; transition: all 0.2s;" onmouseover="this.style.background=\'rgba(216, 148, 36, 0.15)\'" onmouseout="this.style.background=\'rgba(216, 148, 36, 0.08)\'">' +
+                        '<i class="ph ph-file-text"></i> ' + escapeHtml(cs.fileName) + ' (Đoạn ' + cs.chunkOrder + ')' +
+                    '</button>'
+                ).join('') +
+                '</div>';
+        } else if (sources && sources.length > 0) {
             sourcesHtml = '<div class="chat-sources" style="margin-top: 10px; font-size: 0.85em; opacity: 0.8;"><div class="sources-title" style="font-weight: 600; margin-bottom: 4px; color: var(--text-muted);"><i class="ph ph-link-simple"></i> Nguồn tài liệu:</div>' +
                 sources.map(s => '<span class="source-tag" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.05); padding: 2px 8px; border-radius: 4px; margin-right: 6px; border: 1px solid rgba(0,0,0,0.1);"><i class="ph ph-file-text"></i> ' + escapeHtml(s) + '</span>').join('') +
                 '</div>';
@@ -466,7 +507,7 @@
             avatar +
             '<div class="chat-bubble">' +
             '<div class="chat-bubble-name">AI Assistant</div>' +
-            '<div class="chat-bubble-text">' + escapeHtml(text).replace(/\n/g, '<br/>') + sourcesHtml + '</div>' +
+            '<div class="chat-bubble-text">' + formatMarkdownText(text) + sourcesHtml + '</div>' +
             '</div>';
         messages.appendChild(el);
         messages.scrollTop = messages.scrollHeight;
@@ -500,8 +541,80 @@
     document.getElementById('chatInput')?.addEventListener('input', autoResize);
     document.getElementById('newChatBtn')?.addEventListener('click', newChat);
     
+    function openModal(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.add('active');
+    }
+
+    function closeModal(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    }
+
+    function openDocumentChunk(documentId, chunkId, chunkOrder) {
+        document.getElementById('chunksModalTitle').innerText = 'Loading...';
+        document.getElementById('chunksModalBody').innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px;">Đang tải nội dung tài liệu...</p>';
+        openModal('chunksModal');
+
+        fetch('/Student/Chat?handler=Chunks&id=' + documentId)
+            .then(r => {
+                if (!r.ok) throw new Error('Không thể tải các đoạn trích.');
+                return r.text();
+            })
+            .then(html => {
+                document.getElementById('chunksModalBody').innerHTML = html;
+                
+                var titleEl = document.getElementById('chunksModalBody').querySelector('strong');
+                if (titleEl) {
+                    document.getElementById('chunksModalTitle').innerText = titleEl.innerText;
+                } else {
+                    document.getElementById('chunksModalTitle').innerText = 'Nội dung tài liệu';
+                }
+
+                // Tìm chunk cần lướt tới
+                var targetChunk = document.getElementById('chunk-' + chunkId);
+                if (!targetChunk && chunkOrder) {
+                    targetChunk = document.getElementById('chunksModalBody').querySelector('[data-chunk-order="' + chunkOrder + '"]');
+                }
+
+                if (targetChunk) {
+                    // Highlight
+                    targetChunk.style.border = '2px solid var(--accent, #d89424)';
+                    targetChunk.style.background = 'rgba(216, 148, 36, 0.04)';
+                    targetChunk.style.boxShadow = '0 4px 15px rgba(216, 148, 36, 0.1)';
+                    
+                    setTimeout(function() {
+                        targetChunk.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 150);
+                }
+            })
+            .catch(err => {
+                document.getElementById('chunksModalBody').innerHTML = '<p style="color:red;text-align:center;padding:40px;">Lỗi: ' + err.message + '</p>';
+            });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
+        // Trigger subject filter initialization for document dropdown options
+        var subjectSelect = document.getElementById('subjectSelect');
+        if (subjectSelect && subjectSelect.value) {
+            var subjectId = subjectSelect.value;
+            var docSelect = document.getElementById('documentSelect');
+            Array.from(docSelect.options).forEach(function (opt) {
+                if (!opt.value) { opt.hidden = false; return; }
+                opt.hidden = (subjectId && opt.dataset.subject !== subjectId);
+            });
+            if (docSelect.selectedIndex >= 0 && docSelect.options[docSelect.selectedIndex].hidden) docSelect.value = '';
+        }
+
         renderHistoryFromServer();
         filterDocs('');
+        
+        document.querySelectorAll('.modal-overlay').forEach(function (el) {
+            el.addEventListener('click', function (e) {
+                if (e.target === el) {
+                    closeModal(el.id);
+                }
+            });
+        });
     });
 </script>
