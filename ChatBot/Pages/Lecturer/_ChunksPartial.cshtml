@@ -3,6 +3,10 @@
 @{
     var doc = Model?.Item1;
     var chunks = Model?.Item2;
+    var currentPath = ViewContext.HttpContext.Request.Path.Value ?? "";
+    var downloadUrl = currentPath.Contains("Lecturer") 
+        ? $"/Lecturer/Index?handler=Download&id={doc?.Id}" 
+        : $"/Student/Chat?handler=Download&id={doc?.Id}";
 }
 <div style="margin-bottom:16px;">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -12,6 +16,12 @@
                 @(doc?.Subject?.Name ?? "Unknown") · @chunks?.Count() chunks
             </span>
         </div>
+        @if (doc != null)
+        {
+            <a href="@downloadUrl" target="_blank" class="primary-btn" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;font-size:13px;text-decoration:none;border-radius:6px;background:var(--accent, #d89424);color:white;font-weight:600;transition:opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">
+                <i class="ph ph-download-simple" style="font-size:16px;"></i> Download File
+            </a>
+        }
     </div>
 </div>
 

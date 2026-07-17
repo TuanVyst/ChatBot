@@ -134,7 +134,7 @@
             {
                 @foreach (var doc in Model.StudentChat.Documents)
                 {
-                    <div class="chat-doc-card" data-subject="@doc.SubjectId" data-filename="@doc.FileName.ToLower()">
+                    <div class="chat-doc-card" data-subject="@doc.SubjectId" data-filename="@doc.FileName.ToLower()" onclick="openDocumentChunk(@doc.Id, null, null)" style="cursor: pointer;">
                         <div class="chat-doc-icon">
                             @{
                                 var ext = System.IO.Path.GetExtension(doc.FileName)?.ToLower() ?? "";
@@ -163,8 +163,8 @@
                                 <span><i class="ph ph-list"></i> @(doc.Chapter?.Name ?? "Default")</span>
                             </div>
                         </div>
-                        <a asp-page="/Student/Chat" asp-page-handler="Download" asp-route-id="@doc.Id" target="_blank" class="chat-doc-download" title="View document">
-                            <i class="ph ph-arrow-square-out"></i>
+                        <a asp-page="/Student/Chat" asp-page-handler="Download" asp-route-id="@doc.Id" target="_blank" class="chat-doc-download" title="Download original file" onclick="event.stopPropagation();">
+                            <i class="ph ph-download-simple"></i>
                         </a>
                     </div>
                 }
