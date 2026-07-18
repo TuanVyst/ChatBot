@@ -1,0 +1,380 @@
+@page
+@model ChatBot.Pages.Admin.SubscriptionPlansModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Manage Subscription Plans";
+}
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(26, 32, 44, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .modal-box {
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        width: 100%;
+        max-width: 500px;
+        padding: 24px;
+        transform: scale(0.95);
+        transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.active .modal-box {
+        transform: scale(1);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 16px;
+        margin-bottom: 20px;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: #1a202c;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #a0aec0;
+        transition: color 0.2s;
+    }
+
+    .modal-close:hover {
+        color: #4a5568;
+    }
+
+    .status-toggle {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+    }
+
+    .status-toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e0;
+        transition: .3s;
+        border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+    }
+
+    input:checked + .toggle-slider {
+        background-color: #48bb78;
+    }
+
+    input:checked + .toggle-slider:before {
+        transform: translateX(20px);
+    }
+
+    .badge-active {
+        background: rgba(72, 187, 120, 0.15);
+        color: #38a169;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .badge-inactive {
+        background: rgba(229, 62, 62, 0.15);
+        color: #e53e3e;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+</style>
+
+<div class="admin-header">
+    <div style="margin-bottom:10px;">
+        <p style="color:#d89424;font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;">SUBSCRIPTION</p>
+        <h1 class="page-title" style="margin:0;">Manage Subscription Plans</h1>
+    </div>
+
+    <div class="admin-actions">
+        <button type="button" class="btn-premium btn-primary" onclick="openCreateModal()">
+            <i class="ph-bold ph-plus"></i> Add Plan
+        </button>
+    </div>
+</div>
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-info" style="margin-bottom: 20px;">@TempData["Message"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger" style="margin-bottom: 20px;">@TempData["Error"]</div>
+}
+
+<div class="admin-card">
+    <table class="premium-table">
+        <thead>
+            <tr>
+                <th>Plan Name</th>
+                <th>Price</th>
+                <th>Duration (Days)</th>
+                <th>Daily Token Limit</th>
+                <th>Status</th>
+                <th style="width:150px;text-align:right;">Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var plan in Model.Plans)
+            {
+                <tr id="plan-row-@plan.Id">
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-main);">@plan.Name</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">@plan.Description</div>
+                    </td>
+                    <td style="font-weight: 500;">@plan.Price.ToString("N0") đ</td>
+                    <td>@plan.DurationDays ngày</td>
+                    <td style="font-weight: 600; color: #d89424;">@plan.DailyTokenLimit.ToString("N0")</td>
+                    <td>
+                        <span class="status-badge-container">
+                            @if (plan.IsActive)
+                            {
+                                <span class="badge-active">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge-inactive">Inactive</span>
+                            }
+                        </span>
+                    </td>
+                    <td>
+                        <div class="table-actions" style="justify-content:flex-end; gap: 8px;">
+                            <label class="status-toggle" title="Toggle Active/Inactive">
+                                <input type="checkbox" checked="@plan.IsActive" onchange="toggleStatus(@plan.Id, this)" />
+                                <span class="toggle-slider"></span>
+                            </label>
+
+                            <button type="button" class="btn-edit" title="Edit Plan" onclick="openEditModal(@plan.Id, '@plan.Name', @plan.Price, @plan.DurationDays, @plan.DailyTokenLimit, '@plan.Description', @(plan.IsActive ? "true" : "false"))">
+                                <i class="ph-bold ph-pencil-simple"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- ==============================================
+     MODAL: CREATE PLAN
+     ============================================== -->
+<div id="createModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="ph ph-plus-circle"></i> Create Subscription Plan</h3>
+            <button class="modal-close" onclick="closeModal('createModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="post" asp-page-handler="Create" class="premium-form">
+                @Html.AntiForgeryToken()
+
+                <div class="form-group">
+                    <label class="form-label">Plan Name</label>
+                    <input asp-for="InputPlan.Name" class="form-control" required placeholder="e.g. Gói Cao Cấp" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Price (VNĐ)</label>
+                    <input asp-for="InputPlan.Price" type="number" min="0" class="form-control" required placeholder="e.g. 50000" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Duration (Days)</label>
+                    <input asp-for="InputPlan.DurationDays" type="number" min="1" class="form-control" required placeholder="e.g. 30" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Daily Token Limit</label>
+                    <input asp-for="InputPlan.DailyTokenLimit" type="number" min="1000" class="form-control" required placeholder="e.g. 50000" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea asp-for="InputPlan.Description" class="form-control" style="height: 80px;" placeholder="Ghi chú thêm về gói..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-premium btn-primary" style="width: 100%; margin-top: 15px;">Create Plan</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==============================================
+     MODAL: EDIT PLAN
+     ============================================== -->
+<div id="editModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="ph ph-pencil-simple"></i> Edit Subscription Plan</h3>
+            <button class="modal-close" onclick="closeModal('editModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="post" asp-page-handler="Edit" id="editForm" class="premium-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="editPlanId" />
+
+                <div class="form-group">
+                    <label class="form-label">Plan Name</label>
+                    <input asp-for="InputPlan.Name" id="editName" class="form-control" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Price (VNĐ)</label>
+                    <input asp-for="InputPlan.Price" id="editPrice" type="number" min="0" class="form-control" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Duration (Days)</label>
+                    <input asp-for="InputPlan.DurationDays" id="editDuration" type="number" min="1" class="form-control" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Daily Token Limit</label>
+                    <input asp-for="InputPlan.DailyTokenLimit" id="editTokenLimit" type="number" min="1000" class="form-control" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea asp-for="InputPlan.Description" id="editDescription" class="form-control" style="height: 80px;"></textarea>
+                </div>
+
+                <div class="form-group" style="display:flex; align-items:center; gap: 8px;">
+                    <input type="checkbox" asp-for="InputPlan.IsActive" id="editIsActive" style="width:16px; height:16px; cursor:pointer;" />
+                    <label for="editIsActive" class="form-label" style="margin:0; cursor:pointer;">Hoạt động</label>
+                </div>
+
+                <button type="submit" class="btn-premium btn-primary" style="width: 100%; margin-top: 15px;">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openModal(id) {
+        document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+
+    function openCreateModal() {
+        openModal('createModal');
+    }
+
+    function openEditModal(id, name, price, duration, tokenLimit, description, isActive) {
+        document.getElementById('editPlanId').value = id;
+        document.getElementById('editName').value = name;
+        document.getElementById('editPrice').value = price;
+        document.getElementById('editDuration').value = duration;
+        document.getElementById('editTokenLimit').value = tokenLimit;
+        document.getElementById('editDescription').value = description;
+        document.getElementById('editIsActive').checked = isActive;
+        
+        // Update form action with route ID
+        var form = document.getElementById('editForm');
+        form.action = '/Admin/SubscriptionPlans?handler=Edit&id=' + id;
+
+        openModal('editModal');
+    }
+
+    async function toggleStatus(id, checkbox) {
+        try {
+            const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            const token = tokenInput ? tokenInput.value : '';
+
+            const response = await fetch(`/Admin/SubscriptionPlans?handler=ToggleStatus&id=${id}`, {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                const row = document.getElementById(`plan-row-${id}`);
+                const badgeContainer = row.querySelector('.status-badge-container');
+                if (data.isActive) {
+                    badgeContainer.innerHTML = '<span class="badge-active">Active</span>';
+                    checkbox.checked = true;
+                } else {
+                    badgeContainer.innerHTML = '<span class="badge-inactive">Inactive</span>';
+                    checkbox.checked = false;
+                }
+                showToast('Cập nhật trạng thái thành công!', 'success');
+            } else {
+                showToast(data.message || 'Lỗi cập nhật trạng thái.', 'error');
+                checkbox.checked = !checkbox.checked; // Revert
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Lỗi kết nối đến máy chủ.', 'error');
+            checkbox.checked = !checkbox.checked; // Revert
+        }
+    }
+
+    function showToast(msg, type) {
+        if (window.Toast) {
+            window.Toast.show(msg, type);
+        } else {
+            alert(msg);
+        }
+    }
+</script>

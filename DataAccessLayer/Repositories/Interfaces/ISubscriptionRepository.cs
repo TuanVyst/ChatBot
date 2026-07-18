@@ -13,5 +13,9 @@ namespace DataAccessLayer.Repositories.Interfaces
         Task UpdatePaymentTransactionAsync(PaymentTransaction transaction);
         Task<List<PaymentTransaction>> GetPaymentHistoryByAccountIdAsync(Guid accountId);
         Task<int> CountTodayQuestionsAsync(Guid accountId);
+        Task<int> SumTodayTokensAsync(Guid accountId);
+        Task<List<SubscriptionPlan>> GetAllPlansAsync();
+        Task AddPlanAsync(SubscriptionPlan plan);
+        Task UpdatePlanAsync(SubscriptionPlan plan);
     }
 }

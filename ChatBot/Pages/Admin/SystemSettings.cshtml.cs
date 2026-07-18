@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using ServiceLayer.Interfaces;
@@ -27,6 +27,9 @@ public class SystemSettingsModel : PageModel
     [BindProperty]
     public string EmbeddingModel { get; set; } = string.Empty;
 
+    [BindProperty]
+    public string BackupEmbeddingModel { get; set; } = string.Empty;
+
     public async Task OnGetAsync()
     {
         var setting = await _settingService.GetSettingAsync();
@@ -35,6 +38,7 @@ public class SystemSettingsModel : PageModel
         ChunkOverlap = setting.ChunkOverlap;
         TopK = setting.TopK;
         EmbeddingModel = setting.EmbeddingModel;
+        BackupEmbeddingModel = setting.BackupEmbeddingModel;
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -43,7 +47,8 @@ public class SystemSettingsModel : PageModel
             ChunkSize,
             ChunkOverlap,
             TopK,
-            EmbeddingModel);
+            EmbeddingModel,
+            BackupEmbeddingModel);
 
         if (result.Success)
             TempData["Message"] = result.Message;

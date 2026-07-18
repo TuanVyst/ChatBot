@@ -5,6 +5,22 @@
     Layout = "~/Pages/Shared/_StudentLayout.cshtml";
 }
 
+<style>
+    .modal-tabs {
+        margin-left: 24px;
+        margin-right: 24px;
+    }
+    .modal-tab-body-container {
+        padding: 0 24px 24px 24px;
+    }
+    #chunksModalBody .chunks-scroll-container {
+        max-height: none !important;
+    }
+    #chunksModalBody .primary-btn {
+        display: none !important;
+    }
+</style>
+
 <div class="chat-app">
     @* ═══════════ LEFT: CHAT HISTORY ═══════════ *@
     <aside class="chat-sidebar chat-history">
@@ -34,9 +50,9 @@
                 <p class="chat-subtitle">Ask me anything about your enrolled subjects and lecturer-uploaded documents.</p>
             </div>
             <div class="chat-header-actions" style="display: flex; align-items: center; gap: 8px;">
-                <div style="background: rgba(245,158,11,0.1); color: #D97706; padding: 6px 12px; border-radius: 20px; font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;" title="Remaining questions for today">
+                <div style="background: rgba(245,158,11,0.1); color: #D97706; padding: 6px 12px; border-radius: 20px; font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;" title="Dung lượng token còn lại hôm nay">
                     <i class="ph ph-lightning"></i>
-                    <span id="quotaDisplay">@Model.StudentChat.RemainingQuestions</span>
+                    <span id="quotaDisplay">@Model.StudentChat.RemainingTokens.ToString("N0")</span>
                 </div>
                 <a href="/Student/Premium" class="chat-action-btn upgrade-btn" title="Upgrade to Premium" style="background-color: var(--primary); color: white; border-color: var(--primary); text-decoration: none;">
                     <i class="ph ph-crown"></i>
@@ -134,7 +150,7 @@
             {
                 @foreach (var doc in Model.StudentChat.Documents)
                 {
-                    <div class="chat-doc-card" data-subject="@doc.SubjectId" data-filename="@doc.FileName.ToLower()" onclick="openDocumentChunk(@doc.Id, null, null)" style="cursor: pointer;">
+                    <div class="chat-doc-card" data-subject="@doc.SubjectId" data-filename="@doc.FileName.ToLower()" onclick="openDocumentChunk(@doc.Id, null, null, '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(doc.FileName))')" style="cursor: pointer;">
                         <div class="chat-doc-icon">
                             @{
                                 var ext = System.IO.Path.GetExtension(doc.FileName)?.ToLower() ?? "";
@@ -173,15 +189,44 @@
     </aside>
 </div>
 
-<!-- Chunks Modal -->
+<!-- Chunks & Original Document Modal -->
 <div id="chunksModal" class="modal-overlay">
-    <div class="modal-box" style="max-width:720px; width:90%;">
-        <div class="modal-header">
-            <h3 id="chunksModalTitle">Document Chunks</h3>
+    <div class="modal-box" style="max-width:90%; width:1000px; height:85vh; display:flex; flex-direction:column; overflow:hidden; background: white;">
+        <div class="modal-header" style="margin-bottom: 10px; padding-bottom: 10px; flex-shrink: 0;">
+            <h3 id="chunksModalTitle">Document Viewer</h3>
             <button class="modal-close" onclick="closeModal('chunksModal')">&times;</button>
         </div>
-        <div class="modal-body" id="chunksModalBody">
-            <p style="color:var(--text-muted);text-align:center;padding:40px;">Loading...</p>
+
+        <!-- Tab Headers -->
+        <div class="modal-tabs" style="display:flex; justify-content: space-between; align-items: center; border-bottom:1px solid #e2e8f0; margin-bottom:12px; padding-bottom: 4px; flex-shrink: 0;">
+            <div style="display:flex; gap:8px;">
+                <button class="modal-tab-btn" id="tabBtnOriginal" onclick="switchModalTab('original')" style="background:none; border:none; padding:8px 16px; font-weight:600; cursor:pointer; color:var(--text-muted, #718096); border-bottom:2px solid transparent; transition:all 0.2s; font-family:inherit; font-size: 0.95rem;">
+                    <i class="ph ph-file-text"></i> Tài liệu gốc
+                </button>
+                <button class="modal-tab-btn" id="tabBtnChunks" onclick="switchModalTab('chunks')" style="background:none; border:none; padding:8px 16px; font-weight:600; cursor:pointer; color:var(--text-muted, #718096); border-bottom:2px solid transparent; transition:all 0.2s; font-family:inherit; font-size: 0.95rem;">
+                    <i class="ph ph-puzzle-piece"></i> Đoạn trích (Chunks)
+                </button>
+            </div>
+            
+            <a href="#" id="modalDownloadBtn" target="_blank" class="primary-btn" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;font-size:13px;text-decoration:none;border-radius:6px;background:var(--accent, #d89424);color:white;font-weight:600;transition:opacity 0.2s; font-family:inherit;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">
+                <i class="ph ph-download-simple" style="font-size:16px;"></i> Download File
+            </a>
+        </div>
+
+        <!-- Tab Body Container -->
+        <div class="modal-tab-body-container" style="flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative; min-height: 0;">
+            <!-- Tab 1: Original Document -->
+            <div id="modalTabOriginal" style="display:none; flex-direction:column; height:100%; width:100%; overflow:hidden;">
+                <iframe id="documentIframe" src="" style="width:100%; height:100%; border:none; flex:1; background: #f7fafc; border-radius: 8px;"></iframe>
+                <div id="docxContainer" style="display:none; padding: 20px; background: white; height: 100%; overflow-y:auto; border-radius: 8px; border: 1px solid #e2e8f0; color: black;"></div>
+            </div>
+            
+            <!-- Tab 2: Chunks -->
+            <div id="modalTabChunks" style="display:none; flex-direction:column; height:100%; width:100%; overflow:hidden;">
+                <div id="chunksModalBody" style="height:100%; overflow-y:auto;">
+                    <p style="color:var(--text-muted);text-align:center;padding:40px;">Loading...</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -398,11 +443,8 @@
                 await renderHistoryFromServer();
                 
                 var quotaSpan = document.getElementById('quotaDisplay');
-                if (quotaSpan) {
-                    var current = parseInt(quotaSpan.textContent, 10);
-                    if (!isNaN(current) && current > 0) {
-                        quotaSpan.textContent = current - 1;
-                    }
+                if (quotaSpan && typeof data.remainingTokens !== 'undefined') {
+                    quotaSpan.textContent = data.remainingTokens.toLocaleString();
                 }
             } else {
                 appendMessage(
@@ -493,7 +535,7 @@
             sourcesHtml = '<div class="chat-sources" style="margin-top: 10px; font-size: 0.85em; opacity: 0.95;">' +
                 '<div class="sources-title" style="font-weight: 600; margin-bottom: 6px; color: var(--text-muted);"><i class="ph ph-link-simple"></i> Trích xuất từ tài liệu (Bấm để xem):</div>' +
                 uniqueChunks.map(cs => 
-                    '<button class="source-tag" onclick="openDocumentChunk(' + cs.documentId + ', ' + cs.chunkId + ', ' + cs.chunkOrder + ')" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(216, 148, 36, 0.08); color: #d89424; padding: 4px 8px; border-radius: 6px; margin-right: 8px; margin-bottom: 6px; border: 1px solid rgba(216, 148, 36, 0.2); cursor: pointer; font-size: 0.9em; font-family: inherit; transition: all 0.2s;" onmouseover="this.style.background=\'rgba(216, 148, 36, 0.15)\'" onmouseout="this.style.background=\'rgba(216, 148, 36, 0.08)\'">' +
+                    '<button class="source-tag" onclick="openDocumentChunk(' + cs.documentId + ', ' + cs.chunkId + ', ' + cs.chunkOrder + ', \'' + cs.fileName.replace(/\'/g, "\\'") + '\')" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(216, 148, 36, 0.08); color: #d89424; padding: 4px 8px; border-radius: 6px; margin-right: 8px; margin-bottom: 6px; border: 1px solid rgba(216, 148, 36, 0.2); cursor: pointer; font-size: 0.9em; font-family: inherit; transition: all 0.2s;" onmouseover="this.style.background=\'rgba(216, 148, 36, 0.15)\'" onmouseout="this.style.background=\'rgba(216, 148, 36, 0.08)\'">' +
                         '<i class="ph ph-file-text"></i> ' + escapeHtml(cs.fileName) + ' (Đoạn ' + cs.chunkOrder + ')' +
                     '</button>'
                 ).join('') +
@@ -551,9 +593,86 @@
         if (el) el.classList.remove('active');
     }
 
-    function openDocumentChunk(documentId, chunkId, chunkOrder) {
-        document.getElementById('chunksModalTitle').innerText = 'Loading...';
+    function switchModalTab(tabName) {
+        const tabBtnOriginal = document.getElementById('tabBtnOriginal');
+        const tabBtnChunks = document.getElementById('tabBtnChunks');
+        const tabOriginal = document.getElementById('modalTabOriginal');
+        const tabChunks = document.getElementById('modalTabChunks');
+
+        if (tabName === 'original') {
+            tabBtnOriginal.style.borderBottom = '2px solid var(--primary, #d89424)';
+            tabBtnOriginal.style.color = 'var(--primary, #d89424)';
+            tabBtnChunks.style.borderBottom = '2px solid transparent';
+            tabBtnChunks.style.color = 'var(--text-muted, #718096)';
+            
+            tabOriginal.style.display = 'flex';
+            tabChunks.style.display = 'none';
+        } else {
+            tabBtnChunks.style.borderBottom = '2px solid var(--primary, #d89424)';
+            tabBtnChunks.style.color = 'var(--primary, #d89424)';
+            tabBtnOriginal.style.borderBottom = '2px solid transparent';
+            tabBtnOriginal.style.color = 'var(--text-muted, #718096)';
+            
+            tabOriginal.style.display = 'none';
+            tabChunks.style.display = 'flex';
+        }
+    }
+
+    function viewOriginalDocument(docId, fileName) {
+        const iframe = document.getElementById('documentIframe');
+        const docxContainer = document.getElementById('docxContainer');
+
+        if (fileName.toLowerCase().endsWith('.docx')) {
+            iframe.style.display = 'none';
+            docxContainer.style.display = 'block';
+            docxContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-muted);"><i class="ph ph-spinner ph-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br/>Loading document...</div>';
+
+            fetch('/Student/Chat?handler=ViewOriginal&id=' + docId)
+                .then(r => {
+                    if (!r.ok) throw new Error('Không thể tải file docx.');
+                    return r.arrayBuffer();
+                })
+                .then(buffer => {
+                    mammoth.convertToHtml({ arrayBuffer: buffer })
+                        .then(result => {
+                            docxContainer.innerHTML = '<div class="docx-content" style="max-width: 800px; margin: 0 auto; color: black; line-height: 1.6;">' + result.value + '</div>';
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            docxContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: red;">Failed to render document.</div>';
+                        });
+                })
+                .catch(err => {
+                    console.error(err);
+                    docxContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: red;">Failed to load document.</div>';
+                });
+        } else {
+            docxContainer.style.display = 'none';
+            iframe.style.display = 'block';
+            iframe.src = '/Student/Chat?handler=ViewOriginal&id=' + docId;
+        }
+    }
+
+    function openDocumentChunk(documentId, chunkId, chunkOrder, fileName) {
+        fileName = fileName || 'Nội dung tài liệu';
+        document.getElementById('chunksModalTitle').innerText = fileName;
         document.getElementById('chunksModalBody').innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px;">Đang tải nội dung tài liệu...</p>';
+        
+        // Cập nhật link tải file
+        var downloadBtn = document.getElementById('modalDownloadBtn');
+        if (downloadBtn) {
+            downloadBtn.href = '/Student/Chat?handler=Download&id=' + documentId;
+        }
+
+        // Default to Chunks tab if opening from a specific chunk click, otherwise show original document
+        if (chunkId || chunkOrder) {
+            switchModalTab('chunks');
+        } else {
+            switchModalTab('original');
+        }
+
+        // Trigger loading original document representation
+        viewOriginalDocument(documentId, fileName);
         openModal('chunksModal');
 
         fetch('/Student/Chat?handler=Chunks&id=' + documentId)
@@ -564,21 +683,19 @@
             .then(html => {
                 document.getElementById('chunksModalBody').innerHTML = html;
                 
+                // Keep modal title updated
                 var titleEl = document.getElementById('chunksModalBody').querySelector('strong');
                 if (titleEl) {
                     document.getElementById('chunksModalTitle').innerText = titleEl.innerText;
-                } else {
-                    document.getElementById('chunksModalTitle').innerText = 'Nội dung tài liệu';
                 }
 
-                // Tìm chunk cần lướt tới
+                // Find chunk to scroll and highlight
                 var targetChunk = document.getElementById('chunk-' + chunkId);
                 if (!targetChunk && chunkOrder) {
                     targetChunk = document.getElementById('chunksModalBody').querySelector('[data-chunk-order="' + chunkOrder + '"]');
                 }
 
                 if (targetChunk) {
-                    // Highlight
                     targetChunk.style.border = '2px solid var(--accent, #d89424)';
                     targetChunk.style.background = 'rgba(216, 148, 36, 0.04)';
                     targetChunk.style.boxShadow = '0 4px 15px rgba(216, 148, 36, 0.1)';
@@ -594,7 +711,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Trigger subject filter initialization for document dropdown options
         var subjectSelect = document.getElementById('subjectSelect');
         if (subjectSelect && subjectSelect.value) {
             var subjectId = subjectSelect.value;
@@ -618,3 +734,5 @@
         });
     });
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
+

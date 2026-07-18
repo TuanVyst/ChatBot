@@ -49,6 +49,12 @@
                 System Settings
             </a>
 
+            <a asp-page="/Admin/SubscriptionPlans"
+               class="nav-item @(currentPage.Contains("SubscriptionPlans") ? "active" : "")">
+                <i class="ph ph-credit-card"></i>
+                Subscription Plans
+            </a>
+
 
 
             <form asp-page="/Auth/Logout" method="post" style="margin:0;">

@@ -12,10 +12,9 @@ namespace ServiceLayer.Implements
     {
         private readonly string _apiKey;
         private readonly HttpClient _httpClient;
+        private readonly ISystemSettingService _settingService;
 
-        private const string ModelName = "gemini-embedding-2";
-
-        public EmbeddingService(string apiKey)
+        public EmbeddingService(string apiKey, ISystemSettingService settingService)
         {
             if (string.IsNullOrWhiteSpace(apiKey))
             {
@@ -25,6 +24,7 @@ namespace ServiceLayer.Implements
             }
 
             _apiKey = apiKey.Trim();
+            _settingService = settingService;
 
             _httpClient = new HttpClient
             {
@@ -51,7 +51,16 @@ namespace ServiceLayer.Implements
                     return (false, null, "Text cannot be empty");
                 }
 
-                var models = new[] { "gemini-embedding-2", "gemini-embedding-2-preview" };
+                // Load primary and backup models from settings
+                var setting = await _settingService.GetSettingAsync();
+                var modelsList = new List<string> { setting.EmbeddingModel };
+                if (!string.IsNullOrEmpty(setting.BackupEmbeddingModel) && 
+                    !string.Equals(setting.BackupEmbeddingModel, "None", StringComparison.OrdinalIgnoreCase))
+                {
+                    modelsList.Add(setting.BackupEmbeddingModel);
+                }
+
+                var models = modelsList.ToArray();
                 int maxRetries = models.Length;
                 HttpResponseMessage? response = null;
                 string responseContent = string.Empty;

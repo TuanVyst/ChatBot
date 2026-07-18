@@ -83,5 +83,34 @@ namespace DataAccessLayer.Repositories.Implements
                 .CountAsync(ch => ch.UserId == accountIdStr
                                && ch.CreatedAt >= todayUtc);
         }
+
+        public async Task<int> SumTodayTokensAsync(Guid accountId)
+        {
+            var todayUtc = DateTime.UtcNow.Date;
+            var accountIdStr = accountId.ToString();
+
+            return await _context.ChatHistories
+                .Where(ch => ch.UserId == accountIdStr && ch.CreatedAt >= todayUtc)
+                .SumAsync(ch => ch.TotalTokens);
+        }
+
+        public async Task<List<SubscriptionPlan>> GetAllPlansAsync()
+        {
+            return await _context.SubscriptionPlans
+                .OrderBy(p => p.Price)
+                .ToListAsync();
+        }
+
+        public async Task AddPlanAsync(SubscriptionPlan plan)
+        {
+            await _context.SubscriptionPlans.AddAsync(plan);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdatePlanAsync(SubscriptionPlan plan)
+        {
+            _context.SubscriptionPlans.Update(plan);
+            await _context.SaveChangesAsync();
+        }
     }
 }

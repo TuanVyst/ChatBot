@@ -19,7 +19,7 @@ namespace ChatBot.Pages.Student
         public Subscription? ActiveSubscription { get; set; }
         public List<SubscriptionPlan> AvailablePlans { get; set; } = new();
         public List<PaymentTransaction> PaymentTransactions { get; set; } = new();
-        public int RemainingQuestions { get; set; }
+        public int RemainingTokens { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -32,7 +32,7 @@ namespace ChatBot.Pages.Student
             ActiveSubscription = await _subscriptionService.GetActiveSubscriptionAsync(accountId);
             AvailablePlans = await _subscriptionService.GetAvailablePlansAsync();
             PaymentTransactions = await _subscriptionService.GetPaymentHistoryAsync(accountId);
-            RemainingQuestions = await _subscriptionService.GetRemainingQuestionsAsync(accountId);
+            RemainingTokens = await _subscriptionService.GetRemainingTokensAsync(accountId);
 
             return Page();
         }

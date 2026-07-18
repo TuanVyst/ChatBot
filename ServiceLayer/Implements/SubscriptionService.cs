@@ -10,7 +10,7 @@ namespace ServiceLayer.Implements
     {
         private readonly ISubscriptionRepository _repository;
         private readonly PayOSClient _payOSClient;
-        private const int FREE_DAILY_LIMIT = 5;
+        private const int FREE_DAILY_TOKEN_LIMIT = 5000;
 
         public SubscriptionService(ISubscriptionRepository repository, PayOSClient payOSClient)
         {
@@ -127,26 +127,46 @@ namespace ServiceLayer.Implements
             }
         }
 
-        public async Task<int> GetRemainingQuestionsAsync(Guid accountId)
+        public async Task<int> GetRemainingTokensAsync(Guid accountId)
         {
-            var todayCount = await _repository.CountTodayQuestionsAsync(accountId);
+            var todayTokens = await _repository.SumTodayTokensAsync(accountId);
             var activeSub = await _repository.GetActiveSubscriptionByAccountIdAsync(accountId);
 
-            int dailyLimit = activeSub?.Plan?.DailyQuestionLimit ?? FREE_DAILY_LIMIT;
-            int remaining = dailyLimit - todayCount;
+            int dailyLimit = activeSub?.Plan?.DailyTokenLimit ?? FREE_DAILY_TOKEN_LIMIT;
+            int remaining = dailyLimit - todayTokens;
 
             return Math.Max(0, remaining);
         }
 
-        public async Task<bool> ConsumeQuestionQuotaAsync(Guid accountId)
+        public async Task<bool> HasRemainingTokenQuotaAsync(Guid accountId)
         {
-            var remaining = await GetRemainingQuestionsAsync(accountId);
+            var remaining = await GetRemainingTokensAsync(accountId);
             return remaining > 0;
         }
 
         public async Task<List<PaymentTransaction>> GetPaymentHistoryAsync(Guid accountId)
         {
             return await _repository.GetPaymentHistoryByAccountIdAsync(accountId);
+        }
+
+        public async Task<List<SubscriptionPlan>> GetAllPlansAsync()
+        {
+            return await _repository.GetAllPlansAsync();
+        }
+
+        public async Task<SubscriptionPlan?> GetPlanByIdAsync(int id)
+        {
+            return await _repository.GetPlanByIdAsync(id);
+        }
+
+        public async Task CreatePlanAsync(SubscriptionPlan plan)
+        {
+            await _repository.AddPlanAsync(plan);
+        }
+
+        public async Task UpdatePlanAsync(SubscriptionPlan plan)
+        {
+            await _repository.UpdatePlanAsync(plan);
         }
     }
 }

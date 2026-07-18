@@ -1,4 +1,4 @@
-﻿namespace BusinessObject.Entities;
+namespace BusinessObject.Entities;
 
 public class SystemSetting
 {
@@ -10,7 +10,9 @@ public class SystemSetting
 
     public int TopK { get; set; } = 5;
 
-    public string EmbeddingModel { get; set; } = "text-embedding-3-small";
+    public string EmbeddingModel { get; set; } = "gemini-embedding-2";
+
+    public string BackupEmbeddingModel { get; set; } = "gemini-embedding-2-preview";
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

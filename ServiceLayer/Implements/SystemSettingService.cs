@@ -1,4 +1,4 @@
-﻿using BusinessObject.Entities;
+using BusinessObject.Entities;
 using DataAccessLayer;
 using Microsoft.EntityFrameworkCore;
 using ServiceLayer.Interfaces;
@@ -26,7 +26,8 @@ public class SystemSettingService : ISystemSettingService
                 ChunkSize = 512,
                 ChunkOverlap = 50,
                 TopK = 5,
-                EmbeddingModel = "text-embedding-3-small",
+                EmbeddingModel = "gemini-embedding-2",
+                BackupEmbeddingModel = "gemini-embedding-2-preview",
                 UpdatedAt = DateTime.UtcNow
             };
 
@@ -41,7 +42,8 @@ public class SystemSettingService : ISystemSettingService
         int chunkSize,
         int chunkOverlap,
         int topK,
-        string embeddingModel)
+        string embeddingModel,
+        string backupEmbeddingModel)
     {
         if (chunkSize < 100 || chunkSize > 3000)
             return (false, "Chunk size phải từ 100 đến 3000.");
@@ -58,6 +60,7 @@ public class SystemSettingService : ISystemSettingService
         setting.ChunkOverlap = chunkOverlap;
         setting.TopK = topK;
         setting.EmbeddingModel = embeddingModel;
+        setting.BackupEmbeddingModel = backupEmbeddingModel;
         setting.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

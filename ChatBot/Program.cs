@@ -87,7 +87,10 @@ Console.WriteLine(
 builder.Services.AddSingleton<IFileUploadService>(new FileUploadService(uploadFolderPath, maxFileSize));
 builder.Services.AddScoped<ITextExtractionService, TextExtractionService>();
 builder.Services.AddScoped<IChunkingService, ChunkingService>();
-builder.Services.AddScoped<IEmbeddingService>(sp => new EmbeddingService(geminiApiKey ?? throw new InvalidOperationException("GEMINI_API_KEY or OPENAI_API_KEY not configured")));
+builder.Services.AddScoped<IEmbeddingService>(sp => new EmbeddingService(
+    geminiApiKey ?? throw new InvalidOperationException("GEMINI_API_KEY or OPENAI_API_KEY not configured"),
+    sp.GetRequiredService<ISystemSettingService>()
+));
 builder.Services.AddScoped<IChatService>(sp => new ChatService(geminiApiKey ?? throw new InvalidOperationException("GEMINI_API_KEY or OPENAI_API_KEY not configured")));
 builder.Services.AddScoped<IIndexingService, IndexingService>();
 builder.Services.AddScoped<IRetrievalService, RetrievalService>();

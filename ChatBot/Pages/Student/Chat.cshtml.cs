@@ -33,7 +33,7 @@ public class ChatModel : PageModel
         public IReadOnlyList<BusinessObject.Entities.Document> Documents { get; set; } = new List<BusinessObject.Entities.Document>();
         public Guid? SelectedSubjectId { get; set; }
         public int? SelectedDocumentId { get; set; }
-        public int RemainingQuestions { get; set; }
+        public int RemainingTokens { get; set; }
     }
 
     public async Task<IActionResult> OnGetAsync(Guid? subjectId, int? documentId)
@@ -71,7 +71,7 @@ public class ChatModel : PageModel
                 .ToListAsync();
         }
 
-        var remainingQuestions = await _subscriptionService.GetRemainingQuestionsAsync(studentId);
+        var remainingTokens = await _subscriptionService.GetRemainingTokensAsync(studentId);
 
         StudentChat = new ChatData
         {
@@ -80,7 +80,7 @@ public class ChatModel : PageModel
             FullName = HttpContext.Session.GetString("FullName") ?? "Student",
             SelectedSubjectId = subjectId,
             SelectedDocumentId = documentId,
-            RemainingQuestions = remainingQuestions
+            RemainingTokens = remainingTokens
         };
 
         return Page();
@@ -132,11 +132,14 @@ public class ChatModel : PageModel
         if (!success)
             return new JsonResult(new { success = false, errorMessage = error });
 
+        var remainingTokens = await _subscriptionService.GetRemainingTokensAsync(Guid.Parse(userId));
+
         return new JsonResult(new
         {
             success = true,
             answer = result?.Answer,
             sources = result?.Sources,
+            remainingTokens = remainingTokens,
             chunkSources = result?.RetrievedChunks
                 .GroupBy(c => c.Id)
                 .Select(g => g.First())
@@ -215,5 +218,27 @@ public class ChatModel : PageModel
                 Model = new Tuple<Document, IEnumerable<DocumentChunk>>(doc, chunks)
             }
         };
+    }
+
+    public async Task<IActionResult> OnGetViewOriginalAsync(int id)
+    {
+        var doc = await _context.Documents.FirstOrDefaultAsync(d => d.Id == id);
+        if (doc == null) return NotFound();
+
+        if (!System.IO.File.Exists(doc.FilePath))
+            return NotFound("File not found on server.");
+
+        var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+
+        if (!provider.TryGetContentType(doc.FilePath, out var contentType))
+            contentType = "application/octet-stream";
+
+        Response.Headers.Append(
+            "Content-Disposition",
+            $"inline; filename=\"{doc.FileName}\"");
+
+        var stream = System.IO.File.OpenRead(doc.FilePath);
+
+        return File(stream, contentType);
     }
 }

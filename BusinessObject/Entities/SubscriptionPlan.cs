@@ -18,7 +18,7 @@ namespace BusinessObject.Entities
         public int DurationDays { get; set; }
 
         [Required]
-        public int DailyQuestionLimit { get; set; } = 10;
+        public int DailyTokenLimit { get; set; } = 50000;
 
         [MaxLength(500)]
         public string? Description { get; set; }

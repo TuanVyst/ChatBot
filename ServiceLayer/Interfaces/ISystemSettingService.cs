@@ -1,4 +1,4 @@
-﻿using BusinessObject.Entities;
+using BusinessObject.Entities;
 
 namespace ServiceLayer.Interfaces;
 
@@ -10,5 +10,6 @@ public interface ISystemSettingService
         int chunkSize,
         int chunkOverlap,
         int topK,
-        string embeddingModel);
+        string embeddingModel,
+        string backupEmbeddingModel);
 }

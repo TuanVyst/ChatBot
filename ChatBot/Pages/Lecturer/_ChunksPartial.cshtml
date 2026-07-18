@@ -27,7 +27,7 @@
 
 @if (chunks != null && chunks.Any())
 {
-    <div style="display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;padding-right:4px;">
+    <div class="chunks-scroll-container" style="display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;padding-right:4px;">
         @foreach (var c in chunks)
         {
             <div id="chunk-@c.Id" data-chunk-order="@c.ChunkOrder" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px; transition: all 0.3s;">

@@ -71,8 +71,8 @@ namespace DataAccessLayer
                     Name = "Gói Tuần",
                     Price = 19000,
                     DurationDays = 7,
-                    DailyQuestionLimit = 10,
-                    Description = "Hỏi 10 câu/ngày trong 7 ngày",
+                    DailyTokenLimit = 50000,
+                    Description = "Giới hạn 50,000 tokens/ngày trong 7 ngày",
                     IsActive = true
                 },
                 new SubscriptionPlan
@@ -81,8 +81,8 @@ namespace DataAccessLayer
                     Name = "Gói Tháng",
                     Price = 49000,
                     DurationDays = 30,
-                    DailyQuestionLimit = 10,
-                    Description = "Hỏi 10 câu/ngày trong 30 ngày",
+                    DailyTokenLimit = 50000,
+                    Description = "Giới hạn 50,000 tokens/ngày trong 30 ngày",
                     IsActive = true
                 },
                 new SubscriptionPlan
@@ -91,8 +91,8 @@ namespace DataAccessLayer
                     Name = "Gói Năm",
                     Price = 490000,
                     DurationDays = 365,
-                    DailyQuestionLimit = 10,
-                    Description = "Hỏi 10 câu/ngày trong 365 ngày",
+                    DailyTokenLimit = 50000,
+                    Description = "Giới hạn 50,000 tokens/ngày trong 365 ngày",
                     IsActive = true
                 });
         }

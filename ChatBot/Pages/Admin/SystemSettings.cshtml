@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model ChatBot.Pages.Admin.SystemSettingsModel
 
 @{
@@ -37,11 +37,25 @@
         </div>
 
         <div class="form-group">
-            <label class="form-label">Embedding Model</label>
-            <input asp-for="EmbeddingModel" class="form-control" />
+            <label class="form-label">Primary Embedding Model</label>
+            <select asp-for="EmbeddingModel" class="form-control" style="cursor: pointer; padding: 10px;">
+                <option value="gemini-embedding-2">gemini-embedding-2 (3072 dims - Mặc định)</option>
+                <option value="gemini-embedding-2-preview">gemini-embedding-2-preview (3072 dims)</option>
+                <option value="text-embedding-004">text-embedding-004 (768/3072 dims)</option>
+            </select>
         </div>
 
-        <button type="submit" class="btn-premium btn-primary">
+        <div class="form-group">
+            <label class="form-label">Backup Embedding Model</label>
+            <select asp-for="BackupEmbeddingModel" class="form-control" style="cursor: pointer; padding: 10px;">
+                <option value="None">None (Không sử dụng dự phòng)</option>
+                <option value="gemini-embedding-2">gemini-embedding-2 (3072 dims)</option>
+                <option value="gemini-embedding-2-preview">gemini-embedding-2-preview (3072 dims)</option>
+                <option value="text-embedding-004">text-embedding-004 (768/3072 dims)</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn-premium btn-primary" style="margin-top: 15px;">
             Save Settings
         </button>
     </form>

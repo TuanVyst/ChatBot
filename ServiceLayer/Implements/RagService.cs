@@ -36,12 +36,12 @@ namespace ServiceLayer.Implements
             if (string.IsNullOrWhiteSpace(question))
                 return (false, null, "Question cannot be empty");
 
-            // Bước 0: Check quota câu hỏi hàng ngày
+            // Bước 0: Check quota token hàng ngày
             if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var accountId))
             {
-                if (!await _subscriptionService.ConsumeQuestionQuotaAsync(accountId))
+                if (!await _subscriptionService.HasRemainingTokenQuotaAsync(accountId))
                 {
-                    return (false, null, "Bạn đã hết lượt hỏi hôm nay. Hãy đăng ký gói Premium để được hỏi 10 câu/ngày!");
+                    return (false, null, "Bạn đã dùng hết hạn mức token hôm nay. Vui lòng đăng ký/nâng cấp Premium để tiếp tục!");
                 }
             }
 
