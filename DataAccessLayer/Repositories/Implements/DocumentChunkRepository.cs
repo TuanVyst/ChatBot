@@ -1,4 +1,4 @@
-﻿using BusinessObject.Entities;
+using BusinessObject.Entities;
 using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,6 +31,7 @@ namespace DataAccessLayer.Repositories.Implements
         {
             return await _context.DocumentChunks
                 .Where(c => c.DocumentId == documentId)
+                .OrderBy(c => c.ChunkOrder)
                 .ToListAsync();
         }
 

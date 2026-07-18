@@ -1,8 +1,6 @@
 using ServiceLayer.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace ServiceLayer.Implements
 {
@@ -13,110 +11,44 @@ namespace ServiceLayer.Implements
             if (string.IsNullOrWhiteSpace(text))
                 return new List<string>();
 
+            // ── Step 1: Split into whitespace-delimited tokens ──
+            var tokens = text.Split(new[] { ' ', '\r', '\n', '\t' },
+                                    StringSplitOptions.RemoveEmptyEntries);
+
+            if (tokens.Length == 0)
+                return new List<string>();
+
+            // ── Step 2: Giống MS Word: mọi token đều là 1 từ ──
+            // Word tính tất cả token phân cách bởi space là 1 từ:
+            // "HTTP/2" → 1 từ, "don't" → 1 từ, "-" → 1 từ, "--" → 1 từ.
+            int totalWords = tokens.Length;
+
+            // Vì mỗi token = 1 từ, wordIndex == tokenIndex. Không cần prefix-sum.
+
+            // ── Step 4: Slice into chunks ──
+            int wordStep = chunkSize - overlapSize;
+            if (wordStep <= 0)
+                wordStep = Math.Max(1, chunkSize / 2);
+
             var chunks = new List<string>();
-            var lines = text.Split(new[] { "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-            var currentChunk = new StringBuilder();
 
-            foreach (var line in lines)
+            for (int chunkStart = 0; chunkStart < totalWords; chunkStart += wordStep)
             {
-                if (line.Length > chunkSize)
-                {
-                    // Nếu dòng quá dài, đóng chunk hiện tại lại trước
-                    if (currentChunk.Length > 0)
-                    {
-                        chunks.Add(currentChunk.ToString().Trim());
-                        currentChunk.Clear();
-                    }
+                // Vì wordIndex == tokenIndex, mapping trực tiếp
+                int startTok = chunkStart;
+                int endTok   = Math.Min(chunkStart + chunkSize - 1, totalWords - 1);
 
-                    // Phân rã dòng siêu dài thành các đoạn nhỏ hơn giới hạn
-                    var lineSegments = SplitLongLine(line, chunkSize, overlapSize);
-                    for (int i = 0; i < lineSegments.Count; i++)
-                    {
-                        if (i < lineSegments.Count - 1)
-                        {
-                            // Đưa các đoạn đầy đủ trực tiếp vào danh sách chunk
-                            chunks.Add(lineSegments[i]);
-                        }
-                        else
-                        {
-                            // Đoạn cuối cùng giữ lại trong currentChunk để có thể gộp với các dòng tiếp theo
-                            currentChunk.Append(lineSegments[i]);
-                        }
-                    }
-                }
-                else
-                {
-                    if (currentChunk.Length + line.Length + 1 > chunkSize)
-                    {
-                        if (currentChunk.Length > 0)
-                        {
-                            chunks.Add(currentChunk.ToString().Trim());
+                int count = endTok - startTok + 1;
+                var chunkText = string.Join(" ", tokens, startTok, count);
+                chunks.Add(chunkText);
 
-                            var overlapStart = Math.Max(0, currentChunk.Length - overlapSize);
-                            currentChunk = new StringBuilder(currentChunk.ToString().Substring(overlapStart));
-                        }
-                    }
-
-                    if (currentChunk.Length > 0)
-                        currentChunk.Append("\n");
-
-                    currentChunk.Append(line);
-                }
+                // Stop nếu đã lấy đến token cuối
+                if (endTok >= totalWords - 1)
+                    break;
             }
 
-            if (currentChunk.Length > 0)
-                chunks.Add(currentChunk.ToString().Trim());
-
-            return chunks.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
+            return chunks;
         }
 
-        private List<string> SplitLongLine(string line, int chunkSize, int overlapSize)
-        {
-            var segments = new List<string>();
-            if (string.IsNullOrEmpty(line)) return segments;
-            
-            if (line.Length <= chunkSize)
-            {
-                segments.Add(line);
-                return segments;
-            }
-
-            int index = 0;
-            while (index < line.Length)
-            {
-                int lengthToTake = Math.Min(chunkSize, line.Length - index);
-                
-                // Cố gắng cắt tại vị trí dấu cách để tránh đứt từ
-                if (index + lengthToTake < line.Length)
-                {
-                    int lastSpaceIndex = line.LastIndexOf(' ', index + lengthToTake, lengthToTake);
-                    if (lastSpaceIndex > index && lastSpaceIndex - index >= chunkSize / 2)
-                    {
-                        lengthToTake = lastSpaceIndex - index;
-                    }
-                }
-
-                var segment = line.Substring(index, lengthToTake).Trim();
-                if (!string.IsNullOrEmpty(segment))
-                {
-                    segments.Add(segment);
-                }
-
-                int prevIndex = index;
-                index += lengthToTake;
-                if (index < line.Length)
-                {
-                    index = Math.Max(index - overlapSize, 0);
-                    
-                    // Đảm bảo chỉ mục luôn tiến lên để tránh vòng lặp vô tận
-                    if (index <= prevIndex)
-                    {
-                        index = prevIndex + 1;
-                    }
-                }
-            }
-
-            return segments;
-        }
     }
 }
