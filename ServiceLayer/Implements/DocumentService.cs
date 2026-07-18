@@ -79,13 +79,17 @@ namespace ServiceLayer.Implements
                 return (false, $"Lỗi lưu file: {uploadError}", 0);
 
             var fileSize = _fileUploadService.GetFileSize(filePath);
-            var chapter = await _chapterRepository.GetByIdAsync(chapterId);
-            if (chapter == null)
+            Guid? chapterGuid = null;
+            if (!string.IsNullOrWhiteSpace(chapterId))
             {
-                _fileUploadService.DeleteFile(filePath);
-                return (false, "Chương không tồn tại hoặc không hợp lệ.", 0);
+                var chapter = await _chapterRepository.GetByIdAsync(chapterId);
+                if (chapter == null)
+                {
+                    _fileUploadService.DeleteFile(filePath);
+                    return (false, "Chương không tồn tại hoặc không hợp lệ.", 0);
+                }
+                chapterGuid = chapter.Id;
             }
-
 
             var document = new Document
             {
@@ -93,7 +97,7 @@ namespace ServiceLayer.Implements
                 FilePath = filePath,
                 FileSize = fileSize,
                 SubjectId = subject.Id,
-                ChapterId = chapter.Id,
+                ChapterId = chapterGuid,
                 IndexStatus = "Pending",
                 UploadDate = DateTime.UtcNow
             };

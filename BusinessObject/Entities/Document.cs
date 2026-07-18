@@ -25,7 +25,7 @@ namespace BusinessObject.Entities
         [Required]
         public Guid SubjectId { get; set; } // ID của môn học (Đề bài yêu cầu: Quản lý theo môn học/chương)
 
-        public Guid ChapterId { get; set; } // Liên kết đến Chapter
+        public Guid? ChapterId { get; set; } // Liên kết đến Chapter (null = tài liệu cho toàn bộ môn)
 
         [ForeignKey("ChapterId")]
         public virtual Chapter? Chapter { get; set; }

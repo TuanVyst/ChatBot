@@ -29,7 +29,16 @@ else
                         <div class="doc-meta">@doc.UploadDate.ToString("MMM dd, yyyy")</div>
                     </td>
                     <td style="color:var(--text-muted);">@(doc.Subject?.Name ?? "-")</td>
-                    <td style="color:var(--text-muted);">@(doc.Chapter?.Name ?? "Default")</td>
+                    <td style="color:var(--text-muted);">
+                        @if (doc.ChapterId == null)
+                        {
+                            <span style="font-size:12px;padding:2px 8px;border-radius:10px;background:rgba(216,148,36,0.1);color:#d89424;font-weight:500;">📂 Toàn bộ môn</span>
+                        }
+                        else
+                        {
+                            @(doc.Chapter?.Name ?? "-")
+                        }
+                    </td>
                     <td style="color:var(--text-muted);font-size:13px;">@(doc.FileSize == 0 ? "-" : string.Format("{0:0.##} MB", doc.FileSize / 1024d / 1024d))</td>
                     <td>
                         <span class="status-badge @doc.IndexStatus.ToLower()" id="status-badge-@doc.Id">

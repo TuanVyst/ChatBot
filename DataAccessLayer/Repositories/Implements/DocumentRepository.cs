@@ -51,10 +51,9 @@ namespace DataAccessLayer.Repositories.Implements
                  query = query.Where(d => d.Subject.Name == subjectId);
             }
 
-            if (!string.IsNullOrWhiteSpace(chapterId))
+            if (!string.IsNullOrWhiteSpace(chapterId) && Guid.TryParse(chapterId, out var parsedChapterId))
             {
-                // ChapterId is stored as a Guid, so compare by string form
-                query = query.Where(d => d.ChapterId.ToString() == chapterId);
+                query = query.Where(d => d.ChapterId == parsedChapterId);
             }
 
             return await query.ToListAsync();

@@ -133,12 +133,12 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Chapter</label>
-                        <select name="chapterId" class="form-select" required>
-                            <option value="">Select chapter</option>
+                        <label class="form-label">Chapter <span style="color:var(--text-light);font-weight:400;">(tuỳ chọn)</span></label>
+                        <select name="chapterId" id="uploadChapterSelect" class="form-select">
+                            <option value="">📂 Toàn bộ môn học</option>
                             @foreach (var ch in Model.Dashboard.Chapters)
                             {
-                                <option value="@ch.Id.ToString()">@ch.Name</option>
+                                <option value="@ch.Id.ToString()" data-subject="@ch.SubjectId.ToString()">@ch.Name</option>
                             }
                         </select>
                     </div>
@@ -270,6 +270,32 @@
     fileInfo.style.display = 'block';
     }
     }
+
+    // ─── Lọc chapter theo subject trong upload form ───
+    (function () {
+        var subjectSel = document.querySelector('#uploadForm select[name="subjectName"]');
+        var chapterSel = document.getElementById('uploadChapterSelect');
+        if (!subjectSel || !chapterSel) return;
+
+        function filterUploadChapters() {
+            var selectedSubject = subjectSel.value;
+            var options = chapterSel.querySelectorAll('option[data-subject]');
+            var hasVisible = false;
+            options.forEach(function (opt) {
+                var show = !selectedSubject || opt.dataset.subject === selectedSubject;
+                opt.hidden = !show;
+                if (show) hasVisible = true;
+            });
+            // Reset về "Toàn bộ môn" nếu option đang chọn bị ẩn
+            if (chapterSel.selectedOptions[0] && chapterSel.selectedOptions[0].hidden) {
+                chapterSel.value = '';
+            }
+        }
+
+        subjectSel.addEventListener('change', filterUploadChapters);
+        // Chạy lần đầu để đồng bộ với giá trị pre-selected
+        filterUploadChapters();
+    })();
 
     // ─── Upload Progress Simulation ───
     document.getElementById('uploadForm')?.addEventListener('submit', function (e) {
