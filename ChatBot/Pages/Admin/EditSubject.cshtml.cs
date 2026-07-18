@@ -34,8 +34,6 @@ public class EditSubjectModel : PageModel
     [BindProperty]
     public Subject Subject { get; set; } = new();
 
-    public SelectList Universities { get; set; }
-
     public SelectList Teachers { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string id)
@@ -47,6 +45,12 @@ public class EditSubjectModel : PageModel
 
         Subject = subject;
 
+        var fpt = (await _universityService.GetUniversities()).FirstOrDefault(u => u.Code == "FPTU");
+        if (fpt != null)
+        {
+            Subject.UniversityId = fpt.Id;
+        }
+
         await LoadDropdownsAsync();
 
         return Page();
@@ -54,6 +58,12 @@ public class EditSubjectModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        var fpt = (await _universityService.GetUniversities()).FirstOrDefault(u => u.Code == "FPTU");
+        if (fpt != null)
+        {
+            Subject.UniversityId = fpt.Id;
+        }
+
         ModelState.Remove("Subject.University");
 
         if (!ModelState.IsValid)
@@ -105,11 +115,6 @@ public class EditSubjectModel : PageModel
 
     private async Task LoadDropdownsAsync()
     {
-        Universities = new SelectList(
-            await _universityService.GetUniversities(),
-            "Id",
-            "Name");
-
         var teachers =
             (await _accountRepository.GetAllUserInformationsAsync())
             .Where(x => x.Account.Role == RoleEnum.Lecture);
@@ -119,4 +124,5 @@ public class EditSubjectModel : PageModel
             "Account_id",
             "Name");
     }
+
 }

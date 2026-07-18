@@ -263,7 +263,62 @@ app.MapFallbackToPage("/Auth/Login");
 app.MapHub<ChatBot.Hubs.NotificationHub>("/notificationHub");
 
 //SeedDatabase(app);
+SeedSingleUniversity(app);
 app.Run();
+
+void SeedSingleUniversity(IHost webApp)
+{
+    using var scope = webApp.Services.CreateScope();
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<AppDbContext>();
+        
+        // 1. Ensure FPT University exists
+        var fptUni = context.Universities.FirstOrDefault(u => u.Code == "FPTU" || u.Name == "FPT University" || u.Id == 1);
+        if (fptUni == null)
+        {
+            fptUni = new University
+            {
+                Name = "FPT University",
+                Code = "FPTU"
+            };
+            context.Universities.Add(fptUni);
+            context.SaveChanges();
+        }
+        else if (fptUni.Name != "FPT University" || fptUni.Code != "FPTU")
+        {
+            fptUni.Name = "FPT University";
+            fptUni.Code = "FPTU";
+            context.SaveChanges();
+        }
+
+        // 2. Point all existing subjects to FPT University
+        var allSubjects = context.Subjects.ToList();
+        foreach (var subject in allSubjects)
+        {
+            if (subject.UniversityId != fptUni.Id)
+            {
+                subject.UniversityId = fptUni.Id;
+            }
+        }
+        context.SaveChanges();
+
+        // 3. Remove all other universities
+        var otherUnis = context.Universities.Where(u => u.Id != fptUni.Id).ToList();
+        if (otherUnis.Any())
+        {
+            context.Universities.RemoveRange(otherUnis);
+            context.SaveChanges();
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding FPT university.");
+    }
+}
+
 
 void SeedDatabase(IHost app)
 {

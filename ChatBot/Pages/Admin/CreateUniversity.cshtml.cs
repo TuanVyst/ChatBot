@@ -1,4 +1,4 @@
-﻿using BusinessObject.Entities;
+using BusinessObject.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -19,19 +19,13 @@ public class CreateUniversityModel : PageModel
     [BindProperty]
     public University University { get; set; } = new();
 
-    public void OnGet()
+    public IActionResult OnGet()
     {
+        return RedirectToPage("/Admin/Index");
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public IActionResult OnPost()
     {
-        ModelState.Remove("University.Subjects");
-
-        if (!ModelState.IsValid)
-            return Page();
-
-        await _universityService.AddUniversity(University);
-
-        return RedirectToPage("Universities");
+        return RedirectToPage("/Admin/Index");
     }
 }

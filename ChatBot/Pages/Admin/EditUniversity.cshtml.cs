@@ -1,4 +1,4 @@
-﻿using BusinessObject.Entities;
+using BusinessObject.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -19,28 +19,13 @@ public class EditUniversityModel : PageModel
     [BindProperty]
     public University University { get; set; } = new();
 
-    public async Task<IActionResult> OnGetAsync(int id)
+    public IActionResult OnGet(int id)
     {
-        var university =
-            await _universityService.GetUniversityById(id);
-
-        if (university == null)
-            return NotFound();
-
-        University = university;
-
-        return Page();
+        return RedirectToPage("/Admin/Index");
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public IActionResult OnPost()
     {
-        ModelState.Remove("University.Subjects");
-
-        if (!ModelState.IsValid)
-            return Page();
-
-        await _universityService.UpdateUniversity(University);
-
-        return RedirectToPage("Universities");
+        return RedirectToPage("/Admin/Index");
     }
 }

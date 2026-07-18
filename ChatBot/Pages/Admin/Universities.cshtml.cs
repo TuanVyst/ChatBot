@@ -1,4 +1,4 @@
-﻿using BusinessObject.Entities;
+using BusinessObject.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -19,19 +19,13 @@ public class UniversitiesModel : PageModel
     public IEnumerable<University> Universities { get; set; }
         = new List<University>();
 
-    public async Task OnGetAsync()
+    public IActionResult OnGet()
     {
-        Universities =
-            await _universityService.GetUniversities();
+        return RedirectToPage("/Admin/Index");
     }
 
-    public async Task<IActionResult> OnPostDeleteAsync(int id)
+    public IActionResult OnPostDelete(int id)
     {
-        await _universityService.DeleteUniversity(id);
-
-        TempData["Message"] =
-            "University deleted successfully.";
-
-        return RedirectToPage();
+        return RedirectToPage("/Admin/Index");
     }
 }

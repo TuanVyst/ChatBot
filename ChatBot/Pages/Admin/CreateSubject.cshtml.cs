@@ -1,4 +1,4 @@
-﻿using BusinessObject.Entities;
+using BusinessObject.Entities;
 using BusinessObject.Enums;
 using ChatBot.Hubs;
 using DataAccessLayer.Repositories.Interfaces;
@@ -34,17 +34,26 @@ public class CreateSubjectModel : PageModel
     [BindProperty]
     public Subject Subject { get; set; } = new Subject();
 
-    public SelectList Universities { get; set; }
-
     public SelectList Teachers { get; set; }
 
     public async Task OnGetAsync()
     {
+        var fpt = (await _universityService.GetUniversities()).FirstOrDefault(u => u.Code == "FPTU");
+        if (fpt != null)
+        {
+            Subject.UniversityId = fpt.Id;
+        }
         await LoadDropdownsAsync();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
+        var fpt = (await _universityService.GetUniversities()).FirstOrDefault(u => u.Code == "FPTU");
+        if (fpt != null)
+        {
+            Subject.UniversityId = fpt.Id;
+        }
+
         ModelState.Remove("Subject.University");
 
         if (!ModelState.IsValid)
@@ -67,11 +76,6 @@ public class CreateSubjectModel : PageModel
 
     private async Task LoadDropdownsAsync()
     {
-        Universities = new SelectList(
-            await _universityService.GetUniversities(),
-            "Id",
-            "Name");
-
         var teachers = (await _accountRepository.GetAllUserInformationsAsync())
             .Where(u => u.Account.Role == RoleEnum.Lecture);
 
@@ -80,4 +84,5 @@ public class CreateSubjectModel : PageModel
             "Account_id",
             "Name");
     }
+
 }
