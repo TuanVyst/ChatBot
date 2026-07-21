@@ -233,9 +233,10 @@ public class ChatModel : PageModel
         if (!provider.TryGetContentType(doc.FilePath, out var contentType))
             contentType = "application/octet-stream";
 
-        Response.Headers.Append(
-            "Content-Disposition",
-            $"inline; filename=\"{doc.FileName}\"");
+        var safeFileName = doc.FileName?.Replace("\r", "").Replace("\n", "");
+        var cd = new Microsoft.Net.Http.Headers.ContentDispositionHeaderValue("inline");
+        cd.SetHttpFileName(safeFileName);
+        Response.Headers.Append(Microsoft.Net.Http.Headers.HeaderNames.ContentDisposition, cd.ToString());
 
         var stream = System.IO.File.OpenRead(doc.FilePath);
 

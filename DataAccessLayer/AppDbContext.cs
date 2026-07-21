@@ -54,7 +54,7 @@ namespace DataAccessLayer
                     ChunkSize = 512,
                     ChunkOverlap = 50,
                     TopK = 5,
-                    EmbeddingModel = "text-embedding-3-small",
+                    EmbeddingModel = "gemini-embedding-2",
                     UpdatedAt = DateTime.UtcNow
                 });
 

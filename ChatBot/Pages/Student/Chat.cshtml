@@ -633,14 +633,17 @@
                     return r.arrayBuffer();
                 })
                 .then(buffer => {
-                    mammoth.convertToHtml({ arrayBuffer: buffer })
-                        .then(result => {
-                            docxContainer.innerHTML = '<div class="docx-content" style="max-width: 800px; margin: 0 auto; color: black; line-height: 1.6;">' + result.value + '</div>';
-                        })
-                        .catch(err => {
-                            console.error(err);
-                            docxContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: red;">Failed to render document.</div>';
-                        });
+                    docxContainer.innerHTML = '';
+                    docx.renderAsync(buffer, docxContainer, null, {
+                        className: "docx",
+                        inWrapper: true,
+                        ignoreWidth: false,
+                        ignoreHeight: false
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        docxContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: red;">Failed to render document.</div>';
+                    });
                 })
                 .catch(err => {
                     console.error(err);
@@ -734,5 +737,6 @@
         });
     });
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
+<script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
+<script src="https://unpkg.com/docx-preview/dist/docx-preview.min.js"></script>
 
