@@ -59,23 +59,26 @@ namespace ServiceLayer.Implements
 
             // Bước 3: Build prompt từ context
             var contextBuilder = new StringBuilder();
-            foreach (var chunk in chunks)
+            for (int i = 0; i < chunks.Count; i++)
             {
+                var chunk = chunks[i];
                 var fileName = chunk.Document?.FileName ?? "Không rõ nguồn";
-                contextBuilder.AppendLine($"[Nguồn: {fileName} (Đoạn {chunk.ChunkOrder})]");
+                contextBuilder.AppendLine($"[Nguồn {i + 1}: {fileName} (Đoạn {chunk.ChunkOrder})]");
                 contextBuilder.AppendLine(chunk.Content);
                 contextBuilder.AppendLine("---");
             }
 
             var prompt = $"""
-                Bạn là trợ lý trả lời câu hỏi dựa trên tài liệu được cung cấp.
+                Bạn là trợ lý học tập trả lời câu hỏi dựa trên tài liệu được cung cấp.
                 Chỉ trả lời dựa trên ngữ cảnh dưới đây. Nếu ngữ cảnh không chứa thông tin 
                 liên quan, hãy nói rõ "Tôi không tìm thấy thông tin này trong tài liệu" — 
                 không được tự bịa ra câu trả lời.
 
-                Bắt buộc ở cuối câu trả lời của bạn, phải có một dòng duy nhất theo định dạng chính xác sau để chỉ định nguồn tài liệu và các đoạn trích (chunk) mà bạn thực sự sử dụng:
-                [SOURCES]: tên_file_1 (Đoạn X), tên_file_2 (Đoạn Y)
-                Trong đó, tên_file là tên file nguồn và (Đoạn X) là số đoạn hiển thị trong phần [Nguồn: ...] (ví dụ: tailieu.pdf (Đoạn 0)). Nếu câu trả lời không sử dụng nguồn nào hoặc bạn tự trả lời, hãy ghi: [SOURCES]: None.
+                QUY TẮC TRÍCH DẪN RẤT QUAN TRỌNG:
+                1. Khi đưa ra bất kỳ ý kiến, khẳng định hoặc thông tin nào lấy từ ngữ cảnh, bạn BẮT BUỘC chèn nhãn trích dẫn số vuông như [1], [2], [3]... (tương ứng với [Nguồn 1], [Nguồn 2]...) ngay sau câu hoặc ý đó.
+                2. Một câu có thể chứa nhiều trích dẫn (ví dụ: [1][2]).
+                3. Ở cuối cùng của câu trả lời, hãy đính kèm duy nhất 1 dòng chỉ định nguồn bạn sử dụng:
+                [SOURCES]: [1], [2] (hoặc [SOURCES]: None nếu không dùng).
 
                 Ngữ cảnh:
                 {contextBuilder}
@@ -111,9 +114,43 @@ namespace ServiceLayer.Implements
 
             if (markerIndex != -1)
             {
-                var sourcesLine = answer.Substring(markerIndex);
                 cleanAnswer = answer.Substring(0, markerIndex).Trim();
+            }
 
+            // Ưu tiên 1: Tách các chỉ số trích dẫn [1], [2] xuất hiện trong câu trả lời hoặc dòng SOURCES
+            var citedIndices = new List<int>();
+            var numberMatches = System.Text.RegularExpressions.Regex.Matches(answer, @"\[(?<num>\d+)\]");
+            foreach (System.Text.RegularExpressions.Match m in numberMatches)
+            {
+                if (int.TryParse(m.Groups["num"].Value, out int idx) && idx >= 1 && idx <= chunks.Count)
+                {
+                    if (!citedIndices.Contains(idx))
+                    {
+                        citedIndices.Add(idx);
+                    }
+                }
+            }
+
+            if (citedIndices.Any())
+            {
+                // Lấy chính xác các chunks tương ứng với chỉ số [1], [2]... (với idx - 1)
+                foreach (var idx in citedIndices)
+                {
+                    var c = chunks[idx - 1];
+                    if (!filteredChunks.Contains(c))
+                    {
+                        filteredChunks.Add(c);
+                    }
+                    if (c.Document != null && !sources.Contains(c.Document.FileName))
+                    {
+                        sources.Add(c.Document.FileName);
+                    }
+                }
+            }
+            else if (markerIndex != -1)
+            {
+                // Fallback 1: Parse theo định dạng tên_file (Đoạn X)
+                var sourcesLine = answer.Substring(markerIndex);
                 var filesPart = sourcesLine.Replace(marker, "").Replace("**", "").Trim();
                 if (!string.Equals(filesPart, "None", StringComparison.OrdinalIgnoreCase))
                 {
@@ -126,8 +163,6 @@ namespace ServiceLayer.Implements
                         .Select(c => c.Document!.FileName)
                         .Distinct()
                         .ToList();
-
-                    var matchedChunks = new List<DocumentChunk>();
 
                     foreach (System.Text.RegularExpressions.Match match in matches)
                     {
@@ -158,52 +193,35 @@ namespace ServiceLayer.Implements
                             if (chunkOrder.HasValue)
                             {
                                 var targetChunk = fileChunks.FirstOrDefault(c => c.ChunkOrder == chunkOrder.Value);
-                                if (targetChunk != null && !matchedChunks.Contains(targetChunk))
+                                if (targetChunk != null && !filteredChunks.Contains(targetChunk))
                                 {
-                                    matchedChunks.Add(targetChunk);
+                                    filteredChunks.Add(targetChunk);
                                 }
                             }
                             else
                             {
                                 foreach (var fc in fileChunks)
                                 {
-                                    if (!matchedChunks.Contains(fc))
+                                    if (!filteredChunks.Contains(fc))
                                     {
-                                        matchedChunks.Add(fc);
+                                        filteredChunks.Add(fc);
                                     }
                                 }
                             }
                         }
                     }
-
-                    if (matchedChunks.Any())
-                    {
-                        filteredChunks = matchedChunks;
-                    }
                 }
             }
 
-            // Fallback nếu không parse được nguồn nào
-            if (sources.Count == 0 && chunks.Any())
+            // Fallback 2: Nếu hoàn toàn không lọc được trích dẫn cụ thể nào, mới giữ danh sách gốc
+            if (filteredChunks.Count == 0)
             {
+                filteredChunks = chunks;
                 sources = chunks
                     .Where(c => c.Document != null)
                     .Select(c => c.Document!.FileName)
                     .Distinct()
                     .ToList();
-            }
-
-            // Nếu chưa lọc được chunk cụ thể nào, giữ lại danh sách chunks gốc của các file trong sources
-            if (filteredChunks.Count == 0)
-            {
-                filteredChunks = chunks
-                    .Where(c => c.Document != null && sources.Contains(c.Document.FileName))
-                    .ToList();
-
-                if (filteredChunks.Count == 0)
-                {
-                    filteredChunks = chunks;
-                }
             }
 
             var result = new RagResult

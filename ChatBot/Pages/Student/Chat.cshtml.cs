@@ -128,17 +128,17 @@ public class ChatModel : PageModel
 
         var remainingTokens = await _subscriptionService.GetRemainingTokensAsync(Guid.Parse(userId));
 
+        var retrieved = result?.RetrievedChunks ?? new List<DocumentChunk>();
         return new JsonResult(new
         {
             success = true,
             answer = result?.Answer,
             sources = result?.Sources,
             remainingTokens = remainingTokens,
-            chunkSources = result?.RetrievedChunks
-                .GroupBy(c => c.Id)
-                .Select(g => g.First())
-                .Select(c => new
+            chunkSources = retrieved
+                .Select((c, idx) => new
                 {
+                    citationIndex = idx + 1,
                     documentId = c.DocumentId,
                     fileName = c.Document?.FileName ?? "",
                     chunkId = c.Id,
@@ -175,8 +175,9 @@ public class ChatModel : PageModel
                 .Where(s => s.DocumentChunk?.Document != null)
                 .GroupBy(s => s.DocumentChunkId)
                 .Select(g => g.First())
-                .Select(s => new
+                .Select((s, idx) => new
                 {
+                    citationIndex = idx + 1,
                     documentId = s.DocumentChunk!.DocumentId,
                     fileName = s.DocumentChunk.Document!.FileName,
                     chunkId = s.DocumentChunkId,

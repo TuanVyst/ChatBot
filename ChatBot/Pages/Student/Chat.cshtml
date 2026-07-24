@@ -19,6 +19,120 @@
     #chunksModalBody .primary-btn {
         display: none !important;
     }
+
+    .inline-citation-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        border-radius: 9px;
+        background: rgba(216, 148, 36, 0.15);
+        color: #d89424;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1;
+        border: 1px solid rgba(216, 148, 36, 0.3);
+        cursor: pointer;
+        margin: 0 2px;
+        vertical-align: middle;
+        transition: all 0.2s ease;
+        user-select: none;
+        font-family: inherit;
+    }
+    .inline-citation-badge:hover,
+    .inline-citation-badge.active {
+        transform: scale(1.15);
+        background: #d89424;
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(216, 148, 36, 0.35);
+    }
+
+    /* NotebookLM Style Citation Popover */
+    .citation-popover {
+        position: fixed;
+        z-index: 9999;
+        width: 340px;
+        max-width: 90vw;
+        background: #1e293b;
+        color: #f8fafc;
+        border-radius: 12px;
+        padding: 14px 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font-family: inherit;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(6px);
+        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    }
+    .citation-popover.active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    .citation-popover-header {
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: #f1f5f9;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        word-break: break-word;
+    }
+    .citation-popover-header i {
+        color: #fbbf24;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .citation-popover-body {
+        color: #cbd5e1;
+        max-height: 160px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+        font-size: 0.84rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+        padding-right: 4px;
+    }
+    .citation-popover-body::-webkit-scrollbar {
+        width: 4px;
+    }
+    .citation-popover-body::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+    }
+    .citation-popover-footer {
+        display: flex;
+        justify-content: flex-end;
+        padding-top: 6px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .citation-popover-action {
+        background: none;
+        border: none;
+        color: #38bdf8;
+        font-weight: 600;
+        font-size: 0.82rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        transition: background 0.2s, color 0.2s;
+        font-family: inherit;
+    }
+    .citation-popover-action:hover {
+        background: rgba(56, 189, 248, 0.12);
+        color: #7dd3fc;
+    }
 </style>
 
 <div class="chat-app">
@@ -189,6 +303,21 @@
     </aside>
 </div>
 
+<!-- NotebookLM Citation Popover -->
+<div id="citationPopover" class="citation-popover">
+    <div class="citation-popover-header" id="citationPopoverHeader">
+        <i class="ph ph-file-text"></i> <span id="citationPopoverFileName">Document.pdf</span>
+    </div>
+    <div class="citation-popover-body" id="citationPopoverBody">
+        Content snippet...
+    </div>
+    <div class="citation-popover-footer">
+        <button type="button" class="citation-popover-action" id="citationPopoverAction">
+            Xem nguồn <i class="ph ph-arrow-right"></i>
+        </button>
+    </div>
+</div>
+
 <!-- Chunks & Original Document Modal -->
 <div id="chunksModal" class="modal-overlay">
     <div class="modal-box" style="max-width:90%; width:1000px; height:85vh; display:flex; flex-direction:column; overflow:hidden; background: white;">
@@ -327,8 +456,111 @@
         // Inline code: `text` -> <code>text</code>
         escaped = escaped.replace(/`(.*?)`/g, '<code>$1</code>');
         // Newlines
-        return escaped.replace(/\n/g, '<br/>');
+        escaped = escaped.replace(/\n/g, '<br/>');
+
+        // Replace [1], [2], [10] with interactive NotebookLM citation badge buttons
+        escaped = escaped.replace(/\[(\d+)\]/g, function(match, numStr) {
+            var index = parseInt(numStr, 10);
+            return '<button type="button" class="inline-citation-badge" data-citation-index="' + index + '" onclick="toggleCitationPopover(event, ' + index + ', this)">' + index + '</button>';
+        });
+
+        return escaped;
     }
+
+    var activeCitationButton = null;
+
+    function toggleCitationPopover(event, citationIndex, btn) {
+        event.stopPropagation();
+        var popover = document.getElementById('citationPopover');
+        if (!popover) return;
+
+        if (activeCitationButton === btn && popover.classList.contains('active')) {
+            hideCitationPopover();
+            return;
+        }
+
+        var chatMessageEl = btn.closest('.chat-message');
+        var chunkSources = (chatMessageEl && chatMessageEl._chunkSources) ? chatMessageEl._chunkSources : [];
+
+        var chunk = chunkSources.find(c => c.citationIndex === citationIndex) || chunkSources[citationIndex - 1];
+
+        if (!chunk && chunkSources.length > 0) {
+            chunk = chunkSources[0];
+        }
+
+        if (!chunk) {
+            console.warn('Chunk not found for citation index:', citationIndex);
+            return;
+        }
+
+        var fileNameEl = document.getElementById('citationPopoverFileName');
+        var bodyEl = document.getElementById('citationPopoverBody');
+        var actionBtn = document.getElementById('citationPopoverAction');
+
+        if (fileNameEl) {
+            fileNameEl.textContent = chunk.fileName + (chunk.chunkOrder !== undefined ? ' (Đoạn ' + chunk.chunkOrder + ')' : '');
+        }
+
+        if (bodyEl) {
+            bodyEl.textContent = chunk.content || 'Không có bản xem trước cho đoạn trích này.';
+        }
+
+        if (actionBtn) {
+            var safeName = (chunk.fileName || '').replace(/'/g, "\\'");
+            actionBtn.onclick = function(e) {
+                e.stopPropagation();
+                hideCitationPopover();
+                openDocumentChunk(chunk.documentId, chunk.chunkId, chunk.chunkOrder, safeName);
+            };
+        }
+
+        if (activeCitationButton) {
+            activeCitationButton.classList.remove('active');
+        }
+        btn.classList.add('active');
+        activeCitationButton = btn;
+
+        popover.classList.add('active');
+
+        var rect = btn.getBoundingClientRect();
+        var popoverRect = popover.getBoundingClientRect();
+
+        var top = rect.top - popoverRect.height - 8;
+        var left = rect.left + (rect.width / 2) - (popoverRect.width / 2);
+
+        if (top < 10) {
+            top = rect.bottom + 8;
+        }
+        if (left < 10) left = 10;
+        if (left + popoverRect.width > window.innerWidth - 10) {
+            left = window.innerWidth - popoverRect.width - 10;
+        }
+
+        popover.style.top = top + 'px';
+        popover.style.left = left + 'px';
+    }
+
+    function hideCitationPopover() {
+        var popover = document.getElementById('citationPopover');
+        if (popover) {
+            popover.classList.remove('active');
+        }
+        if (activeCitationButton) {
+            activeCitationButton.classList.remove('active');
+            activeCitationButton = null;
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        var popover = document.getElementById('citationPopover');
+        if (popover && popover.classList.contains('active')) {
+            if (!popover.contains(e.target) && !e.target.classList.contains('inline-citation-badge')) {
+                hideCitationPopover();
+            }
+        }
+    });
+
+    window.addEventListener('resize', hideCitationPopover);
 
     function newChat() {
         var messages = document.getElementById('chatMessages');
@@ -519,37 +751,14 @@
         var messages = document.getElementById('chatMessages');
         var el = document.createElement('div');
         el.className = 'chat-message bot';
+        el._chunkSources = chunkSources || [];
         var avatar = '<div class="chat-avatar"><i class="ph ph-robot"></i></div>';
-        var sourcesHtml = '';
-        if (chunkSources && chunkSources.length > 0) {
-            var uniqueChunks = [];
-            var seen = {};
-            for (var i = 0; i < chunkSources.length; i++) {
-                var cs = chunkSources[i];
-                if (!seen[cs.chunkId]) {
-                    seen[cs.chunkId] = true;
-                    uniqueChunks.push(cs);
-                }
-            }
 
-            sourcesHtml = '<div class="chat-sources" style="margin-top: 10px; font-size: 0.85em; opacity: 0.95;">' +
-                '<div class="sources-title" style="font-weight: 600; margin-bottom: 6px; color: var(--text-muted);"><i class="ph ph-link-simple"></i> Trích xuất từ tài liệu (Bấm để xem):</div>' +
-                uniqueChunks.map(cs => 
-                    '<button class="source-tag" onclick="openDocumentChunk(' + cs.documentId + ', ' + cs.chunkId + ', ' + cs.chunkOrder + ', \'' + cs.fileName.replace(/\'/g, "\\'") + '\')" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(216, 148, 36, 0.08); color: #d89424; padding: 4px 8px; border-radius: 6px; margin-right: 8px; margin-bottom: 6px; border: 1px solid rgba(216, 148, 36, 0.2); cursor: pointer; font-size: 0.9em; font-family: inherit; transition: all 0.2s;" onmouseover="this.style.background=\'rgba(216, 148, 36, 0.15)\'" onmouseout="this.style.background=\'rgba(216, 148, 36, 0.08)\'">' +
-                        '<i class="ph ph-file-text"></i> ' + escapeHtml(cs.fileName) + ' (Đoạn ' + cs.chunkOrder + ')' +
-                    '</button>'
-                ).join('') +
-                '</div>';
-        } else if (sources && sources.length > 0) {
-            sourcesHtml = '<div class="chat-sources" style="margin-top: 10px; font-size: 0.85em; opacity: 0.8;"><div class="sources-title" style="font-weight: 600; margin-bottom: 4px; color: var(--text-muted);"><i class="ph ph-link-simple"></i> Nguồn tài liệu:</div>' +
-                sources.map(s => '<span class="source-tag" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.05); padding: 2px 8px; border-radius: 4px; margin-right: 6px; border: 1px solid rgba(0,0,0,0.1);"><i class="ph ph-file-text"></i> ' + escapeHtml(s) + '</span>').join('') +
-                '</div>';
-        }
         el.innerHTML =
             avatar +
             '<div class="chat-bubble">' +
             '<div class="chat-bubble-name">AI Assistant</div>' +
-            '<div class="chat-bubble-text">' + formatMarkdownText(text) + sourcesHtml + '</div>' +
+            '<div class="chat-bubble-text">' + formatMarkdownText(text) + '</div>' +
             '</div>';
         messages.appendChild(el);
         messages.scrollTop = messages.scrollHeight;
