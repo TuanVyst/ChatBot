@@ -75,13 +75,6 @@
                                 <i class="ph-bold ph-pencil-simple"></i>
                             </a>
 
-                            <a asp-page="/Admin/AddStudentToSubject"
-                               asp-route-id="@item.Id"
-                               class="btn-edit"
-                               title="Add Student">
-                                <i class="ph-bold ph-user-plus"></i>
-                            </a>
-
                             <form method="post"
                                   asp-page-handler="Delete"
                                   asp-route-id="@item.Id"

@@ -46,13 +46,7 @@ public class ChatModel : PageModel
         if (!Guid.TryParse(userIdStr, out var studentId))
             return RedirectToPage("/Auth/Login");
 
-        var enrolledSubjectIds = await _context.StudentSubjects
-            .Where(ss => ss.AccountId == studentId)
-            .Select(ss => ss.SubjectId)
-            .ToListAsync();
-
         var subjects = await _context.Subjects
-            .Where(s => enrolledSubjectIds.Contains(s.Id))
             .OrderBy(s => s.Code)
             .ToListAsync();
 

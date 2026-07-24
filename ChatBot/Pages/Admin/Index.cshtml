@@ -7,7 +7,7 @@
 }
 
 <div class="admin-page">
-    <div style="margin-bottom:28px;">
+    <div style="margin-bottom:20px;">
         <p style="color:#d89424;font-weight:700;margin-bottom:5px;">
             REPORTING
         </p>
@@ -20,6 +20,64 @@
             Thống kê tình hình hoạt động, tài chính và sử dụng tài nguyên AI của hệ thống.
         </p>
     </div>
+
+    <!-- ==============================================
+         TIME RANGE FILTER BAR
+         ============================================== -->
+    <form method="get" id="filterForm" class="dashboard-filter-card">
+        <div class="filter-card-header">
+            <div class="filter-card-title">
+                <i class="ph ph-funnel" style="color: var(--accent); font-size: 1.3rem;"></i>
+                <strong>Bộ lọc thời gian thống kê</strong>
+            </div>
+            <div class="filter-period-badge">
+                <i class="ph ph-calendar-blank"></i>
+                <span>@Model.FilterPeriodLabel</span>
+            </div>
+        </div>
+
+        <div class="filter-card-controls">
+            <div class="filter-field">
+                <label class="filter-field-label">Khoảng thời gian:</label>
+                <select name="RangeType" id="rangeTypeSelect" class="filter-control-select" onchange="handleRangeTypeChange()">
+                    <option value="this_month" selected="@(Model.RangeType == "this_month")">Tháng này</option>
+                    <option value="last_month" selected="@(Model.RangeType == "last_month")">Tháng trước</option>
+                    <option value="7days" selected="@(Model.RangeType == "7days")">7 ngày qua</option>
+                    <option value="30days" selected="@(Model.RangeType == "30days")">30 ngày qua</option>
+                    <option value="month" selected="@(Model.RangeType == "month")">Theo tháng cụ thể</option>
+                    <option value="custom" selected="@(Model.RangeType == "custom")">Khoảng ngày tùy chọn (Từ - Đến)</option>
+                    <option value="all" selected="@(Model.RangeType == "all")">Tất cả thời gian</option>
+                </select>
+            </div>
+
+            <div class="filter-field" id="monthPickerWrapper" style="@(Model.RangeType == "month" ? "display:flex;" : "display:none;")">
+                <label class="filter-field-label">Chọn tháng:</label>
+                <input type="month" name="SelectedMonth" value="@Model.SelectedMonth" class="filter-control-input" />
+            </div>
+
+            <div class="filter-field" id="startDateWrapper" style="@(Model.RangeType == "custom" ? "display:flex;" : "display:none;")">
+                <label class="filter-field-label">Từ ngày:</label>
+                <input type="date" name="StartDate" value="@Model.StartDate" class="filter-control-input" />
+            </div>
+
+            <div class="filter-field" id="endDateWrapper" style="@(Model.RangeType == "custom" ? "display:flex;" : "display:none;")">
+                <label class="filter-field-label">Đến ngày:</label>
+                <input type="date" name="EndDate" value="@Model.EndDate" class="filter-control-input" />
+            </div>
+
+            <div class="filter-card-actions">
+                <button type="submit" class="btn-filter-apply">
+                    <i class="ph ph-magnifying-glass"></i> Áp dụng
+                </button>
+                @if (Model.RangeType != "this_month")
+                {
+                    <a href="/Admin/Index" class="btn-filter-reset">
+                        <i class="ph ph-arrows-counter-clockwise"></i> Đặt lại
+                    </a>
+                }
+            </div>
+        </div>
+    </form>
 
     <!-- Tab Navigation Pills -->
     <div class="statistics-tabs">
@@ -60,19 +118,19 @@
             </div>
 
             <div class="statistics-card">
-                <span>Tổng số hội thoại (Chat)</span>
-                <strong>@Model.TotalChats.ToString("N0")</strong>
+                <span>Lượt hội thoại trong kỳ</span>
+                <strong>@Model.TotalChatsInPeriod.ToString("N0")</strong>
             </div>
 
             <div class="statistics-card">
-                <span>Token tiêu hao tháng này</span>
-                <strong>@Model.TotalTokensThisMonth.ToString("N0")</strong>
+                <span>Token tiêu hao trong kỳ</span>
+                <strong>@Model.TotalTokensInPeriod.ToString("N0")</strong>
             </div>
         </div>
 
         <div class="charts-grid single-col">
             <div class="chart-card">
-                <h3><i class="ph ph-trend-up" style="color: var(--accent);"></i> Tốc độ tăng trưởng tài khoản mới (30 ngày qua)</h3>
+                <h3><i class="ph ph-trend-up" style="color: var(--accent);"></i> Tốc độ tăng trưởng tài khoản mới (@Model.FilterPeriodLabel)</h3>
                 <div class="chart-container">
                     <canvas id="userGrowthChart"></canvas>
                 </div>
@@ -86,8 +144,8 @@
     <div id="tab-finance" class="tab-content">
         <div class="statistics-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
             <div class="statistics-card">
-                <span>Doanh thu tháng này</span>
-                <strong style="color: var(--success);">@Model.TotalRevenueThisMonth.ToString("N0") đ</strong>
+                <span>Doanh thu trong kỳ</span>
+                <strong style="color: var(--success);">@Model.TotalRevenueInPeriod.ToString("N0") đ</strong>
             </div>
 
             <div class="statistics-card">
@@ -108,7 +166,7 @@
 
         <div class="charts-grid">
             <div class="chart-card">
-                <h3><i class="ph ph-chart-pie" style="color: var(--primary);"></i> Cơ cấu doanh thu theo gói dịch vụ</h3>
+                <h3><i class="ph ph-chart-pie" style="color: var(--primary);"></i> Cơ cấu doanh thu theo gói dịch vụ (@Model.FilterPeriodLabel)</h3>
                 <div class="chart-container">
                     <canvas id="subPlanChart"></canvas>
                 </div>
@@ -130,14 +188,14 @@
     <div id="tab-usage" class="tab-content">
         <div class="charts-grid">
             <div class="chart-card">
-                <h3><i class="ph ph-chat-centered-text" style="color: var(--success);"></i> Lượt hỏi & Token tiêu hao hàng ngày (30 ngày qua)</h3>
+                <h3><i class="ph ph-chat-centered-text" style="color: var(--success);"></i> Lượt hỏi & Token tiêu hao hàng ngày (@Model.FilterPeriodLabel)</h3>
                 <div class="chart-container">
                     <canvas id="dailyChatsChart"></canvas>
                 </div>
             </div>
 
             <div class="chart-card">
-                <h3><i class="ph ph-books" style="color: var(--accent);"></i> Top 5 môn học được tương tác nhiều nhất</h3>
+                <h3><i class="ph ph-books" style="color: var(--accent);"></i> Top 5 môn học được tương tác nhiều nhất (@Model.FilterPeriodLabel)</h3>
                 <div class="chart-container">
                     <canvas id="topSubjectsChart"></canvas>
                 </div>
@@ -145,12 +203,12 @@
         </div>
 
         <div class="statistics-section">
-            <h2>Tiêu hao Token theo Học sinh (Tháng này)</h2>
+            <h2>Tiêu hao Token theo Học sinh (@Model.FilterPeriodLabel)</h2>
 
             @if (!Model.UserTokenUsage.Any())
             {
                 <div class="empty-statistics">
-                    Chưa có hoạt động tiêu hao token của học sinh nào được ghi nhận trong tháng này.
+                    Chưa có hoạt động tiêu hao token của học sinh nào được ghi nhận trong khoảng thời gian này.
                 </div>
             }
             else
@@ -183,12 +241,12 @@
         </div>
 
         <div class="statistics-section">
-            <h2>Tiêu hao Token theo Môn học (Tháng này)</h2>
+            <h2>Tiêu hao Token theo Môn học (@Model.FilterPeriodLabel)</h2>
 
             @if (!Model.SubjectTokenUsage.Any())
             {
                 <div class="empty-statistics">
-                    Chưa có môn học nào phát sinh lượt hỏi trong tháng này.
+                    Chưa có môn học nào phát sinh lượt hỏi trong khoảng thời gian này.
                 </div>
             }
             else
@@ -232,6 +290,28 @@
         const userGrowth = @Html.Raw(Model.UserGrowthJson);
 
         const charts = {};
+
+        function handleRangeTypeChange() {
+            const rangeType = document.getElementById('rangeTypeSelect').value;
+            const monthWrapper = document.getElementById('monthPickerWrapper');
+            const startWrapper = document.getElementById('startDateWrapper');
+            const endWrapper = document.getElementById('endDateWrapper');
+
+            if (rangeType === 'month') {
+                monthWrapper.style.display = 'flex';
+                startWrapper.style.display = 'none';
+                endWrapper.style.display = 'none';
+            } else if (rangeType === 'custom') {
+                monthWrapper.style.display = 'none';
+                startWrapper.style.display = 'flex';
+                endWrapper.style.display = 'flex';
+            } else {
+                monthWrapper.style.display = 'none';
+                startWrapper.style.display = 'none';
+                endWrapper.style.display = 'none';
+                document.getElementById('filterForm').submit();
+            }
+        }
 
         function switchTab(evt, tabId) {
             // Hide all tab contents

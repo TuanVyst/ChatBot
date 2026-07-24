@@ -28,6 +28,25 @@ public class IndexModel : PageModel
     public int ActiveSubscriptionsCount { get; set; }
     public double PaymentConversionRate { get; set; }
 
+    // Time filter properties
+    [Microsoft.AspNetCore.Mvc.BindProperty(SupportsGet = true)]
+    public string RangeType { get; set; } = "this_month";
+
+    [Microsoft.AspNetCore.Mvc.BindProperty(SupportsGet = true)]
+    public string? StartDate { get; set; }
+
+    [Microsoft.AspNetCore.Mvc.BindProperty(SupportsGet = true)]
+    public string? EndDate { get; set; }
+
+    [Microsoft.AspNetCore.Mvc.BindProperty(SupportsGet = true)]
+    public string? SelectedMonth { get; set; }
+
+    public string FilterPeriodLabel { get; set; } = string.Empty;
+    public int TotalTokensInPeriod { get; set; }
+    public int TotalChatsInPeriod { get; set; }
+    public long TotalRevenueInPeriod { get; set; }
+    public int TotalNewUsersInPeriod { get; set; }
+
     // JSON strings for Chart.js
     public string DailyChatsAndTokensJson { get; set; } = "[]";
     public string SubscriptionPlanDistributionJson { get; set; } = "[]";
@@ -56,42 +75,123 @@ public class IndexModel : PageModel
     public async Task OnGetAsync()
     {
         var now = DateTime.UtcNow;
+        var today = DateTime.UtcNow.Date;
 
-        var startOfMonth = new DateTime(
-            now.Year,
-            now.Month,
-            1,
-            0,
-            0,
-            0,
-            DateTimeKind.Utc);
+        DateTime fromUtc;
+        DateTime toUtc;
 
-        var startOfNextMonth = startOfMonth.AddMonths(1);
-        var thirtyDaysAgo = now.AddDays(-30);
+        switch (RangeType?.ToLower())
+        {
+            case "last_month":
+                var firstDayLastMonth = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-1);
+                var lastDayLastMonth = firstDayLastMonth.AddMonths(1).AddTicks(-1);
+                fromUtc = firstDayLastMonth;
+                toUtc = lastDayLastMonth;
+                FilterPeriodLabel = $"Tháng trước ({fromUtc:dd/MM/yyyy} - {toUtc:dd/MM/yyyy})";
+                break;
 
-        // Basic stats
+            case "7days":
+                fromUtc = today.AddDays(-6);
+                toUtc = today.AddDays(1).AddTicks(-1);
+                FilterPeriodLabel = $"7 ngày qua ({fromUtc:dd/MM/yyyy} - {today:dd/MM/yyyy})";
+                break;
+
+            case "30days":
+                fromUtc = today.AddDays(-29);
+                toUtc = today.AddDays(1).AddTicks(-1);
+                FilterPeriodLabel = $"30 ngày qua ({fromUtc:dd/MM/yyyy} - {today:dd/MM/yyyy})";
+                break;
+
+            case "month":
+                if (!string.IsNullOrEmpty(SelectedMonth) && DateTime.TryParseExact(SelectedMonth + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsedMonth))
+                {
+                    fromUtc = DateTime.SpecifyKind(parsedMonth, DateTimeKind.Utc);
+                    toUtc = fromUtc.AddMonths(1).AddTicks(-1);
+                    FilterPeriodLabel = $"Tháng {fromUtc:MM/yyyy} ({fromUtc:dd/MM/yyyy} - {toUtc:dd/MM/yyyy})";
+                }
+                else
+                {
+                    RangeType = "this_month";
+                    fromUtc = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    toUtc = fromUtc.AddMonths(1).AddTicks(-1);
+                    FilterPeriodLabel = $"Tháng này ({fromUtc:dd/MM/yyyy} - {today:dd/MM/yyyy})";
+                }
+                break;
+
+            case "custom":
+                bool hasStart = DateTime.TryParseExact(StartDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var startParsed);
+                bool hasEnd = DateTime.TryParseExact(EndDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var endParsed);
+
+                if (hasStart && hasEnd)
+                {
+                    fromUtc = DateTime.SpecifyKind(startParsed, DateTimeKind.Utc);
+                    toUtc = DateTime.SpecifyKind(endParsed, DateTimeKind.Utc).AddDays(1).AddTicks(-1);
+                }
+                else if (hasStart)
+                {
+                    fromUtc = DateTime.SpecifyKind(startParsed, DateTimeKind.Utc);
+                    toUtc = today.AddDays(1).AddTicks(-1);
+                }
+                else if (hasEnd)
+                {
+                    fromUtc = DateTime.UnixEpoch;
+                    toUtc = DateTime.SpecifyKind(endParsed, DateTimeKind.Utc).AddDays(1).AddTicks(-1);
+                }
+                else
+                {
+                    RangeType = "this_month";
+                    fromUtc = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    toUtc = fromUtc.AddMonths(1).AddTicks(-1);
+                }
+                FilterPeriodLabel = $"Tùy chỉnh ({fromUtc:dd/MM/yyyy} - {(toUtc > now ? today : toUtc):dd/MM/yyyy})";
+                break;
+
+            case "all":
+                fromUtc = DateTime.UnixEpoch;
+                toUtc = DateTime.UtcNow.AddYears(100);
+                FilterPeriodLabel = "Tất cả thời gian";
+                break;
+
+            case "this_month":
+            default:
+                RangeType = "this_month";
+                fromUtc = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                toUtc = fromUtc.AddMonths(1).AddTicks(-1);
+                FilterPeriodLabel = $"Tháng này ({fromUtc:dd/MM/yyyy} - {today:dd/MM/yyyy})";
+                break;
+        }
+
+        // Standard overall stats
         TotalUsers = await _context.Accounts.CountAsync();
         TotalSubjects = await _context.Subjects.CountAsync();
         TotalDocuments = await _context.Documents.CountAsync();
         TotalChunks = await _context.DocumentChunks.CountAsync();
         TotalChats = await _context.ChatHistories.CountAsync();
 
-        TotalTokensThisMonth = await _context.ChatHistories
-            .Where(x =>
-                x.CreatedAt >= startOfMonth &&
-                x.CreatedAt < startOfNextMonth)
+        // Period-filtered stats
+        TotalTokensInPeriod = await _context.ChatHistories
+            .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt <= toUtc)
             .SumAsync(x => (int?)x.TotalTokens) ?? 0;
+        TotalTokensThisMonth = TotalTokensInPeriod;
 
-        // Financial & Subscription stats
         TotalRevenueAllTime = await _context.PaymentTransactions
             .Where(x => x.Status == BusinessObject.Enums.PaymentStatus.Paid)
             .SumAsync(x => (long?)x.Amount) ?? 0;
 
-        TotalRevenueThisMonth = await _context.PaymentTransactions
+        TotalRevenueInPeriod = await _context.PaymentTransactions
             .Where(x => x.Status == BusinessObject.Enums.PaymentStatus.Paid && 
-                        x.CreatedAt >= startOfMonth && 
-                        x.CreatedAt < startOfNextMonth)
-            .SumAsync(x => (int?)x.Amount) ?? 0;
+                        x.CreatedAt >= fromUtc && 
+                        x.CreatedAt <= toUtc)
+            .SumAsync(x => (long?)x.Amount) ?? 0;
+        TotalRevenueThisMonth = (int)TotalRevenueInPeriod;
+
+        TotalChatsInPeriod = await _context.ChatHistories
+            .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt <= toUtc)
+            .CountAsync();
+
+        TotalNewUsersInPeriod = await _context.Accounts
+            .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt <= toUtc)
+            .CountAsync();
 
         ActiveSubscriptionsCount = await _context.Subscriptions
             .Where(x => x.Status == BusinessObject.Enums.SubscriptionStatus.Active && x.EndDate >= now)
@@ -105,9 +205,9 @@ public class IndexModel : PageModel
             ? Math.Round((double)paidTransactions / totalTransactions * 100, 2) 
             : 0;
 
-        // In-memory grouping to avoid DB-translation issues in Npgsql for Date formatting
+        // In-memory grouping for daily chat & token stats
         var chatData = await _context.ChatHistories
-            .Where(x => x.CreatedAt >= thirtyDaysAgo)
+            .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt <= toUtc)
             .Select(x => new { x.CreatedAt, x.TotalTokens })
             .ToListAsync();
 
@@ -124,7 +224,8 @@ public class IndexModel : PageModel
 
         var subPlans = await (from pt in _context.PaymentTransactions
                              join plan in _context.SubscriptionPlans on pt.PlanId equals plan.Id
-                             where pt.Status == BusinessObject.Enums.PaymentStatus.Paid
+                             where pt.Status == BusinessObject.Enums.PaymentStatus.Paid &&
+                                   pt.CreatedAt >= fromUtc && pt.CreatedAt <= toUtc
                              group pt by plan.Name into g
                              select new {
                                  PlanName = g.Key,
@@ -136,6 +237,7 @@ public class IndexModel : PageModel
 
         var topSubjects = await (from ch in _context.ChatHistories
                                 join sub in _context.Subjects on ch.SubjectId equals sub.Id
+                                where ch.CreatedAt >= fromUtc && ch.CreatedAt <= toUtc
                                 group ch by new { sub.Code, sub.Name } into g
                                 select new {
                                     SubjectCode = g.Key.Code,
@@ -148,7 +250,7 @@ public class IndexModel : PageModel
         TopSubjectsJson = System.Text.Json.JsonSerializer.Serialize(topSubjects);
 
         var userData = await _context.Accounts
-            .Where(x => x.CreatedAt >= thirtyDaysAgo)
+            .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt <= toUtc)
             .Select(x => new { x.CreatedAt })
             .ToListAsync();
 
@@ -162,15 +264,13 @@ public class IndexModel : PageModel
             .ToList();
         UserGrowthJson = System.Text.Json.JsonSerializer.Serialize(userGrowth);
 
-        // Standard month lists
         UserTokenUsage = await (
             from chat in _context.ChatHistories
             join account in _context.Accounts
                 on chat.UserId equals account.Account_id.ToString()
             join userInfo in _context.UserInformations
                 on account.Account_id equals userInfo.Account_id
-            where chat.CreatedAt >= startOfMonth &&
-                  chat.CreatedAt < startOfNextMonth
+            where chat.CreatedAt >= fromUtc && chat.CreatedAt <= toUtc
             group chat by new
             {
                 userInfo.Name,
@@ -191,8 +291,7 @@ public class IndexModel : PageModel
             from chat in _context.ChatHistories
             join subject in _context.Subjects
                 on chat.SubjectId equals subject.Id
-            where chat.CreatedAt >= startOfMonth &&
-                  chat.CreatedAt < startOfNextMonth
+            where chat.CreatedAt >= fromUtc && chat.CreatedAt <= toUtc
             group chat by new
             {
                 subject.Code,

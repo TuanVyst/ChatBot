@@ -34,12 +34,6 @@ public class SubjectDetailModel : PageModel
         if (!Guid.TryParse(userIdStr, out var studentId))
             return RedirectToPage("/Auth/Login");
 
-        var isEnrolled = await _context.StudentSubjects
-            .AnyAsync(ss => ss.AccountId == studentId && ss.SubjectId == id);
-
-        if (!isEnrolled)
-            return Forbid();
-
         var subject = await _context.Subjects
             .FirstOrDefaultAsync(s => s.Id == id);
 
