@@ -243,7 +243,17 @@
                                 <span class="toggle-slider"></span>
                             </label>
 
-                            <button type="button" class="btn-edit" title="Edit Plan" onclick="openEditModal(@plan.Id, '@plan.Name', @plan.Price, @plan.DurationDays, @plan.DailyTokenLimit, '@plan.Description', @(plan.IsActive ? "true" : "false"))">
+                            <button type="button" 
+                                    class="btn-edit" 
+                                    title="Edit Plan" 
+                                    data-id="@plan.Id"
+                                    data-name="@plan.Name"
+                                    data-price="@plan.Price"
+                                    data-duration="@plan.DurationDays"
+                                    data-tokenlimit="@plan.DailyTokenLimit"
+                                    data-description="@plan.Description"
+                                    data-isactive="@(plan.IsActive ? "true" : "false")"
+                                    onclick="openEditModalFromBtn(this)">
                                 <i class="ph-bold ph-pencil-simple"></i>
                             </button>
                         </div>
@@ -361,14 +371,22 @@
         openModal('createModal');
     }
 
-    function openEditModal(id, name, price, duration, tokenLimit, description, isActive) {
+    function openEditModalFromBtn(btn) {
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name') || '';
+        const price = btn.getAttribute('data-price') || '0';
+        const duration = btn.getAttribute('data-duration') || '1';
+        const tokenLimit = btn.getAttribute('data-tokenlimit') || '1000';
+        const description = btn.getAttribute('data-description') || '';
+        const isActive = btn.getAttribute('data-isactive') === 'true';
+
         document.getElementById('editPlanId').value = id;
         document.getElementById('editName').value = name;
         document.getElementById('editPrice').value = price;
         document.getElementById('editDuration').value = duration;
         document.getElementById('editTokenLimit').value = tokenLimit;
         document.getElementById('editDescription').value = description;
-        document.getElementById('editIsActive').checked = (isActive === true || isActive === 'true');
+        document.getElementById('editIsActive').checked = isActive;
         
         // Update form action with route ID
         var form = document.getElementById('editForm');
@@ -404,13 +422,9 @@
                         checkbox.checked = false;
                     }
 
-                    // Synchronize btnEdit onclick parameter
+                    // Synchronize btnEdit data-isactive attribute cleanly
                     if (btnEdit) {
-                        const currentOnClick = btnEdit.getAttribute('onclick');
-                        if (currentOnClick) {
-                            const updatedOnClick = currentOnClick.replace(/,\s*(true|false)\)$/, `, ${data.isActive}`);
-                            btnEdit.setAttribute('onclick', updatedOnClick);
-                        }
+                        btnEdit.setAttribute('data-isactive', data.isActive ? 'true' : 'false');
                     }
                 }
                 
