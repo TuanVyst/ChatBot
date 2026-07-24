@@ -52,7 +52,7 @@ namespace ServiceLayer.Implements
 
             // Bước 2: Retrieve top-k chunk liên quan, có filter theo Subject/Chapter/Document
             var (searchSuccess, chunks, searchError) = await _retrievalService.SearchAsync(
-                embedding, topK: 5, subjectId, chapterId, documentId);
+                embedding, topK: 5, subjectId, chapterId, documentId, maxDistance: 0.75);
 
             if (!searchSuccess || chunks == null || chunks.Count == 0)
                 return (false, null, $"No relevant context found. {searchError}");
@@ -62,7 +62,7 @@ namespace ServiceLayer.Implements
             foreach (var chunk in chunks)
             {
                 var fileName = chunk.Document?.FileName ?? "Không rõ nguồn";
-                contextBuilder.AppendLine($"[Nguồn: {fileName}]");
+                contextBuilder.AppendLine($"[Nguồn: {fileName} (Đoạn {chunk.ChunkOrder})]");
                 contextBuilder.AppendLine(chunk.Content);
                 contextBuilder.AppendLine("---");
             }
@@ -73,9 +73,9 @@ namespace ServiceLayer.Implements
                 liên quan, hãy nói rõ "Tôi không tìm thấy thông tin này trong tài liệu" — 
                 không được tự bịa ra câu trả lời.
 
-                Bắt buộc ở cuối câu trả lời của bạn, phải có một dòng duy nhất theo định dạng chính xác sau để chỉ định nguồn tài liệu:
-                [SOURCES]: tên_file_1, tên_file_2
-                Trong đó, tên_file_1, tên_file_2 là danh sách tên các file nguồn (ví dụ: tailieu.pdf) mà bạn thực sự sử dụng thông tin từ đó để tạo câu trả lời. Nếu câu trả lời không sử dụng nguồn nào hoặc bạn tự trả lời, hãy ghi: [SOURCES]: None.
+                Bắt buộc ở cuối câu trả lời của bạn, phải có một dòng duy nhất theo định dạng chính xác sau để chỉ định nguồn tài liệu và các đoạn trích (chunk) mà bạn thực sự sử dụng:
+                [SOURCES]: tên_file_1 (Đoạn X), tên_file_2 (Đoạn Y)
+                Trong đó, tên_file là tên file nguồn và (Đoạn X) là số đoạn hiển thị trong phần [Nguồn: ...] (ví dụ: tailieu.pdf (Đoạn 0)). Nếu câu trả lời không sử dụng nguồn nào hoặc bạn tự trả lời, hãy ghi: [SOURCES]: None.
 
                 Ngữ cảnh:
                 {contextBuilder}
@@ -99,6 +99,7 @@ namespace ServiceLayer.Implements
             // Phân tích và làm sạch câu trả lời, tách biệt phần SOURCES thô
             string cleanAnswer = answer;
             var sources = new List<string>();
+            var filteredChunks = new List<DocumentChunk>();
             var marker = "[SOURCES]:";
             int markerIndex = answer.LastIndexOf(marker);
 
@@ -116,9 +117,9 @@ namespace ServiceLayer.Implements
                 var filesPart = sourcesLine.Replace(marker, "").Replace("**", "").Trim();
                 if (!string.Equals(filesPart, "None", StringComparison.OrdinalIgnoreCase))
                 {
-                    var fileNames = filesPart.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                                             .Select(f => f.Trim().Trim('[', ']', '`', '"', '*'))
-                                             .ToList();
+                    var matches = System.Text.RegularExpressions.Regex.Matches(
+                        filesPart,
+                        @"(?<file>[^\,\;\(\)]+?)(?:\s*\([Đđ]oạn\s*(?<order>\d+)\))?(?:[\,\;\)]|$)");
 
                     var retrievedFiles = chunks
                         .Where(c => c.Document != null)
@@ -126,17 +127,58 @@ namespace ServiceLayer.Implements
                         .Distinct()
                         .ToList();
 
-                    foreach (var file in fileNames)
-                    {
-                        var matchedFile = retrievedFiles.FirstOrDefault(rf =>
-                            string.Equals(rf, file, StringComparison.OrdinalIgnoreCase) ||
-                            rf.Contains(file, StringComparison.OrdinalIgnoreCase) ||
-                            file.Contains(rf, StringComparison.OrdinalIgnoreCase));
+                    var matchedChunks = new List<DocumentChunk>();
 
-                        if (matchedFile != null && !sources.Contains(matchedFile))
+                    foreach (System.Text.RegularExpressions.Match match in matches)
+                    {
+                        var rawFile = match.Groups["file"].Value.Trim().Trim('[', ']', '`', '"', '*');
+                        if (string.IsNullOrWhiteSpace(rawFile) || string.Equals(rawFile, "None", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        var matchedFile = retrievedFiles.FirstOrDefault(rf =>
+                            string.Equals(rf, rawFile, StringComparison.OrdinalIgnoreCase) ||
+                            rf.Contains(rawFile, StringComparison.OrdinalIgnoreCase) ||
+                            rawFile.Contains(rf, StringComparison.OrdinalIgnoreCase));
+
+                        if (matchedFile != null)
                         {
-                            sources.Add(matchedFile);
+                            if (!sources.Contains(matchedFile))
+                            {
+                                sources.Add(matchedFile);
+                            }
+
+                            int? chunkOrder = null;
+                            if (match.Groups["order"].Success && int.TryParse(match.Groups["order"].Value, out int orderVal))
+                            {
+                                chunkOrder = orderVal;
+                            }
+
+                            var fileChunks = chunks.Where(c => c.Document != null && string.Equals(c.Document.FileName, matchedFile, StringComparison.OrdinalIgnoreCase));
+
+                            if (chunkOrder.HasValue)
+                            {
+                                var targetChunk = fileChunks.FirstOrDefault(c => c.ChunkOrder == chunkOrder.Value);
+                                if (targetChunk != null && !matchedChunks.Contains(targetChunk))
+                                {
+                                    matchedChunks.Add(targetChunk);
+                                }
+                            }
+                            else
+                            {
+                                foreach (var fc in fileChunks)
+                                {
+                                    if (!matchedChunks.Contains(fc))
+                                    {
+                                        matchedChunks.Add(fc);
+                                    }
+                                }
+                            }
                         }
+                    }
+
+                    if (matchedChunks.Any())
+                    {
+                        filteredChunks = matchedChunks;
                     }
                 }
             }
@@ -151,14 +193,17 @@ namespace ServiceLayer.Implements
                     .ToList();
             }
 
-            // Lọc danh sách chunks thực sự được sử dụng để lưu trữ lịch sử chính xác
-            var filteredChunks = chunks
-                .Where(c => c.Document != null && sources.Contains(c.Document.FileName))
-                .ToList();
-
+            // Nếu chưa lọc được chunk cụ thể nào, giữ lại danh sách chunks gốc của các file trong sources
             if (filteredChunks.Count == 0)
             {
-                filteredChunks = chunks;
+                filteredChunks = chunks
+                    .Where(c => c.Document != null && sources.Contains(c.Document.FileName))
+                    .ToList();
+
+                if (filteredChunks.Count == 0)
+                {
+                    filteredChunks = chunks;
+                }
             }
 
             var result = new RagResult

@@ -25,7 +25,8 @@ namespace ServiceLayer.Implements
             int topK = 5,
             Guid? subjectId = null,
             Guid? chapterId = null,
-            int? documentId = null)
+            int? documentId = null,
+            double? maxDistance = null)
         {
             try
             {
@@ -78,6 +79,12 @@ namespace ServiceLayer.Implements
                     query = query.Where(c =>
                         c.Document != null &&
                         c.Document.ChapterId == chapterId.Value);
+                }
+
+                if (maxDistance.HasValue)
+                {
+                    query = query.Where(c =>
+                        c.Embedding.CosineDistance(vector) <= maxDistance.Value);
                 }
 
                 var results = await query

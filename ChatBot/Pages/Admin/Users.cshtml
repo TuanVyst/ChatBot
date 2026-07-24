@@ -4,6 +4,7 @@
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Manage Users";
+    var currentUserIdStr = Model.CurrentUserId;
 }
 
 <div class="admin-header">
@@ -22,6 +23,13 @@
     @if (TempData["Message"] != null)
     {
         <div class="notice success">@TempData["Message"]</div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="notice error" style="background: rgba(229, 62, 62, 0.1); color: #e53e3e; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; border: 1px solid rgba(229, 62, 62, 0.2);">
+            @TempData["ErrorMessage"]
+        </div>
     }
 
     @if (TempData["AdminPendingEmail"] != null)
@@ -46,6 +54,8 @@
         <tbody>
             @foreach (var item in Model.Users)
             {
+                var isSelf = string.Equals(currentUserIdStr, item.Account.Account_id.ToString(), StringComparison.OrdinalIgnoreCase);
+
                 <tr>
                     <td>
                         <div style="display:flex;align-items:center;gap:12px;">
@@ -89,29 +99,42 @@
                     <td>
                         <div class="table-actions" style="justify-content:flex-end;">
 
-                            <form method="post"
-                                  asp-page-handler="ToggleStatus"
-                                  asp-route-id="@item.Account.Account_id"
-                                  style="margin:0;">
-
-                                <button type="submit"
-                                        class="@(item.Account.IsActive ? "btn-danger" : "btn-success")"
-                                        style="border:none;cursor:pointer;display:flex;align-items:center;gap:4px;">
-
-                                    @if (item.Account.IsActive)
-                                    {
-                                        <i class="ph-bold ph-lock-key"></i>
-                                        <span>Deactivate</span>
-                                    }
-                                    else
-                                    {
-                                        <i class="ph-bold ph-lock-key-open"></i>
-                                        <span>Activate</span>
-                                    }
-
+                            @if (isSelf)
+                            {
+                                <button type="button"
+                                        disabled
+                                        title="Bạn không thể vô hiệu hóa tài khoản của chính mình"
+                                        style="border:none;cursor:not-allowed;display:flex;align-items:center;gap:4px;opacity:0.55;background:#cbd5e0;color:#4a5568;padding:6px 12px;border-radius:6px;font-size:0.85rem;">
+                                    <i class="ph-bold ph-user"></i>
+                                    <span>Current User</span>
                                 </button>
+                            }
+                            else
+                            {
+                                <form method="post"
+                                      asp-page-handler="ToggleStatus"
+                                      asp-route-id="@item.Account.Account_id"
+                                      style="margin:0;">
 
-                            </form>
+                                    <button type="submit"
+                                            class="@(item.Account.IsActive ? "btn-danger" : "btn-success")"
+                                            style="border:none;cursor:pointer;display:flex;align-items:center;gap:4px;">
+
+                                        @if (item.Account.IsActive)
+                                        {
+                                            <i class="ph-bold ph-lock-key"></i>
+                                            <span>Deactivate</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="ph-bold ph-lock-key-open"></i>
+                                            <span>Activate</span>
+                                        }
+
+                                    </button>
+
+                                </form>
+                            }
 
                         </div>
                     </td>
